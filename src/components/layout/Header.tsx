@@ -1,0 +1,218 @@
+import React, { useState } from 'react';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Box,
+  Avatar,
+  Menu,
+  MenuItem,
+  IconButton,
+  useTheme,
+  useMediaQuery,
+} from '@mui/material';
+import {
+  Menu as MenuIcon,
+  AccountCircle,
+  Dashboard,
+  School,
+  Person,
+  Logout,
+} from '@mui/icons-material';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+
+const Header: React.FC = () => {
+  const { currentUser, logout } = useAuth();
+  const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [mobileMenuAnchor, setMobileMenuAnchor] = useState<null | HTMLElement>(null);
+
+  const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMobileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setMobileMenuAnchor(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setMobileMenuAnchor(null);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      handleMenuClose();
+      navigate('/');
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
+
+  const menuId = 'primary-search-account-menu';
+  const mobileMenuId = 'primary-search-account-menu-mobile';
+
+  const renderMenu = (
+    <Menu
+      anchorEl={anchorEl}
+      id={menuId}
+      keepMounted
+      open={Boolean(anchorEl)}
+      onClose={handleMenuClose}
+    >
+      <MenuItem onClick={() => { handleMenuClose(); navigate('/dashboard'); }}>
+        <Dashboard sx={{ mr: 1 }} />
+        Dashboard
+      </MenuItem>
+      <MenuItem onClick={() => { handleMenuClose(); navigate('/profile'); }}>
+        <Person sx={{ mr: 1 }} />
+        Profile
+      </MenuItem>
+      {currentUser?.isAdmin && (
+        <MenuItem onClick={() => { handleMenuClose(); navigate('/admin'); }}>
+          <School sx={{ mr: 1 }} />
+          Admin
+        </MenuItem>
+      )}
+      <MenuItem onClick={handleLogout}>
+        <Logout sx={{ mr: 1 }} />
+        Logout
+      </MenuItem>
+    </Menu>
+  );
+
+  const renderMobileMenu = (
+    <Menu
+      anchorEl={mobileMenuAnchor}
+      id={mobileMenuId}
+      keepMounted
+      open={Boolean(mobileMenuAnchor)}
+      onClose={handleMenuClose}
+    >
+      <MenuItem onClick={() => { handleMenuClose(); navigate('/dashboard'); }}>
+        <Dashboard sx={{ mr: 1 }} />
+        Dashboard
+      </MenuItem>
+      <MenuItem onClick={() => { handleMenuClose(); navigate('/profile'); }}>
+        <Person sx={{ mr: 1 }} />
+        Profile
+      </MenuItem>
+      {currentUser?.isAdmin && (
+        <MenuItem onClick={() => { handleMenuClose(); navigate('/admin'); }}>
+          <School sx={{ mr: 1 }} />
+          Admin
+        </MenuItem>
+      )}
+      <MenuItem onClick={handleLogout}>
+        <Logout sx={{ mr: 1 }} />
+        Logout
+      </MenuItem>
+    </Menu>
+  );
+
+  return (
+    <AppBar position="static" elevation={1}>
+      <Toolbar>
+        <Typography
+          variant="h6"
+          component={Link}
+          to="/"
+          sx={{
+            flexGrow: 1,
+            textDecoration: 'none',
+            color: 'inherit',
+            fontWeight: 700,
+          }}
+        >
+          The Reverse Aging Challenge
+        </Typography>
+
+        {currentUser ? (
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            {isMobile ? (
+              <>
+                <IconButton
+                  size="large"
+                  edge="end"
+                  aria-label="account of current user"
+                  aria-controls={mobileMenuId}
+                  aria-haspopup="true"
+                  onClick={handleMobileMenuOpen}
+                  color="inherit"
+                >
+                  <MenuIcon />
+                </IconButton>
+                {renderMobileMenu}
+              </>
+            ) : (
+              <>
+                <Button
+                  color="inherit"
+                  component={Link}
+                  to="/dashboard"
+                  sx={{ mr: 2 }}
+                >
+                  Dashboard
+                </Button>
+                <IconButton
+                  size="large"
+                  edge="end"
+                  aria-label="account of current user"
+                  aria-controls={menuId}
+                  aria-haspopup="true"
+                  onClick={handleProfileMenuOpen}
+                  color="inherit"
+                >
+                  {currentUser.photoURL ? (
+                    <Avatar
+                      src={currentUser.photoURL}
+                      alt={currentUser.name}
+                      sx={{ width: 32, height: 32 }}
+                    />
+                  ) : (
+                    <AccountCircle />
+                  )}
+                </IconButton>
+                {renderMenu}
+              </>
+            )}
+          </Box>
+        ) : (
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              color="inherit"
+              component={Link}
+              to="/"
+              sx={{ display: { xs: 'none', sm: 'block' } }}
+            >
+              Sign In
+            </Button>
+            <Button
+              variant="contained"
+              color="secondary"
+              component={Link}
+              to="/"
+              sx={{
+                backgroundColor: 'white',
+                color: 'primary.main',
+                '&:hover': {
+                  backgroundColor: 'grey.100',
+                },
+              }}
+            >
+              Get Started
+            </Button>
+          </Box>
+        )}
+      </Toolbar>
+    </AppBar>
+  );
+};
+
+export default Header; 
