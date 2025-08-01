@@ -435,10 +435,10 @@ const LessonPage: React.FC = () => {
                             <Box sx={{ width: '100%', bgcolor: 'grey.50', p: 2, borderRadius: 1 }}>
                               <Typography variant="body2" color="primary.main" fontWeight="medium">
                                 Answer:
-                              </Typography>
+        </Typography>
                               <Typography variant="body2">
                                 {q.answer}
-                              </Typography>
+        </Typography>
                             </Box>
                           )}
                         </ListItem>

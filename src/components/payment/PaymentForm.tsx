@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -13,12 +13,17 @@ import {
   Chip,
   CircularProgress,
   Divider,
+  Alert,
 } from '@mui/material';
 import {
   CreditCard,
   Discount,
   CheckCircle,
 } from '@mui/icons-material';
+import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
+import { useAuth } from '../../contexts/AuthContext';
+import { processSuccessfulPayment, processFailedPayment } from '../../services/paymentService';
+import { getActiveEnrollment } from '../../services/enrollmentService';
 
 interface PaymentFormProps {
   courseId: string;
@@ -42,21 +47,42 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   onSuccess,
   onError,
 }) => {
+  const stripe = useStripe();
+  const elements = useElements();
+  const { currentUser } = useAuth();
 
   const [paymentMethod, setPaymentMethod] = useState<'full' | 'installments'>('full');
   const [discountCode, setDiscountCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState<DiscountCode | null>(null);
   const [loading, setLoading] = useState(false);
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiryDate, setExpiryDate] = useState('');
-  const [cvv, setCvv] = useState('');
   const [cardholderName, setCardholderName] = useState('');
+  const [showTestCards, setShowTestCards] = useState(false);
+  const [isEnrolled, setIsEnrolled] = useState(false);
+
+  // Check if user is already enrolled
+  useEffect(() => {
+    const checkEnrollment = async () => {
+      if (currentUser) {
+        const enrollment = await getActiveEnrollment(currentUser.id, courseId);
+        setIsEnrolled(!!enrollment);
+      }
+    };
+    checkEnrollment();
+  }, [currentUser, courseId]);
 
   // Mock discount codes - replace with real validation
   const validDiscountCodes: DiscountCode[] = [
     { code: 'WELCOME50', type: 'fixed', value: 50, isValid: true },
     { code: 'EARLYBIRD', type: 'percentage', value: 10, isValid: true },
     { code: 'FRIEND20', type: 'percentage', value: 20, isValid: true },
+  ];
+
+  // Stripe test card numbers
+  const testCards = [
+    { name: 'Visa (Success)', number: '4242424242424242', cvv: '123', expiry: '12/25' },
+    { name: 'Visa (Declined)', number: '4000000000000002', cvv: '123', expiry: '12/25' },
+    { name: 'Mastercard (Success)', number: '5555555555554444', cvv: '123', expiry: '12/25' },
+    { name: '3D Secure (Success)', number: '4000002500003155', cvv: '123', expiry: '12/25' },
   ];
 
   const calculatePrice = () => {
@@ -92,44 +118,91 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
     setAppliedDiscount(null);
   };
 
-  const formatCardNumber = (value: string) => {
-    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-    const matches = v.match(/\d{4,16}/g);
-    const match = (matches && matches[0]) || '';
-    const parts = [];
-    
-    for (let i = 0, len = match.length; i < len; i += 4) {
-      parts.push(match.substring(i, i + 4));
-    }
-    
-    if (parts.length) {
-      return parts.join(' ');
-    } else {
-      return v;
-    }
-  };
-
-  const formatExpiryDate = (value: string) => {
-    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-    if (v.length >= 2) {
-      return v.substring(0, 2) + '/' + v.substring(2, 4);
-    }
-    return v;
-  };
+  // Check if user is already enrolled
+  if (isEnrolled) {
+    return (
+      <Box sx={{ maxWidth: 600, mx: 'auto', textAlign: 'center' }}>
+        <CheckCircle sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
+        <Typography variant="h4" gutterBottom>
+          You're Already Enrolled!
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+          You have already enrolled in this course. You can access your course content from the dashboard.
+        </Typography>
+        <Button
+          variant="contained"
+          size="large"
+          onClick={() => window.location.href = '/dashboard'}
+        >
+          Go to Dashboard
+        </Button>
+      </Box>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!stripe || !elements || !currentUser) {
+      onError('Payment system not ready. Please try again.');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // TODO: Integrate with Stripe API
-      // This is a mock implementation
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const paymentId = `pay_${Date.now()}`;
-      onSuccess(paymentId);
+      console.log('Processing payment with Stripe...');
+      console.log('Course ID:', courseId);
+      console.log('Amount:', calculatePrice());
+      console.log('User ID:', currentUser.id);
+
+      // Get the card element
+      const cardElement = elements.getElement(CardElement);
+      if (!cardElement) {
+        throw new Error('Card information is required.');
+      }
+
+      // Create payment intent (simulated for now - in production this would call your backend)
+      const amount = Math.round(calculatePrice() * 100); // Convert to cents
+      const paymentIntentId = `pi_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      // Confirm the payment with Stripe
+      const { error, paymentIntent } = await stripe.confirmCardPayment(
+        paymentIntentId, // In production, this would be a real client secret from your backend
+        {
+          payment_method: {
+            card: cardElement,
+            billing_details: {
+              name: cardholderName,
+            },
+          },
+        }
+      );
+
+      if (error) {
+        console.error('Payment failed:', error);
+        throw new Error(error.message || 'Payment failed. Please try again.');
+      }
+
+      if (paymentIntent && paymentIntent.status === 'succeeded') {
+        console.log('Payment successful! Payment Intent ID:', paymentIntent.id);
+        
+        // Process the successful payment
+        const paymentId = await processSuccessfulPayment(
+          currentUser.id,
+          courseId,
+          'default-cohort-id', // You'll need to get the actual cohort ID
+          calculatePrice(),
+          paymentIntent.id
+        );
+
+        onSuccess(paymentId);
+      } else {
+        throw new Error('Payment was not successful.');
+      }
     } catch (error) {
-      onError('Payment failed. Please try again.');
+      console.error('Payment failed:', error);
+      onError(error instanceof Error ? error.message : 'Payment failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -147,6 +220,38 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
       <Typography variant="body1" color="text.secondary" align="center" sx={{ mb: 4 }}>
         Join The Reverse Aging Challenge and transform your health
       </Typography>
+
+      {/* Test Mode Alert */}
+      <Alert severity="info" sx={{ mb: 3 }}>
+        <strong>Test Mode:</strong> Use these test card numbers to simulate payments:
+        <Button 
+          size="small" 
+          onClick={() => setShowTestCards(!showTestCards)}
+          sx={{ ml: 1 }}
+        >
+          {showTestCards ? 'Hide' : 'Show'} Test Cards
+        </Button>
+      </Alert>
+
+      {showTestCards && (
+        <Card sx={{ mb: 3, backgroundColor: 'rgba(25, 118, 210, 0.1)' }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Test Card Numbers
+            </Typography>
+            {testCards.map((card, index) => (
+              <Box key={index} sx={{ mb: 1, p: 1, backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: 1 }}>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {card.name}
+                </Typography>
+                <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
+                  {card.number} | CVV: {card.cvv} | Exp: {card.expiry}
+                </Typography>
+              </Box>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <Card sx={{ mb: 3 }}>
         <CardContent>
@@ -217,8 +322,8 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
                 onChange={(e) => setDiscountCode(e.target.value)}
                 size="small"
               />
-              <Button
-                variant="outlined"
+              <Button 
+                variant="outlined" 
                 onClick={handleApplyDiscount}
                 disabled={!discountCode.trim()}
               >
@@ -236,7 +341,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
             Payment Method
           </Typography>
           
-          <FormControl component="fieldset" sx={{ width: '100%' }}>
+          <FormControl component="fieldset">
             <RadioGroup
               value={paymentMethod}
               onChange={(e) => setPaymentMethod(e.target.value as 'full' | 'installments')}
@@ -245,38 +350,25 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
                 value="full"
                 control={<Radio />}
                 label={
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                    <Box>
-                      <Typography variant="body1">Pay in Full</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        One-time payment
-                      </Typography>
-                    </Box>
-                    <Typography variant="h6" color="primary.main">
-                      €{finalPrice}
+                  <Box>
+                    <Typography variant="body1">Pay in Full</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      €{finalPrice} (one-time payment)
                     </Typography>
                   </Box>
                 }
-                sx={{ width: '100%', mb: 2 }}
               />
-              
               <FormControlLabel
                 value="installments"
                 control={<Radio />}
                 label={
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                    <Box>
-                      <Typography variant="body1">Pay in Installments</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        2 payments of €{installmentAmount}
-                      </Typography>
-                    </Box>
-                    <Typography variant="h6" color="primary.main">
-                      €{finalPrice}
+                  <Box>
+                    <Typography variant="body1">Pay in Installments</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      2 payments of €{installmentAmount} each
                     </Typography>
                   </Box>
                 }
-                sx={{ width: '100%' }}
               />
             </RadioGroup>
           </FormControl>
@@ -296,42 +388,29 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
               label="Cardholder Name"
               value={cardholderName}
               onChange={(e) => setCardholderName(e.target.value)}
-              margin="normal"
+              sx={{ mb: 2 }}
               required
-              disabled={loading}
             />
             
-            <TextField
-              fullWidth
-              label="Card Number"
-              value={cardNumber}
-              onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
-              margin="normal"
-              required
-              disabled={loading}
-              inputProps={{ maxLength: 19 }}
-            />
-            
-            <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-              <TextField
-                label="Expiry Date"
-                value={expiryDate}
-                onChange={(e) => setExpiryDate(formatExpiryDate(e.target.value))}
-                placeholder="MM/YY"
-                required
-                disabled={loading}
-                inputProps={{ maxLength: 5 }}
-                sx={{ flex: 1 }}
-              />
-              
-              <TextField
-                label="CVV"
-                value={cvv}
-                onChange={(e) => setCvv(e.target.value.replace(/\D/g, ''))}
-                required
-                disabled={loading}
-                inputProps={{ maxLength: 4 }}
-                sx={{ flex: 1 }}
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                Card Information
+              </Typography>
+              <CardElement
+                options={{
+                  style: {
+                    base: {
+                      fontSize: '16px',
+                      color: '#424770',
+                      '::placeholder': {
+                        color: '#aab7c4',
+                      },
+                    },
+                    invalid: {
+                      color: '#9e2146',
+                    },
+                  },
+                }}
               />
             </Box>
             
@@ -340,17 +419,26 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
               variant="contained"
               fullWidth
               size="large"
-              disabled={loading}
-              startIcon={loading ? <CircularProgress size={20} /> : <CreditCard />}
-              sx={{ mt: 3 }}
+              disabled={loading || !cardholderName}
+              sx={{
+                backgroundColor: 'primary.main',
+                color: '#000',
+                fontWeight: 700,
+                '&:hover': {
+                  backgroundColor: 'primary.light',
+                }
+              }}
             >
-              {loading ? 'Processing...' : `Pay €${finalPrice}`}
+              {loading ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CircularProgress size={20} color="inherit" />
+                  Processing Payment...
+                </Box>
+              ) : (
+                `Pay €${finalPrice}`
+              )}
             </Button>
           </form>
-          
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
-            Your payment is secure and encrypted. You can cancel your subscription at any time.
-          </Typography>
         </CardContent>
       </Card>
     </Box>

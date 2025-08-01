@@ -10,7 +10,7 @@ import {
   getRedirectResult,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, Timestamp } from 'firebase/firestore';
-import { auth, db, googleProvider, facebookProvider } from '../firebaseConfig';
+import { auth, db, googleProvider, facebookProvider, handleRedirectResult, signInWithGoogle as firebaseSignInWithGoogle } from '../firebaseConfig';
 import { User } from '../types';
 
 interface AuthContextType {
@@ -81,7 +81,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function signInWithGoogle() {
     try {
-      await signInWithRedirect(auth, googleProvider);
+      console.log('=== Google Sign-In Debug ===');
+      console.log('Starting Google sign-in...');
+      
+      // Add custom parameters to force account selection
+      googleProvider.setCustomParameters({
+        prompt: 'select_account'
+      });
+      
+      // Use the working implementation from firebaseConfig
+      await firebaseSignInWithGoogle();
+      console.log('=== End Google Sign-In Debug ===');
     } catch (error) {
       console.error('Error signing in with Google:', error);
       throw error;
@@ -181,31 +191,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const initializeAuth = async () => {
-      try {
-        // Handle redirect result first
-        const result = await getRedirectResult(auth);
-        if (result) {
-          console.log('Redirect result found, handling social sign in...');
-          await handleSocialSignIn(result.user);
-        }
-      } catch (error) {
-        console.error('Error handling redirect result:', error);
-      }
-
-      // Set up auth state listener
+      console.log('=== INITIALIZING AUTH ===');
+      
+      // Set up persistent auth state listener first
+      console.log('Setting up persistent auth state listener...');
       const unsubscribe = onAuthStateChanged(auth, async (user) => {
-        console.log('Auth state changed:', user ? 'User signed in' : 'User signed out');
+        console.log('Auth state changed:', user ? `User signed in (${user.uid})` : 'User signed out');
         setFirebaseUser(user);
         
         if (user) {
           try {
+            console.log('Fetching user document for:', user.uid);
             const userDoc = await getDoc(doc(db, 'users', user.uid));
             if (userDoc.exists()) {
               console.log('User document found, setting current user');
               setCurrentUser(userDoc.data() as User);
             } else {
-              console.log('User document not found, user might not be properly created');
-              // If user document doesn't exist, try to create it
+              console.log('User document not found, creating new user document');
               await handleSocialSignIn(user);
             }
           } catch (error) {
@@ -228,11 +230,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setCurrentUser(userData);
           }
         } else {
+          console.log('Setting currentUser to null');
           setCurrentUser(null);
         }
         
         setLoading(false);
       });
+
+      // Check for redirect result after setting up the listener
+      // Add a small delay to ensure Firebase is ready
+      setTimeout(async () => {
+        try {
+          console.log('Checking for redirect result...');
+          const result = await getRedirectResult(auth);
+          console.log('Direct getRedirectResult returned:', result);
+          if (result) {
+            console.log('Redirect result found, user should be signed in');
+            // The redirect result will trigger onAuthStateChanged
+          } else {
+            console.log('No redirect result found');
+          }
+        } catch (error) {
+          console.error('Error handling redirect result:', error);
+        }
+      }, 100);
 
       return unsubscribe;
     };

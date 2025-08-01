@@ -359,7 +359,7 @@ const CoursePage: React.FC = () => {
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
                           {Math.round(progress.watchedPercentage)}%
-                        </Typography>
+        </Typography>
                       </Box>
                       <LinearProgress 
                         variant="determinate" 
@@ -393,7 +393,7 @@ const CoursePage: React.FC = () => {
           <Box sx={{ mt: 6 }}>
             <Typography variant="h5" gutterBottom>
               Course Resources
-            </Typography>
+        </Typography>
             <Card>
               <CardContent>
                 <List>

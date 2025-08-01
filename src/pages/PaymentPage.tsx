@@ -13,9 +13,14 @@ import {
   CheckCircle,
   ArrowBack,
 } from '@mui/icons-material';
+import { Elements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
 import { useAuth } from '../contexts/AuthContext';
 import { useCourse } from '../contexts/CourseContext';
 import PaymentForm from '../components/payment/PaymentForm';
+
+// Initialize Stripe
+const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY!);
 
 const PaymentPage: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
@@ -122,13 +127,15 @@ const PaymentPage: React.FC = () => {
           </Alert>
         )}
 
-        <PaymentForm
-          courseId={courseId || ''}
-          courseTitle={course.title}
-          price={course.price}
-          onSuccess={handlePaymentSuccess}
-          onError={handlePaymentError}
-        />
+        <Elements stripe={stripePromise}>
+          <PaymentForm
+            courseId={courseId || ''}
+            courseTitle={course.title}
+            price={course.price}
+            onSuccess={handlePaymentSuccess}
+            onError={handlePaymentError}
+          />
+        </Elements>
       </Box>
     </Container>
   );

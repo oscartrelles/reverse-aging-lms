@@ -27,7 +27,14 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
     return <Navigate to="/" replace />;
   }
 
+  // Allow non-admin users to access admin dashboard for the purpose of making themselves admin
   if (!currentUser.isAdmin) {
+    // Check if we're on the admin dashboard page specifically
+    const isAdminDashboard = window.location.pathname === '/admin';
+    if (isAdminDashboard) {
+      // Allow access to admin dashboard for non-admin users
+      return <>{children}</>;
+    }
     return <Navigate to="/dashboard" replace />;
   }
 

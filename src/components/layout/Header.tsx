@@ -12,6 +12,7 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
+
 import {
   Menu as MenuIcon,
   AccountCircle,
@@ -119,19 +120,30 @@ const Header: React.FC = () => {
   return (
     <AppBar position="static" elevation={1}>
       <Toolbar>
-        <Typography
-          variant="h6"
-          component={Link}
-          to="/"
-          sx={{
-            flexGrow: 1,
-            textDecoration: 'none',
-            color: 'inherit',
-            fontWeight: 700,
-          }}
-        >
-          The Reverse Aging Challenge
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
+          <img 
+            src="/BF-RAC.png" 
+            alt="Reverse Aging Challenge Logo"
+            style={{ 
+              width: 40, 
+              height: 40, 
+              marginRight: 12,
+              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
+            }} 
+          />
+          <Typography
+            variant="h6"
+            component={Link}
+            to="/"
+            sx={{
+              textDecoration: 'none',
+              color: 'inherit',
+              fontWeight: 700,
+            }}
+          >
+            The Reverse Aging Challenge
+          </Typography>
+        </Box>
 
         {currentUser ? (
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -183,33 +195,7 @@ const Header: React.FC = () => {
               </>
             )}
           </Box>
-        ) : (
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              color="inherit"
-              component={Link}
-              to="/"
-              sx={{ display: { xs: 'none', sm: 'block' } }}
-            >
-              Sign In
-            </Button>
-            <Button
-              variant="contained"
-              color="secondary"
-              component={Link}
-              to="/"
-              sx={{
-                backgroundColor: 'white',
-                color: 'primary.main',
-                '&:hover': {
-                  backgroundColor: 'grey.100',
-                },
-              }}
-            >
-              Get Started
-            </Button>
-          </Box>
-        )}
+        ) : null}
       </Toolbar>
     </AppBar>
   );

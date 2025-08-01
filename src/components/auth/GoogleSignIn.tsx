@@ -8,9 +8,12 @@ const GoogleSignIn: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGoogleSignIn = async () => {
+    console.log('Google Sign-In button clicked');
     setIsLoading(true);
     try {
+      console.log('Calling signInWithGoogle...');
       await signInWithGoogle();
+      console.log('signInWithGoogle completed');
     } catch (error) {
       console.error('Google sign-in error:', error);
     } finally {

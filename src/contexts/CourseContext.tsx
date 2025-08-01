@@ -45,6 +45,7 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
 
   async function loadCourses() {
     try {
+      console.log('CourseContext: Loading courses...');
       const coursesQuery = query(collection(db, 'courses'), where('status', '==', 'active'));
       const snapshot = await getDocs(coursesQuery);
       const coursesData = snapshot.docs.map(doc => ({
@@ -52,6 +53,7 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
         ...doc.data(),
       })) as Course[];
       
+      console.log('CourseContext: Loaded courses:', coursesData);
       setCourses(coursesData);
     } catch (error) {
       console.error('Error loading courses:', error);
