@@ -197,6 +197,11 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         );
 
         onSuccess(paymentId);
+        
+        // Force a page refresh to update the dashboard state after 2 seconds
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
       } else {
         throw new Error('Payment was not successful.');
       }

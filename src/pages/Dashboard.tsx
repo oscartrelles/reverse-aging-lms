@@ -163,6 +163,8 @@ const Dashboard: React.FC = () => {
   const cohortHasStarted = currentCohort && new Date() >= currentCohort.startDate.toDate();
   const isActiveStudent = isEnrolled && cohortHasStarted;
 
+
+
   if (loading) {
     return (
       <Container maxWidth="lg">
@@ -1179,7 +1181,7 @@ const Dashboard: React.FC = () => {
             </Typography>
             
             <Typography variant="body1" sx={{ mb: 4, color: 'text.secondary', lineHeight: 1.7, fontSize: '1.1rem' }}>
-              Join {communityStats.activeStudents} students already transforming their lives through our evidence-based, comprehensive 7-week program. 
+              Join {communityStats.activeStudents} students around the world already transforming their lives through our evidence-based, comprehensive 7-week program. 
               Start your journey today and unlock the secrets to reverse aging naturally through proven scientific protocols.
             </Typography>
 
