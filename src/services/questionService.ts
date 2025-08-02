@@ -1,4 +1,4 @@
-import { doc, setDoc, collection, query, where, getDocs, orderBy, Timestamp, addDoc } from 'firebase/firestore';
+import { doc, setDoc, collection, query, where, getDocs, orderBy, Timestamp, addDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { Question } from '../types';
 
@@ -14,17 +14,68 @@ export const questionService = {
   // Create a new question for a specific lesson
   async createQuestion(questionData: CreateQuestionData): Promise<string> {
     try {
+      // Get user information for display
+      const userDoc = await getDoc(doc(db, 'users', questionData.userId));
+      const userData = userDoc.exists() ? userDoc.data() as { name?: string; photoURL?: string } : null;
+      
       const questionRef = await addDoc(collection(db, 'questions'), {
         ...questionData,
         isAnswered: false,
         isPublic: questionData.isPublic ?? true,
         createdAt: Timestamp.now(),
+        // Initialize voting
+        votes: 0,
+        votedBy: [],
+        // Add user information for display
+        userName: userData?.name || 'Anonymous',
+        userPhotoURL: userData?.photoURL || null,
       });
       
       console.log(`✅ Created question for lesson ${questionData.lessonId}`);
       return questionRef.id;
     } catch (error) {
       console.error('❌ Error creating question:', error);
+      throw error;
+    }
+  },
+
+  // Vote for a question
+  async voteQuestion(questionId: string, userId: string, isUpvote: boolean): Promise<void> {
+    try {
+      const questionRef = doc(db, 'questions', questionId);
+      const questionDoc = await getDoc(questionRef);
+      
+      if (!questionDoc.exists()) {
+        throw new Error('Question not found');
+      }
+      
+      const questionData = questionDoc.data();
+      const currentVotes = questionData.votes || 0;
+      const currentVotedBy = questionData.votedBy || [];
+      
+      let newVotes = currentVotes;
+      let newVotedBy = [...currentVotedBy];
+      
+      if (isUpvote) {
+        if (!currentVotedBy.includes(userId)) {
+          newVotes += 1;
+          newVotedBy.push(userId);
+        }
+      } else {
+        if (currentVotedBy.includes(userId)) {
+          newVotes -= 1;
+          newVotedBy = currentVotedBy.filter((id: string) => id !== userId);
+        }
+      }
+      
+      await setDoc(questionRef, {
+        votes: newVotes,
+        votedBy: newVotedBy,
+      }, { merge: true });
+      
+      console.log(`✅ ${isUpvote ? 'Upvoted' : 'Downvoted'} question ${questionId}`);
+    } catch (error) {
+      console.error('❌ Error voting for question:', error);
       throw error;
     }
   },
@@ -132,14 +183,26 @@ export const questionService = {
   },
 
   // Answer a question (admin function)
-  async answerQuestion(questionId: string, answer: string): Promise<void> {
+  async answerQuestion(questionId: string, answer: string, adminUserId?: string): Promise<void> {
     try {
       const questionRef = doc(db, 'questions', questionId);
-      await setDoc(questionRef, {
+      
+      let answerData: any = {
         answer,
         isAnswered: true,
         answeredAt: Timestamp.now(),
-      }, { merge: true });
+      };
+      
+      // Add admin information if provided
+      if (adminUserId) {
+        const adminDoc = await getDoc(doc(db, 'users', adminUserId));
+        const adminData = adminDoc.exists() ? adminDoc.data() as { name?: string } : null;
+        
+        answerData.answeredBy = adminUserId;
+        answerData.answererName = adminData?.name || 'Admin';
+      }
+      
+      await setDoc(questionRef, answerData, { merge: true });
       
       console.log(`✅ Answered question ${questionId}`);
     } catch (error) {

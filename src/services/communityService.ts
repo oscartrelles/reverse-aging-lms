@@ -150,7 +150,7 @@ export const communityService = {
     }
   },
 
-  // Get cohort progress (average completion percentage)
+  // Get cohort progress (total completed lessons / total possible lessons)
   async getCohortProgress(cohortId: string): Promise<number> {
     try {
       const cohortQuery = query(
@@ -164,16 +164,60 @@ export const communityService = {
       
       if (cohortUserIds.length === 0) return 0;
       
+      // Get the cohort data to get course ID
+      const cohortDoc = await getDoc(doc(db, 'cohorts', cohortId));
+      if (!cohortDoc.exists()) return 0;
+      
+      const cohortData = cohortDoc.data();
+      const courseId = cohortData.courseId;
+      
+      // Get all lessons for the course
+      const lessonsQuery = query(
+        collection(db, 'lessons'),
+        where('courseId', '==', courseId),
+        orderBy('weekNumber')
+      );
+      
+      let allLessons: Array<{ id: string; weekNumber: number; courseId: string }> = [];
+      
+      try {
+        const lessonsSnapshot = await getDocs(lessonsQuery);
+        allLessons = lessonsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Array<{ id: string; weekNumber: number; courseId: string }>;
+      } catch (error: any) {
+        console.error('Error fetching lessons for cohort progress:', error);
+        
+        // If it's an index error, return 0 for now
+        if (error.code === 'failed-precondition' || error.message?.includes('index')) {
+          console.log('⚠️ Lessons index not ready yet, returning 0 for cohort progress');
+          return 0;
+        }
+        
+        // For other errors, re-throw
+        throw error;
+      }
+      
+      const totalLessonsInCourse = allLessons.length;
+      const totalUsersInCohort = cohortUserIds.length;
+      const totalPossibleCompletions = totalLessonsInCourse * totalUsersInCohort;
+      
+      if (totalPossibleCompletions === 0) return 0;
+      
+      // Get all completed lessons for users in this cohort
       const progressQuery = query(
         collection(db, 'lessonProgress'),
-        where('userId', 'in', cohortUserIds.slice(0, 10))
+        where('userId', 'in', cohortUserIds.slice(0, 10)),
+        where('isCompleted', '==', true)
       );
       
       const snapshot = await getDocs(progressQuery);
-      const completedLessons = snapshot.docs.filter(doc => doc.data().isCompleted).length;
-      const totalProgress = snapshot.docs.length;
+      const totalCompletedLessons = snapshot.size;
       
-      return totalProgress > 0 ? (completedLessons / totalProgress) * 100 : 0;
+      const cohortProgressPercentage = (totalCompletedLessons / totalPossibleCompletions) * 100;
+      
+      return cohortProgressPercentage;
     } catch (error) {
       console.error('Error getting cohort progress:', error);
       return 0;
@@ -192,9 +236,43 @@ export const communityService = {
   // Get weekly goals completion
   async getWeeklyGoals(cohortId: string): Promise<number> {
     try {
-      const thisWeekStart = new Date();
-      thisWeekStart.setDate(thisWeekStart.getDate() - thisWeekStart.getDay());
-      thisWeekStart.setHours(0, 0, 0, 0);
+      // Get the cohort data to determine current week
+      const cohortDoc = await getDoc(doc(db, 'cohorts', cohortId));
+      if (!cohortDoc.exists()) return 0;
+      
+      const cohortData = cohortDoc.data();
+      const cohortStartDate = cohortData.startDate.toDate();
+      
+      // Calculate current week to determine which lessons are available this week
+      const now = new Date();
+      const weeksSinceStart = Math.floor(
+        (now.getTime() - cohortStartDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
+      );
+      const currentWeek = Math.max(0, weeksSinceStart);
+      
+      // Get lessons for the current week
+      const courseId = cohortData.courseId;
+      const lessonsQuery = query(
+        collection(db, 'lessons'),
+        where('courseId', '==', courseId),
+        where('weekNumber', '==', currentWeek)
+      );
+      
+      let currentWeekLessonIds: string[] = [];
+      
+      try {
+        const lessonsSnapshot = await getDocs(lessonsQuery);
+        currentWeekLessonIds = lessonsSnapshot.docs.map(doc => doc.id);
+      } catch (error: any) {
+        console.error('Error fetching current week lessons:', error);
+        if (error.code === 'failed-precondition' || error.message?.includes('index')) {
+          console.log('⚠️ Lessons index not ready yet, returning 0 for weekly goals');
+          return 0;
+        }
+        throw error;
+      }
+      
+      if (currentWeekLessonIds.length === 0) return 0;
       
       const cohortQuery = query(
         collection(db, 'enrollments'),
@@ -207,16 +285,39 @@ export const communityService = {
       
       if (cohortUserIds.length === 0) return 0;
       
+      // Get progress for current week's lessons only
       const progressQuery = query(
         collection(db, 'lessonProgress'),
         where('userId', 'in', cohortUserIds.slice(0, 10)),
-        where('completedAt', '>', Timestamp.fromDate(thisWeekStart))
+        where('lessonId', 'in', currentWeekLessonIds)
       );
       
       const snapshot = await getDocs(progressQuery);
-      const usersWithCompletions = new Set(snapshot.docs.map(doc => doc.data().userId));
       
-      return cohortUserIds.length > 0 ? (usersWithCompletions.size / cohortUserIds.length) * 100 : 0;
+      // Count users who completed ALL current week lessons
+      const userCompletions: Record<string, Set<string>> = {};
+      
+      snapshot.docs.forEach(doc => {
+        const progress = doc.data();
+        const userId = progress.userId;
+        const lessonId = progress.lessonId;
+        
+        if (progress.isCompleted) {
+          if (!userCompletions[userId]) {
+            userCompletions[userId] = new Set();
+          }
+          userCompletions[userId].add(lessonId);
+        }
+      });
+      
+      // Count users who completed all current week lessons
+      const usersWithAllCompletions = Object.keys(userCompletions).filter(
+        userId => userCompletions[userId].size === currentWeekLessonIds.length
+      ).length;
+      
+      const weeklyGoalsPercentage = cohortUserIds.length > 0 ? (usersWithAllCompletions / cohortUserIds.length) * 100 : 0;
+      
+      return weeklyGoalsPercentage;
     } catch (error) {
       console.error('Error getting weekly goals:', error);
       return 0;

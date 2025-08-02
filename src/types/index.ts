@@ -110,6 +110,15 @@ export interface Question {
   answeredAt?: Timestamp;
   createdAt: Timestamp;
   isPublic: boolean; // whether other students can see it
+  // Voting functionality
+  votes: number;
+  votedBy: string[]; // array of user IDs who voted
+  // User info for display
+  userName?: string;
+  userPhotoURL?: string;
+  // Admin answer info
+  answeredBy?: string; // admin user ID who answered
+  answererName?: string; // admin name who answered
 }
 
 // Community types

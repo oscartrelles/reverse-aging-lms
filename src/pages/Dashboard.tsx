@@ -85,7 +85,7 @@ const Dashboard: React.FC = () => {
     };
   }, [currentUser]);
 
-  // Fetch community stats
+  // Fetch community stats (only on mount)
   useEffect(() => {
     if (!currentCohort?.id) return;
 
@@ -99,11 +99,6 @@ const Dashboard: React.FC = () => {
     };
 
     fetchCommunityStats();
-    
-    // Refresh stats every 30 seconds
-    const interval = setInterval(fetchCommunityStats, 30000);
-    
-    return () => clearInterval(interval);
   }, [currentCohort?.id]);
 
   // Use real data from Firestore
@@ -419,49 +414,45 @@ const Dashboard: React.FC = () => {
                   {communityStats && (
                     <Box sx={{ mt: 3 }}>
                       {/* Cohort Progress */}
-                      {communityStats.cohortProgress > 0 && (
-                        <Box sx={{ mb: 2 }}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                            <Typography variant="body2" color="text.secondary">
-                              Your cohort progress
-                      </Typography>
-                            <Typography variant="body2" color="primary.main" fontWeight="medium">
-                              {communityStats.cohortProgress.toFixed(0)}%
-                            </Typography>
-                          </Box>
-                          <LinearProgress 
-                            variant="determinate" 
-                            value={communityStats.cohortProgress} 
-                            sx={{ height: 6, borderRadius: 3 }}
-                          />
-                          <Typography variant="caption" color="text.secondary">
-                            overall course completion
-                      </Typography>
-                    </Box>
-                  )}
+                      <Box sx={{ mb: 2 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            Your cohort progress
+                          </Typography>
+                          <Typography variant="body2" color="primary.main" fontWeight="medium">
+                            {communityStats.cohortProgress >= 0 ? `${communityStats.cohortProgress.toFixed(0)}%` : 'Loading...'}
+                          </Typography>
+                        </Box>
+                        <LinearProgress 
+                          variant="determinate" 
+                          value={Math.max(0, Math.min(100, communityStats.cohortProgress || 0))} 
+                          sx={{ height: 6, borderRadius: 3 }}
+                        />
+                        <Typography variant="caption" color="text.secondary">
+                          {communityStats.cohortProgress >= 0 ? 'overall course completion' : 'calculating cohort progress...'}
+                        </Typography>
+                      </Box>
 
                       {/* Weekly Goals */}
-                      {communityStats.weeklyGoals > 0 && (
-                        <Box sx={{ mb: 2 }}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                              <Typography variant="body2" color="text.secondary">
-                              This week's goals
-                              </Typography>
-                            <Typography variant="body2" color="success.main" fontWeight="medium">
-                              {communityStats.weeklyGoals.toFixed(0)}%
-                    </Typography>
-                  </Box>
-                          <LinearProgress 
-                            variant="determinate" 
-                            value={communityStats.weeklyGoals} 
-                            sx={{ height: 6, borderRadius: 3 }}
-                            color="success"
-                          />
-                          <Typography variant="caption" color="text.secondary">
-                            of cohort completed this week's lessons
-                    </Typography>
-                  </Box>
-                      )}
+                      <Box sx={{ mb: 2 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            This week's goals
+                          </Typography>
+                          <Typography variant="body2" color="success.main" fontWeight="medium">
+                            {communityStats.weeklyGoals >= 0 ? `${communityStats.weeklyGoals.toFixed(0)}%` : 'Loading...'}
+                          </Typography>
+                        </Box>
+                        <LinearProgress 
+                          variant="determinate" 
+                          value={Math.max(0, Math.min(100, communityStats.weeklyGoals || 0))} 
+                          sx={{ height: 6, borderRadius: 3 }}
+                          color="success"
+                        />
+                        <Typography variant="caption" color="text.secondary">
+                          {communityStats.weeklyGoals >= 0 ? 'of cohort completed this week\'s lessons' : 'calculating weekly goals...'}
+                        </Typography>
+                      </Box>
                     </Box>
                   )}
                 </CardContent>
@@ -672,6 +663,7 @@ const Dashboard: React.FC = () => {
                             lessonId={lesson.id}
                             courseId={currentEnrollment?.courseId || ''}
                             lessonTitle={`Week ${lesson.weekNumber}: ${lesson.title}`}
+                            isLessonCompleted={isCompleted}
                           />
                         )}
                     </Box>

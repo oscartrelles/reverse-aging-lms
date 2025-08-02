@@ -22,6 +22,8 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import {
   QuestionAnswer,
@@ -30,6 +32,9 @@ import {
   Person,
   CheckCircle,
   Schedule,
+  ThumbUp,
+  ThumbUpOutlined,
+  Lock,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { questionService } from '../services/questionService';
@@ -40,9 +45,10 @@ interface LessonQAProps {
   lessonId: string;
   courseId: string;
   lessonTitle: string;
+  isLessonCompleted?: boolean; // Whether the user has completed the lesson video
 }
 
-const LessonQA: React.FC<LessonQAProps> = ({ lessonId, courseId, lessonTitle }) => {
+const LessonQA: React.FC<LessonQAProps> = ({ lessonId, courseId, lessonTitle, isLessonCompleted = false }) => {
   const { currentUser } = useAuth();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [userQuestions, setUserQuestions] = useState<Question[]>([]);
@@ -53,6 +59,7 @@ const LessonQA: React.FC<LessonQAProps> = ({ lessonId, courseId, lessonTitle }) 
   const [success, setSuccess] = useState<string | null>(null);
   const [showAskDialog, setShowAskDialog] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
+  const [votingQuestions, setVotingQuestions] = useState<Set<string>>(new Set());
 
   // Load questions on component mount
   useEffect(() => {
@@ -77,6 +84,31 @@ const LessonQA: React.FC<LessonQAProps> = ({ lessonId, courseId, lessonTitle }) 
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleVote = async (questionId: string, isUpvote: boolean) => {
+    if (!currentUser) return;
+
+    try {
+      setVotingQuestions(prev => new Set(prev).add(questionId));
+      await questionService.voteQuestion(questionId, currentUser.id, isUpvote);
+      
+      // Reload questions to get updated vote counts
+      await loadQuestions();
+    } catch (error) {
+      console.error('Error voting for question:', error);
+      setError('Failed to vote for question');
+    } finally {
+      setVotingQuestions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(questionId);
+        return newSet;
+      });
+    }
+  };
+
+  const hasUserVoted = (question: Question): boolean => {
+    return question.votedBy?.includes(currentUser?.id || '') || false;
   };
 
   const handleSubmitQuestion = async () => {
@@ -119,6 +151,31 @@ const LessonQA: React.FC<LessonQAProps> = ({ lessonId, courseId, lessonTitle }) 
 
   const stats = getQuestionStats();
 
+  // Show locked state if lesson not completed
+  if (!isLessonCompleted) {
+    return (
+      <Box sx={{ mt: 3 }}>
+        <Card>
+          <CardContent sx={{ textAlign: 'center', py: 4 }}>
+            <Lock sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              Q&A Unlocked After Lesson Completion
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Complete the lesson video to access the Q&A section and ask questions about this week's content.
+            </Typography>
+            <Chip 
+              label="Watch the full video to unlock Q&A"
+              color="primary"
+              variant="outlined"
+              icon={<Schedule />}
+            />
+          </CardContent>
+        </Card>
+      </Box>
+    );
+  }
+
   if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
@@ -128,24 +185,14 @@ const LessonQA: React.FC<LessonQAProps> = ({ lessonId, courseId, lessonTitle }) 
   }
 
   return (
-    <Box sx={{ mt: 3 }}>
+    <Box sx={{ mt: 2 }}>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-          Q&A for Week {lessonTitle}
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<QuestionAnswer />}
-          onClick={() => setShowAskDialog(true)}
-          size="small"
-        >
-          Ask a Question
-        </Button>
-      </Box>
+      <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main', mb: 1 }}>
+        Q&A for {lessonTitle}
+      </Typography>
 
       {/* Stats */}
-      <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
         <Chip 
           label={`${stats.totalQuestions} total questions`}
           variant="outlined"
@@ -191,7 +238,10 @@ const LessonQA: React.FC<LessonQAProps> = ({ lessonId, courseId, lessonTitle }) 
             <Button
               variant="contained"
               startIcon={<QuestionAnswer />}
-              onClick={() => setShowAskDialog(true)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowAskDialog(true);
+              }}
             >
               Ask the First Question
             </Button>
@@ -199,23 +249,49 @@ const LessonQA: React.FC<LessonQAProps> = ({ lessonId, courseId, lessonTitle }) 
         </Card>
       ) : (
         <List>
-          {questions.map((question, index) => (
+          {questions
+            .sort((a, b) => (b.votes || 0) - (a.votes || 0)) // Sort by votes (highest first)
+            .map((question, index) => (
             <React.Fragment key={question.id}>
               <ListItem alignItems="flex-start" sx={{ px: 0 }}>
                 <ListItemAvatar>
-                  <Avatar sx={{ bgcolor: question.isAnswered ? 'success.main' : 'primary.main' }}>
+                  <Avatar 
+                    src={question.userPhotoURL}
+                    sx={{ bgcolor: question.isAnswered ? 'success.main' : 'primary.main' }}
+                  >
                     {question.isAnswered ? <CheckCircle /> : <Person />}
                   </Avatar>
                 </ListItemAvatar>
                 <ListItemText
                   primary={
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      <Typography variant="body1" sx={{ fontWeight: 500, flex: 1 }}>
                         {question.question}
                       </Typography>
-                      {question.isAnswered && (
-                        <Chip label="Answered" color="success" size="small" />
-                      )}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {question.isAnswered && (
+                          <Chip label="Answered" color="success" size="small" />
+                        )}
+                        <Tooltip title="Vote up this question">
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleVote(question.id, !hasUserVoted(question));
+                            }}
+                            disabled={votingQuestions.has(question.id)}
+                            color={hasUserVoted(question) ? 'primary' : 'default'}
+                          >
+                            {hasUserVoted(question) ? <ThumbUp /> : <ThumbUpOutlined />}
+                          </IconButton>
+                        </Tooltip>
+                        <Chip 
+                          label={question.votes || 0} 
+                          size="small" 
+                          variant="outlined"
+                          color={hasUserVoted(question) ? 'primary' : 'default'}
+                        />
+                      </Box>
                     </Box>
                   }
                   secondary={
@@ -223,6 +299,11 @@ const LessonQA: React.FC<LessonQAProps> = ({ lessonId, courseId, lessonTitle }) 
                       <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Schedule sx={{ fontSize: 16 }} />
                         {format(question.createdAt.toDate(), 'MMM d, yyyy h:mm a')}
+                        {question.userName && (
+                          <>
+                            • Asked by {question.userName}
+                          </>
+                        )}
                       </Typography>
                       {question.answer && (
                         <Box sx={{ mt: 2, p: 2, backgroundColor: 'grey.50', borderRadius: 1 }}>
@@ -232,11 +313,10 @@ const LessonQA: React.FC<LessonQAProps> = ({ lessonId, courseId, lessonTitle }) 
                           <Typography variant="body2">
                             {question.answer}
                           </Typography>
-                          {question.answeredAt && (
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                              Answered on {format(question.answeredAt.toDate(), 'MMM d, yyyy h:mm a')}
-                            </Typography>
-                          )}
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                            {question.answeredAt && `Answered on ${format(question.answeredAt.toDate(), 'MMM d, yyyy h:mm a')}`}
+                            {question.answererName && ` by ${question.answererName}`}
+                          </Typography>
                         </Box>
                       )}
                     </Box>
@@ -247,6 +327,29 @@ const LessonQA: React.FC<LessonQAProps> = ({ lessonId, courseId, lessonTitle }) 
             </React.Fragment>
           ))}
         </List>
+      )}
+
+      {/* Floating Action Button for asking questions */}
+      {questions.length > 0 && (
+        <Box sx={{ position: 'relative', mt: 2 }}>
+          <Button
+            variant="contained"
+            startIcon={<QuestionAnswer />}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowAskDialog(true);
+            }}
+            size="small"
+            sx={{ 
+              position: 'absolute',
+              right: 0,
+              top: -40,
+              zIndex: 1
+            }}
+          >
+            Ask a Question
+          </Button>
+        </Box>
       )}
 
       {/* User's Private Questions */}
@@ -311,49 +414,64 @@ const LessonQA: React.FC<LessonQAProps> = ({ lessonId, courseId, lessonTitle }) 
       )}
 
       {/* Ask Question Dialog */}
-      <Dialog open={showAskDialog} onClose={() => setShowAskDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Ask a Question</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Ask a question about "{lessonTitle}". Your question will help other students and can be answered during the live Q&A session.
-          </Typography>
-          <TextField
-            fullWidth
-            multiline
-            rows={4}
-            label="Your question"
-            value={newQuestion}
-            onChange={(e) => setNewQuestion(e.target.value)}
-            placeholder="What would you like to know about this lesson?"
-            sx={{ mb: 2 }}
-          />
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Chip
-              label={isPrivate ? "Private Question" : "Public Question"}
-              color={isPrivate ? "warning" : "primary"}
-              variant="outlined"
-              onClick={() => setIsPrivate(!isPrivate)}
-              clickable
-            />
-            <Typography variant="caption" color="text.secondary">
-              {isPrivate 
-                ? "Only you and the instructor can see this question"
-                : "Other students can see and benefit from this question"
-              }
+      <Dialog 
+        open={showAskDialog} 
+        onClose={() => setShowAskDialog(false)} 
+        maxWidth="sm" 
+        fullWidth
+      >
+        <Box onClick={(e) => e.stopPropagation()}>
+          <DialogTitle>Ask a Question</DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Ask a question about "{lessonTitle}". Your question will help other students and can be answered during the live Q&A session.
             </Typography>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowAskDialog(false)}>Cancel</Button>
-          <Button
-            onClick={handleSubmitQuestion}
-            variant="contained"
-            disabled={!newQuestion.trim() || isSubmitting}
-            startIcon={isSubmitting ? <CircularProgress size={16} /> : <Send />}
-          >
-            {isSubmitting ? 'Submitting...' : 'Submit Question'}
-          </Button>
-        </DialogActions>
+            <TextField
+              fullWidth
+              multiline
+              rows={4}
+              label="Your question"
+              value={newQuestion}
+              onChange={(e) => setNewQuestion(e.target.value)}
+              onFocus={(e) => e.stopPropagation()}
+              onBlur={(e) => e.stopPropagation()}
+              placeholder="What would you like to know about this lesson?"
+              sx={{ mb: 2 }}
+            />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Chip
+                label={isPrivate ? "Private Question" : "Public Question"}
+                color={isPrivate ? "warning" : "primary"}
+                variant="outlined"
+                onClick={() => setIsPrivate(!isPrivate)}
+                clickable
+              />
+              <Typography variant="caption" color="text.secondary">
+                {isPrivate 
+                  ? "Only you and the instructor can see this question"
+                  : "Other students can see and benefit from this question"
+                }
+              </Typography>
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={(e) => {
+              e.stopPropagation();
+              setShowAskDialog(false);
+            }}>Cancel</Button>
+            <Button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSubmitQuestion();
+              }}
+              variant="contained"
+              disabled={!newQuestion.trim() || isSubmitting}
+              startIcon={isSubmitting ? <CircularProgress size={16} /> : <Send />}
+            >
+              {isSubmitting ? 'Submitting...' : 'Submit Question'}
+            </Button>
+          </DialogActions>
+        </Box>
       </Dialog>
     </Box>
   );
