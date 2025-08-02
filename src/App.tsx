@@ -18,6 +18,7 @@ import ProfilePage from './pages/ProfilePage';
 import PaymentPage from './pages/PaymentPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminStudentManagement from './pages/admin/AdminStudentManagement';
+import AdminUserManagement from './pages/admin/AdminUserManagement';
 
 // Components
 import Header from './components/layout/Header';
@@ -209,6 +210,12 @@ function App() {
                   <Route path="/admin/students" element={
                     <AdminRoute>
                       <AdminStudentManagement />
+                    </AdminRoute>
+                  } />
+                  
+                  <Route path="/admin/users" element={
+                    <AdminRoute>
+                      <AdminUserManagement />
                     </AdminRoute>
                   } />
                   

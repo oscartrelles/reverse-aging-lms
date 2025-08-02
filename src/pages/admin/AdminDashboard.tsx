@@ -9,10 +9,11 @@ import {
   Alert,
   CircularProgress,
 } from '@mui/material';
-import { Add, School, People, Schedule, Edit, Create } from '@mui/icons-material';
+import { Add, School, People, Schedule, Edit, Create, PlayArrow } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCourse } from '../../contexts/CourseContext';
-import { initializeCourseData, makeUserAdmin, updateCourse, createCohort } from '../../utils/initializeData';
+import { updateLessonVideoUrls, setSpecificVideoUrl, setVideoUrlByLessonId, listAllLessons } from '../../utils/initializeData';
+import { updateCohortStatus } from '../../utils/lessonUtils';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
 import CourseEditor from '../../components/admin/CourseEditor';
@@ -43,8 +44,10 @@ const AdminDashboard: React.FC = () => {
       const lessonsData = lessonsSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-      }));
-      setLessons(lessonsData);
+      })) as any[];
+      // Sort lessons by order property in ascending order
+      const sortedLessons = lessonsData.sort((a, b) => (a.order || 0) - (b.order || 0));
+      setLessons(sortedLessons);
     } catch (error) {
       console.error('Error loading lessons:', error);
     } finally {
@@ -57,34 +60,57 @@ const AdminDashboard: React.FC = () => {
     loadLessons();
   }, []);
 
-  const handleInitializeData = async () => {
+  // Update cohort status when cohorts change
+  useEffect(() => {
+    const updateCohortStatuses = async () => {
+      for (const cohort of cohorts) {
+        await updateCohortStatus(cohort);
+      }
+    };
+    
+    if (cohorts.length > 0) {
+      updateCohortStatuses();
+    }
+  }, [cohorts]);
+
+  const handleUpdateVideoUrls = async () => {
     try {
       setLoading(true);
       setError(null);
-      await initializeCourseData();
-      setSuccess('Course data initialized successfully!');
-    } catch (err) {
-      setError('Failed to initialize data');
-      console.error(err);
+      await updateLessonVideoUrls();
+      setSuccess('Video URLs updated successfully!');
+    } catch (error) {
+      console.error('Error updating video URLs:', error);
+      setError('Failed to update video URLs');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleMakeAdmin = async () => {
-    if (!currentUser) {
-      setError('No user logged in');
-      return;
-    }
-
+  const handleSetSpecificVideo = async () => {
     try {
       setLoading(true);
       setError(null);
-      await makeUserAdmin(currentUser.id);
-      setSuccess('You are now an admin!');
-    } catch (err) {
-      setError('Failed to make user admin');
-      console.error(err);
+      // Set your specific video for lesson 1
+      await setSpecificVideoUrl(1, 'https://www.youtube.com/watch?v=YYSJypPgqvE');
+      setSuccess('Specific video URL set successfully!');
+    } catch (error) {
+      console.error('Error setting specific video URL:', error);
+      setError('Failed to set specific video URL');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleListLessons = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      await listAllLessons();
+      setSuccess('Check console for lesson list!');
+    } catch (error) {
+      console.error('Error listing lessons:', error);
+      setError('Failed to list lessons');
     } finally {
       setLoading(false);
     }
@@ -110,37 +136,47 @@ const AdminDashboard: React.FC = () => {
         )}
 
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3, mb: 3 }}>
-          {/* Quick Actions */}
+          {/* Lesson Management */}
           <Box sx={{ flex: { md: 1 } }}>
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  Quick Actions
+                  Lesson Management
                 </Typography>
                 
-                {currentUser && !currentUser.isAdmin && (
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    color="secondary"
-                    onClick={handleMakeAdmin}
-                    disabled={loading}
-                    startIcon={<People />}
-                    sx={{ mb: 2 }}
-                  >
-                    Make Me Admin
-                  </Button>
-                )}
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  color="info"
+                  onClick={handleUpdateVideoUrls}
+                  disabled={loading}
+                  startIcon={<PlayArrow />}
+                  sx={{ mb: 2 }}
+                >
+                  {loading ? <CircularProgress size={20} /> : 'Update Video URLs'}
+                </Button>
 
                 <Button
                   fullWidth
-                  variant="contained"
-                  color="primary"
-                  onClick={handleInitializeData}
+                  variant="outlined"
+                  color="warning"
+                  onClick={handleSetSpecificVideo}
                   disabled={loading}
-                  startIcon={<Add />}
+                  startIcon={<PlayArrow />}
+                  sx={{ mb: 2 }}
                 >
-                  {loading ? <CircularProgress size={20} /> : 'Initialize Course Data'}
+                  {loading ? <CircularProgress size={20} /> : 'Set Video for Lesson 1'}
+                </Button>
+
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  color="secondary"
+                  onClick={handleListLessons}
+                  disabled={loading}
+                  startIcon={<School />}
+                >
+                  {loading ? <CircularProgress size={20} /> : 'List All Lessons'}
                 </Button>
               </CardContent>
             </Card>
@@ -151,16 +187,16 @@ const AdminDashboard: React.FC = () => {
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  Instructions
+                  Video Management
                 </Typography>
                 <Typography variant="body2" color="text.secondary" paragraph>
-                  1. If you're not an admin, click "Make Me Admin" first
+                  1. Use "List All Lessons" to see available lessons
                 </Typography>
                 <Typography variant="body2" color="text.secondary" paragraph>
-                  2. Click "Initialize Course Data" to create the course, lessons, and cohort
+                  2. Use "Update Video URLs" to fix embed formats
                 </Typography>
                 <Typography variant="body2" color="text.secondary" paragraph>
-                  3. The enrollment button on the dashboard should now work
+                  3. Use "Set Video for Lesson 1" to test specific videos
                 </Typography>
               </CardContent>
             </Card>
@@ -281,6 +317,11 @@ const AdminDashboard: React.FC = () => {
                             <Typography variant="body2" sx={{ fontWeight: 600 }}>
                               {lesson.title}
                             </Typography>
+                            {lesson.theme && (
+                              <Typography variant="caption" display="block" color="primary.main">
+                                Theme: {lesson.theme}
+                              </Typography>
+                            )}
                             <Typography variant="caption" color="text.secondary">
                               ID: {lesson.id}
                             </Typography>
@@ -290,6 +331,16 @@ const AdminDashboard: React.FC = () => {
                             <Typography variant="caption" display="block" color="text.secondary">
                               Published: {lesson.isPublished ? 'Yes' : 'No'}
                             </Typography>
+                            {lesson.videoUrl && (
+                              <Typography variant="caption" display="block" color="primary.main">
+                                Video: {lesson.videoUrl.includes('embed') ? '✅ Embed URL' : '⚠️ Watch URL'}
+                              </Typography>
+                            )}
+                            {lesson.learningObjectives && lesson.learningObjectives.length > 0 && (
+                              <Typography variant="caption" display="block" color="text.secondary">
+                                Objectives: {lesson.learningObjectives.length} items
+                              </Typography>
+                            )}
                             <Button
                               size="small"
                               startIcon={<Edit />}
@@ -297,10 +348,31 @@ const AdminDashboard: React.FC = () => {
                                 setEditingLesson(lesson);
                                 setShowLessonEditor(true);
                               }}
-                              sx={{ mt: 1 }}
+                              sx={{ mt: 1, mr: 1 }}
                             >
                               Edit
                             </Button>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              startIcon={<PlayArrow />}
+                              onClick={async () => {
+                                try {
+                                  setLoading(true);
+                                  await setVideoUrlByLessonId(lesson.id, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+                                  setSuccess(`Video set for ${lesson.title}`);
+                                  loadLessons(); // Refresh the lessons list
+                                } catch (error) {
+                                  setError(`Failed to set video for ${lesson.title}`);
+                                } finally {
+                                  setLoading(false);
+                                }
+                              }}
+                              disabled={loading}
+                            >
+                              Test Video
+                            </Button>
+
                           </Box>
                         ))
                       ) : (

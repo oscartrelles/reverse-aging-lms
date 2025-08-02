@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Container,
   Box,
@@ -41,15 +41,73 @@ import { useCourse } from '../contexts/CourseContext';
 import { useNavigate } from 'react-router-dom';
 import { format, addDays, differenceInDays, differenceInHours } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
+import {
+  isLessonAvailable,
+  getCurrentWeek,
+  getCountdownToNextLesson,
+  getAvailableLessons,
+  getUpcomingLessons,
+  getCohortStatus,
+  isLessonReleased,
+} from '../utils/lessonUtils';
+import VideoPlayer from '../components/VideoPlayer';
+import LessonQA from '../components/LessonQA';
 
 const Dashboard: React.FC = () => {
   const { currentUser } = useAuth();
-  const { courses, currentEnrollment, currentCohort, lessonProgress, loading } = useCourse();
+  const { 
+    courses, 
+    currentEnrollment, 
+    currentCohort, 
+    lessonProgress, 
+    lessons, 
+    getLessonsByCourse, 
+    streakData,
+    loading,
+    loadStreakData
+  } = useCourse();
   const navigate = useNavigate();
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
+  const [lessonAvailability, setLessonAvailability] = useState<Record<string, boolean>>({});
+  const [loadingAvailability, setLoadingAvailability] = useState(false);
+
+  // Use real data from Firestore
+  const activeCohort = currentCohort;
+  const activeCourseLessons = currentEnrollment ? getLessonsByCourse(currentEnrollment.courseId) : [];
+  const currentWeek = activeCohort ? getCurrentWeek(activeCohort) : 0;
+  
+
+  const availableLessons = activeCohort && currentEnrollment ? getAvailableLessons(activeCourseLessons, activeCohort, currentEnrollment) : [];
+  const upcomingLessons = activeCohort && currentEnrollment ? getUpcomingLessons(activeCourseLessons, activeCohort, currentEnrollment) : [];
+
+  // Check lesson availability using the new release system
+  useEffect(() => {
+    const checkLessonAvailability = async () => {
+      if (!activeCohort || !activeCourseLessons.length) return;
+      
+      setLoadingAvailability(true);
+      const availability: Record<string, boolean> = {};
+      
+      for (const lesson of activeCourseLessons) {
+        try {
+          const isReleased = await isLessonReleased(lesson.id, activeCohort.id);
+          availability[lesson.id] = isReleased;
+        } catch (error) {
+          console.error(`Error checking availability for lesson ${lesson.id}:`, error);
+          // Fall back to time-based logic
+          availability[lesson.id] = isLessonAvailable(lesson, activeCohort, currentEnrollment || {} as any);
+        }
+      }
+      
+      setLessonAvailability(availability);
+      setLoadingAvailability(false);
+    };
+
+    checkLessonAvailability();
+  }, [activeCohort?.id, activeCourseLessons.length, currentEnrollment?.id]);
 
 
-  // Mock data for demonstration - replace with real data
+  // Community stats - replace with real data later
   const [communityStats] = useState({
     activeStudents: 47,
     totalQuestions: 23,
@@ -137,9 +195,9 @@ const Dashboard: React.FC = () => {
   }, []);
 
   // Calculate progress and timing
-  const totalLessons = 7;
+  const totalLessons = activeCourseLessons.length;
   const completedLessons = lessonProgress.filter(p => p.isCompleted).length;
-  const progressPercentage = (completedLessons / totalLessons) * 100;
+  const progressPercentage = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
 
   const getNextLessonRelease = () => {
     if (!currentCohort) return null;
@@ -162,6 +220,11 @@ const Dashboard: React.FC = () => {
   const isEnrolled = currentEnrollment && currentEnrollment.status === 'active';
   const cohortHasStarted = currentCohort && new Date() >= currentCohort.startDate.toDate();
   const isActiveStudent = isEnrolled && cohortHasStarted;
+
+  // Get course and lessons data
+  const courseId = currentEnrollment?.courseId;
+  const course = courses.find(c => c.id === courseId);
+  const courseLessons = courseId ? getLessonsByCourse(courseId) : [];
 
 
 
@@ -246,8 +309,9 @@ const Dashboard: React.FC = () => {
             </Typography>
             
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {/* Week 1 */}
+              {courseLessons.map((lesson) => (
               <Card 
+                  key={lesson.id}
                 sx={{ 
                   cursor: 'pointer', 
                   transition: 'all 0.3s ease',
@@ -256,7 +320,7 @@ const Dashboard: React.FC = () => {
                     boxShadow: '0 8px 25px rgba(80, 235, 151, 0.2)' 
                   }
                 }}
-                onClick={() => setExpandedWeek(expandedWeek === 1 ? null : 1)}
+                  onClick={() => setExpandedWeek(expandedWeek === lesson.weekNumber ? null : lesson.weekNumber)}
               >
                 <CardContent sx={{ p: 3 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
@@ -271,336 +335,70 @@ const Dashboard: React.FC = () => {
                         justifyContent: 'center'
                       }}>
                         <Typography variant="body2" sx={{ color: '#000', fontWeight: 'bold' }}>
-                          1
+                            {lesson.weekNumber}
                         </Typography>
                       </Box>
                       <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                        Week 1: Foundation & Mindset
+                          Week {lesson.weekNumber}: {lesson.title}
                       </Typography>
                     </Box>
                     <Typography variant="h6" sx={{ color: 'primary.main' }}>
-                      {expandedWeek === 1 ? '−' : '+'}
+                        {expandedWeek === lesson.weekNumber ? '−' : '+'}
                     </Typography>
                   </Box>
                   
                   <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-                    Lay the foundation for your transformation journey. Shift from reactive health thinking to a systems-based understanding of vitality.
+                      {lesson.theme || lesson.description}
                   </Typography>
                   
-                  {expandedWeek === 1 && (
+                    {expandedWeek === lesson.weekNumber && (
                     <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                        {lesson.learningObjectives && lesson.learningObjectives.length > 0 && (
+                          <>
                       <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
-                        What You'll Master:
+                              Learning Objectives:
                       </Typography>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3 }}>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Healthspan vs. lifespan understanding
+                              {lesson.learningObjectives.map((objective: string, index: number) => (
+                                <Typography key={index} variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <span style={{ color: '#50EB97' }}>•</span> {objective}
                         </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Systems thinking for health
-                        </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Meditation as a daily tool
-                        </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Observer mode for pattern change
-                        </Typography>
+                              ))}
                       </Box>
+                          </>
+                        )}
+                        {lesson.whatYoullMaster && lesson.whatYoullMaster.length > 0 && (
+                          <>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
+                              Key Concepts:
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3 }}>
+                              {lesson.whatYoullMaster.map((point: string, index: number) => (
+                                <Typography key={index} variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <span style={{ color: '#50EB97' }}>•</span> {point}
+                        </Typography>
+                              ))}
+                      </Box>
+                          </>
+                        )}
+                        {lesson.keyPractice && (
+                          <>
                       <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: 'primary.main' }}>
                         Key Practice:
                       </Typography>
                       <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        Morning meditation (5-10 min) + daily journaling to build awareness and define your "why"
+                              {lesson.keyPractice}
                       </Typography>
+                          </>
+                        )}
                     </Box>
                   )}
                 </CardContent>
               </Card>
+              ))}
 
-              {/* Week 2 */}
-              <Card 
-                sx={{ 
-                  cursor: 'pointer', 
-                  transition: 'all 0.3s ease',
-                  '&:hover': { 
-                    transform: 'translateY(-2px)', 
-                    boxShadow: '0 8px 25px rgba(80, 235, 151, 0.2)' 
-                  }
-                }}
-                onClick={() => setExpandedWeek(expandedWeek === 2 ? null : 2)}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Box sx={{ 
-                        width: 32, 
-                        height: 32, 
-                        borderRadius: '50%', 
-                        backgroundColor: 'primary.main', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center'
-                      }}>
-                        <Typography variant="body2" sx={{ color: '#000', fontWeight: 'bold' }}>
-                          2
-                        </Typography>
-                      </Box>
-                      <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                        Week 2: Food as Information
-                      </Typography>
-                    </Box>
-                    <Typography variant="h6" sx={{ color: 'primary.main' }}>
-                      {expandedWeek === 2 ? '−' : '+'}
-                    </Typography>
-                  </Box>
-                  
-                  <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-                    Move beyond calorie-counting into nourishment as a communication tool with your body. Explore intuitive, personalized eating.
-                  </Typography>
-                  
-                  {expandedWeek === 2 && (
-                    <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
-                        What You'll Master:
-                      </Typography>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3 }}>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Food as hormonal signals
-                        </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Intermittent fasting protocols
-                        </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Bio-individual nutrition
-                        </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Intuitive eating practices
-                        </Typography>
-                      </Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: 'primary.main' }}>
-                        Key Practice:
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        16:8 fasting + conscious eating (20+ chews per bite, no devices)
-                      </Typography>
-                    </Box>
-                  )}
-                </CardContent>
-              </Card>
 
-              {/* Week 3 */}
-              <Card 
-                sx={{ 
-                  cursor: 'pointer', 
-                  transition: 'all 0.3s ease',
-                  '&:hover': { 
-                    transform: 'translateY(-2px)', 
-                    boxShadow: '0 8px 25px rgba(80, 235, 151, 0.2)' 
-                  }
-                }}
-                onClick={() => setExpandedWeek(expandedWeek === 3 ? null : 3)}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Box sx={{ 
-                        width: 32, 
-                        height: 32, 
-                        borderRadius: '50%', 
-                        backgroundColor: 'primary.main', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center'
-                      }}>
-                        <Typography variant="body2" sx={{ color: '#000', fontWeight: 'bold' }}>
-                          3
-                        </Typography>
                       </Box>
-                      <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                        Week 3: Building a Body That Lasts
-                      </Typography>
-                    </Box>
-                    <Typography variant="h6" sx={{ color: 'primary.main' }}>
-                      {expandedWeek === 3 ? '−' : '+'}
-                    </Typography>
-                  </Box>
-                  
-                  <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-                    Reconnect with your body as a tool for vitality. Explore movement and exercise as complementary forces for longevity.
-                  </Typography>
-                  
-                  {expandedWeek === 3 && (
-                    <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
-                        What You'll Master:
-                      </Typography>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3 }}>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Movement vs. exercise distinction
-                        </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Zone 2 cardio & strength training
-                        </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Body typing for personalization
-                        </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Mobility and fascia health
-                        </Typography>
-                      </Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: 'primary.main' }}>
-                        Key Practice:
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        3 weekly workouts (2 strength + 1 cardio) + daily 5-min mobility flows
-                      </Typography>
-                    </Box>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Week 4 */}
-              <Card 
-                sx={{ 
-                  cursor: 'pointer', 
-                  transition: 'all 0.3s ease',
-                  '&:hover': { 
-                    transform: 'translateY(-2px)', 
-                    boxShadow: '0 8px 25px rgba(80, 235, 151, 0.2)' 
-                  }
-                }}
-                onClick={() => setExpandedWeek(expandedWeek === 4 ? null : 4)}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Box sx={{ 
-                        width: 32, 
-                        height: 32, 
-                        borderRadius: '50%', 
-                        backgroundColor: 'primary.main', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center'
-                      }}>
-                        <Typography variant="body2" sx={{ color: '#000', fontWeight: 'bold' }}>
-                          4
-                        </Typography>
-                      </Box>
-                      <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                        Week 4: The Fastest Path to Change
-                      </Typography>
-                    </Box>
-                    <Typography variant="h6" sx={{ color: 'primary.main' }}>
-                      {expandedWeek === 4 ? '−' : '+'}
-                    </Typography>
-                  </Box>
-                  
-                  <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-                    Regulate your state with your own breath. Shift from unconscious patterns to conscious control of your nervous system.
-                  </Typography>
-                  
-                  {expandedWeek === 4 && (
-                    <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
-                        What You'll Master:
-                      </Typography>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3 }}>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Breath as nervous system switch
-                        </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Functional vs. transformational breathing
-                        </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> CO₂ tolerance building
-                        </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Nasal breathing optimization
-                        </Typography>
-                      </Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: 'primary.main' }}>
-                        Key Practice:
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        Daily breathing check-ins + guided breathwork sessions for energy and relaxation
-                      </Typography>
-                    </Box>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Week 5 */}
-              <Card 
-                sx={{ 
-                  cursor: 'pointer', 
-                  transition: 'all 0.3s ease',
-                  '&:hover': { 
-                    transform: 'translateY(-2px)', 
-                    boxShadow: '0 8px 25px rgba(80, 235, 151, 0.2)' 
-                  }
-                }}
-                onClick={() => setExpandedWeek(expandedWeek === 5 ? null : 5)}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Box sx={{ 
-                        width: 32, 
-                        height: 32, 
-                        borderRadius: '50%', 
-                        backgroundColor: 'primary.main', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center'
-                      }}>
-                        <Typography variant="body2" sx={{ color: '#000', fontWeight: 'bold' }}>
-                          5
-                        </Typography>
-                      </Box>
-                      <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                        Week 5: Discomfort as Medicine
-                      </Typography>
-                    </Box>
-                    <Typography variant="h6" sx={{ color: 'primary.main' }}>
-                      {expandedWeek === 5 ? '−' : '+'}
-                    </Typography>
-                  </Box>
-                  
-                  <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-                    Face the cold to wake up dormant systems and reclaim your inner power. Build mental resilience through controlled stress.
-                  </Typography>
-                  
-                  {expandedWeek === 5 && (
-                    <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
-                        What You'll Master:
-                      </Typography>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3 }}>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Cold as hormetic stress
-                        </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Vascular fitness training
-                        </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Brown fat activation
-                        </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Stress response rewiring
-                        </Typography>
-                      </Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: 'primary.main' }}>
-                        Key Practice:
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        Daily cold showers (30+ seconds) + pre-cold breathwork preparation
-                      </Typography>
-                    </Box>
-                  )}
-                </CardContent>
-              </Card>
-            </Box>
           </Box>
         </Box>
       </Container>
@@ -740,12 +538,22 @@ const Dashboard: React.FC = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                     <EmojiEvents sx={{ color: 'secondary.main', fontSize: 40 }} />
                     <Typography variant="h4" color="secondary.main">
-                      3
+                      {streakData?.currentStreak || 0}
                     </Typography>
                   </Box>
                   <Typography variant="body2" color="text.secondary">
-                    lessons completed in a row! Keep it up!
+                    {streakData?.currentStreak 
+                      ? `lessons completed in a row! Keep it up!`
+                      : `Start your learning streak today!`
+                    }
                   </Typography>
+                  {streakData && (
+                    <Box sx={{ mt: 2 }}>
+                      <Typography variant="caption" color="text.secondary">
+                        Longest streak: {streakData.longestStreak} • Total completed: {streakData.totalCompleted}
+                      </Typography>
+                    </Box>
+                  )}
                 </CardContent>
               </Card>
 
@@ -778,21 +586,50 @@ const Dashboard: React.FC = () => {
           {/* Detailed Week Cards */}
           <Box sx={{ mt: 4 }}>
             <Typography variant="h5" component="h2" gutterBottom sx={{ mb: 3, color: 'primary.main' }}>
-              Your 7-Week Journey
+              Your {activeCourseLessons.length}-Week Journey
             </Typography>
             
+            {/* Current Week Status */}
+            <Box sx={{ mb: 3, p: 2, backgroundColor: 'primary.main', borderRadius: 2, color: 'white' }}>
+              <Typography variant="h6" sx={{ mb: 1 }}>
+                🎯 Week {currentWeek} of {activeCourseLessons.length}
+                        </Typography>
+              <Typography variant="body2">
+                {loadingAvailability ? (
+                  'Loading lesson availability...'
+                ) : (
+                  `${Object.values(lessonAvailability).filter(Boolean).length} lessons available • ${Object.values(lessonAvailability).filter(v => !v).length} lessons coming up`
+                )}
+                    </Typography>
+                  </Box>
+                  
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {/* Week 1 */}
+              {activeCourseLessons.map((lesson) => {
+                const isAvailable = lessonAvailability[lesson.id] || false;
+                const isCompleted = lessonProgress.find(p => p.lessonId === lesson.id)?.isCompleted;
+                
+                // Check if previous lessons are completed for sequential access
+                const previousLessons = activeCourseLessons.filter(l => l.weekNumber < lesson.weekNumber);
+                const previousCompleted = previousLessons.every(l => 
+                  lessonProgress.find(p => p.lessonId === l.id)?.isCompleted
+                );
+                const canAccess = lesson.weekNumber === 1 || previousCompleted;
+                const isSequentiallyAvailable = isAvailable && canAccess;
+                
+                return (
               <Card 
+                  key={lesson.id}
                 sx={{ 
-                  cursor: 'pointer', 
+                  cursor: isSequentiallyAvailable ? 'pointer' : 'default', 
                   transition: 'all 0.3s ease',
-                  '&:hover': { 
+                  opacity: isSequentiallyAvailable ? 1 : 0.6,
+                  backgroundColor: isSequentiallyAvailable ? 'background.paper' : 'rgba(255,255,255,0.05)',
+                  '&:hover': isSequentiallyAvailable ? { 
                     transform: 'translateY(-2px)', 
                     boxShadow: '0 8px 25px rgba(80, 235, 151, 0.2)' 
-                  }
+                  } : {}
                 }}
-                onClick={() => setExpandedWeek(expandedWeek === 1 ? null : 1)}
+                  onClick={() => isSequentiallyAvailable && setExpandedWeek(expandedWeek === lesson.weekNumber ? null : lesson.weekNumber)}
               >
                 <CardContent sx={{ p: 3 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
@@ -801,341 +638,146 @@ const Dashboard: React.FC = () => {
                         width: 32, 
                         height: 32, 
                         borderRadius: '50%', 
-                        backgroundColor: 'primary.main', 
+                        backgroundColor: isCompleted ? 'success.main' : isAvailable ? 'primary.main' : 'rgba(255,255,255,0.2)', 
                         display: 'flex', 
                         alignItems: 'center', 
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        position: 'relative'
                       }}>
-                        <Typography variant="body2" sx={{ color: '#000', fontWeight: 'bold' }}>
-                          1
+                        <Typography variant="body2" sx={{ color: isCompleted ? '#fff' : isAvailable ? '#000' : 'rgba(255,255,255,0.5)', fontWeight: 'bold' }}>
+                            {lesson.weekNumber}
                         </Typography>
+                        {isCompleted && (
+                          <Box sx={{
+                            position: 'absolute',
+                            top: -2,
+                            right: -2,
+                            width: 12,
+                            height: 12,
+                            borderRadius: '50%',
+                            backgroundColor: 'success.main',
+                            border: '2px solid white',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}>
+                            <Typography variant="caption" sx={{ fontSize: 8, color: 'white', fontWeight: 'bold' }}>
+                              ✓
+                            </Typography>
+                          </Box>
+                        )}
                       </Box>
-                      <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                        Week 1: Foundation & Mindset
-                      </Typography>
+                      <Box>
+                        <Typography variant="h6" sx={{ fontWeight: 600, color: isAvailable ? 'text.primary' : 'rgba(255,255,255,0.5)' }}>
+                          Week {lesson.weekNumber}: {lesson.title}
+                        </Typography>
+                                                <Typography variant="caption" sx={{ color: isSequentiallyAvailable ? 'primary.main' : 'rgba(255,255,255,0.4)' }}>
+                          {isCompleted ? '🎉 Completed' : isSequentiallyAvailable ? '✅ Available' : !isAvailable ? '🔒 Locked' : '⏳ Complete previous lessons first'}
+                        </Typography>
                     </Box>
-                    <Typography variant="h6" sx={{ color: 'primary.main' }}>
-                      {expandedWeek === 1 ? '−' : '+'}
+                    </Box>
+                    <Typography variant="h6" sx={{ color: isAvailable ? 'primary.main' : 'rgba(255,255,255,0.3)' }}>
+                        {expandedWeek === lesson.weekNumber ? '−' : '+'}
                     </Typography>
                   </Box>
                   
                   <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-                    Lay the foundation for your transformation journey. Shift from reactive health thinking to a systems-based understanding of vitality.
+                      {lesson.theme || lesson.description}
                   </Typography>
                   
-                  {expandedWeek === 1 && (
+                    {expandedWeek === lesson.weekNumber && (
                     <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                        {lesson.learningObjectives && lesson.learningObjectives.length > 0 && (
+                          <>
                       <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
-                        What You'll Master:
+                              Learning Objectives:
                       </Typography>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3 }}>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Healthspan vs. lifespan understanding
+                              {lesson.learningObjectives.map((objective: string, index: number) => (
+                                <Typography key={index} variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <span style={{ color: '#50EB97' }}>•</span> {objective}
                         </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Systems thinking for health
-                        </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Meditation as a daily tool
-                        </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Observer mode for pattern change
-                        </Typography>
+                              ))}
                       </Box>
+                          </>
+                        )}
+                        {lesson.whatYoullMaster && lesson.whatYoullMaster.length > 0 && (
+                          <>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
+                              Key Concepts:
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3 }}>
+                              {lesson.whatYoullMaster.map((point: string, index: number) => (
+                                <Typography key={index} variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <span style={{ color: '#50EB97' }}>•</span> {point}
+                        </Typography>
+                              ))}
+                      </Box>
+                          </>
+                        )}
+                        {lesson.keyPractice && (
+                          <>
                       <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: 'primary.main' }}>
                         Key Practice:
                       </Typography>
                       <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        Morning meditation (5-10 min) + daily journaling to build awareness and define your "why"
+                              {lesson.keyPractice}
                       </Typography>
-                    </Box>
-                  )}
-                </CardContent>
-              </Card>
+                          </>
+                        )}
+                        
+                        {/* Video Player */}
+                        {lesson.videoUrl && isSequentiallyAvailable && (
+                          <>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
+                              Lesson Video:
+                            </Typography>
+                            <VideoPlayer
+                              videoUrl={lesson.videoUrl}
+                              lessonId={lesson.id}
+                              courseId={currentEnrollment?.courseId || ''}
+                              videoDuration={lesson.videoDuration}
+                              onComplete={() => {
+                                // Refresh streak data when lesson is completed
+                                loadStreakData();
+                              }}
+                            />
+                          </>
+                        )}
+                        
+                        {/* Sequential Restriction Message */}
+                        {lesson.videoUrl && !isSequentiallyAvailable && isAvailable && (
+                          <Box sx={{ 
+                            p: 3, 
+                            backgroundColor: 'warning.light', 
+                            borderRadius: 2,
+                            border: '1px solid',
+                            borderColor: 'warning.main',
+                            textAlign: 'center'
+                          }}>
+                            <Typography variant="h6" sx={{ color: 'warning.dark', mb: 1 }}>
+                              🔒 Complete Previous Lessons First
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: 'warning.dark' }}>
+                              You need to complete Week {lesson.weekNumber - 1} before accessing this lesson.
+                            </Typography>
+                          </Box>
+                        )}
 
-              {/* Week 2 */}
-              <Card 
-                sx={{ 
-                  cursor: 'pointer', 
-                  transition: 'all 0.3s ease',
-                  '&:hover': { 
-                    transform: 'translateY(-2px)', 
-                    boxShadow: '0 8px 25px rgba(80, 235, 151, 0.2)' 
-                  }
-                }}
-                onClick={() => setExpandedWeek(expandedWeek === 2 ? null : 2)}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Box sx={{ 
-                        width: 32, 
-                        height: 32, 
-                        borderRadius: '50%', 
-                        backgroundColor: 'primary.main', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center'
-                      }}>
-                        <Typography variant="body2" sx={{ color: '#000', fontWeight: 'bold' }}>
-                          2
-                        </Typography>
-                      </Box>
-                      <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                        Week 2: Food as Information
-                      </Typography>
-                    </Box>
-                    <Typography variant="h6" sx={{ color: 'primary.main' }}>
-                      {expandedWeek === 2 ? '−' : '+'}
-                    </Typography>
-                  </Box>
-                  
-                  <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-                    Move beyond calorie-counting into nourishment as a communication tool with your body. Explore intuitive, personalized eating.
-                  </Typography>
-                  
-                  {expandedWeek === 2 && (
-                    <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
-                        What You'll Master:
-                      </Typography>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3 }}>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Food as hormonal signals
-                        </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Intermittent fasting protocols
-                        </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Bio-individual nutrition
-                        </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Intuitive eating practices
-                        </Typography>
-                      </Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: 'primary.main' }}>
-                        Key Practice:
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        16:8 fasting + conscious eating (20+ chews per bite, no devices)
-                      </Typography>
+                        {/* Q&A Section */}
+                        {isAvailable && (
+                          <LessonQA
+                            lessonId={lesson.id}
+                            courseId={currentEnrollment?.courseId || ''}
+                            lessonTitle={`Week ${lesson.weekNumber}: ${lesson.title}`}
+                          />
+                        )}
                     </Box>
                   )}
                 </CardContent>
               </Card>
-
-              {/* Week 3 */}
-              <Card 
-                sx={{ 
-                  cursor: 'pointer', 
-                  transition: 'all 0.3s ease',
-                  '&:hover': { 
-                    transform: 'translateY(-2px)', 
-                    boxShadow: '0 8px 25px rgba(80, 235, 151, 0.2)' 
-                  }
-                }}
-                onClick={() => setExpandedWeek(expandedWeek === 3 ? null : 3)}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Box sx={{ 
-                        width: 32, 
-                        height: 32, 
-                        borderRadius: '50%', 
-                        backgroundColor: 'primary.main', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center'
-                      }}>
-                        <Typography variant="body2" sx={{ color: '#000', fontWeight: 'bold' }}>
-                          3
-                        </Typography>
-                      </Box>
-                      <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                        Week 3: Building a Body That Lasts
-                      </Typography>
-                    </Box>
-                    <Typography variant="h6" sx={{ color: 'primary.main' }}>
-                      {expandedWeek === 3 ? '−' : '+'}
-                    </Typography>
-                  </Box>
-                  
-                  <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-                    Reconnect with your body as a tool for vitality. Explore movement and exercise as complementary forces for longevity.
-                  </Typography>
-                  
-                  {expandedWeek === 3 && (
-                    <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
-                        What You'll Master:
-                      </Typography>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3 }}>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Movement vs. exercise distinction
-                        </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Zone 2 cardio & strength training
-                        </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Body typing for personalization
-                        </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Mobility and fascia health
-                        </Typography>
-                      </Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: 'primary.main' }}>
-                        Key Practice:
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        3 weekly workouts (2 strength + 1 cardio) + daily 5-min mobility flows
-                      </Typography>
-                    </Box>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Week 4 */}
-              <Card 
-                sx={{ 
-                  cursor: 'pointer', 
-                  transition: 'all 0.3s ease',
-                  '&:hover': { 
-                    transform: 'translateY(-2px)', 
-                    boxShadow: '0 8px 25px rgba(80, 235, 151, 0.2)' 
-                  }
-                }}
-                onClick={() => setExpandedWeek(expandedWeek === 4 ? null : 4)}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Box sx={{ 
-                        width: 32, 
-                        height: 32, 
-                        borderRadius: '50%', 
-                        backgroundColor: 'primary.main', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center'
-                      }}>
-                        <Typography variant="body2" sx={{ color: '#000', fontWeight: 'bold' }}>
-                          4
-                        </Typography>
-                      </Box>
-                      <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                        Week 4: The Fastest Path to Change
-                      </Typography>
-                    </Box>
-                    <Typography variant="h6" sx={{ color: 'primary.main' }}>
-                      {expandedWeek === 4 ? '−' : '+'}
-                    </Typography>
-                  </Box>
-                  
-                  <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-                    Regulate your state with your own breath. Shift from unconscious patterns to conscious control of your nervous system.
-                  </Typography>
-                  
-                  {expandedWeek === 4 && (
-                    <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
-                        What You'll Master:
-                      </Typography>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3 }}>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Breath as nervous system switch
-                        </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Functional vs. transformational breathing
-                        </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> CO₂ tolerance building
-                        </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Nasal breathing optimization
-                        </Typography>
-                      </Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: 'primary.main' }}>
-                        Key Practice:
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        Daily breathing check-ins + guided breathwork sessions for energy and relaxation
-                      </Typography>
-                    </Box>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Week 5 */}
-              <Card 
-                sx={{ 
-                  cursor: 'pointer', 
-                  transition: 'all 0.3s ease',
-                  '&:hover': { 
-                    transform: 'translateY(-2px)', 
-                    boxShadow: '0 8px 25px rgba(80, 235, 151, 0.2)' 
-                  }
-                }}
-                onClick={() => setExpandedWeek(expandedWeek === 5 ? null : 5)}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Box sx={{ 
-                        width: 32, 
-                        height: 32, 
-                        borderRadius: '50%', 
-                        backgroundColor: 'primary.main', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center'
-                      }}>
-                        <Typography variant="body2" sx={{ color: '#000', fontWeight: 'bold' }}>
-                          5
-                        </Typography>
-                      </Box>
-                      <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                        Week 5: Discomfort as Medicine
-                      </Typography>
-                    </Box>
-                    <Typography variant="h6" sx={{ color: 'primary.main' }}>
-                      {expandedWeek === 5 ? '−' : '+'}
-                    </Typography>
-                  </Box>
-                  
-                  <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-                    Face the cold to wake up dormant systems and reclaim your inner power. Build mental resilience through controlled stress.
-                  </Typography>
-                  
-                  {expandedWeek === 5 && (
-                    <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
-                        What You'll Master:
-                      </Typography>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3 }}>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Cold as hormetic stress
-                        </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Vascular fitness training
-                        </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Brown fat activation
-                        </Typography>
-                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ color: '#50EB97' }}>•</span> Stress response rewiring
-                        </Typography>
-                      </Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: 'primary.main' }}>
-                        Key Practice:
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        Daily cold showers (30+ seconds) + pre-cold breathwork preparation
-                      </Typography>
-                    </Box>
-                  )}
-                </CardContent>
-              </Card>
+              );
+              })}
             </Box>
           </Box>
         </Box>

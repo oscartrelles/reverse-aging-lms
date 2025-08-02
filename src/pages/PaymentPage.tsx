@@ -64,6 +64,14 @@ const PaymentPage: React.FC = () => {
     setPaymentStatus('success');
     // TODO: Create enrollment in Firestore
     // TODO: Redirect to dashboard after a delay
+    
+    // Add a delay before redirecting to allow user to see success message
+    setTimeout(() => {
+      // Navigate to dashboard and then refresh the page to ensure proper state
+      navigate('/dashboard');
+      // Force a page refresh to update the dashboard state
+      window.location.reload();
+    }, 3000); // 3 second delay
   };
 
   const handlePaymentError = (error: string) => {
@@ -100,7 +108,11 @@ const PaymentPage: React.FC = () => {
           <Button
             variant="contained"
             size="large"
-            onClick={() => navigate('/dashboard')}
+            onClick={() => {
+              navigate('/dashboard');
+              // Force a page refresh to update the dashboard state
+              window.location.reload();
+            }}
           >
             Go to Dashboard
           </Button>

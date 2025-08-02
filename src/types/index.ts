@@ -43,6 +43,12 @@ export interface Lesson {
   isPublished: boolean;
   releaseDate?: Timestamp;
   order: number;
+  // New fields for dashboard display
+  whatYoullMaster?: string[]; // Array of bullet points
+  keyPractice?: string; // Single key practice description
+  // Additional robust fields
+  theme?: string; // Lesson theme/topic
+  learningObjectives?: string[]; // Array of learning objectives
 }
 
 export interface Resource {
@@ -140,4 +146,17 @@ export interface DiscountCode {
   validFrom: Timestamp;
   validUntil: Timestamp;
   isActive: boolean;
+}
+
+// Lesson Release types
+export interface LessonRelease {
+  id: string;
+  cohortId: string;
+  lessonId: string;
+  courseId: string;
+  weekNumber: number;
+  releaseDate: Timestamp;
+  isReleased: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 } 

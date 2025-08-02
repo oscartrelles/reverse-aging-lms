@@ -16,11 +16,13 @@ import {
   CircularProgress,
   Grid,
   Chip,
+  IconButton,
 } from '@mui/material';
-import { Save, Cancel, Add, Delete } from '@mui/icons-material';
+import { Save, Cancel, Add, Delete, PlayArrow } from '@mui/icons-material';
 import { doc, updateDoc, addDoc, collection } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
 import { Timestamp } from 'firebase/firestore';
+import { extractVideoDuration, formatDuration as formatVideoDuration } from '../../utils/videoUtils';
 
 interface LessonEditorProps {
   courseId: string;
@@ -46,12 +48,19 @@ const LessonEditor: React.FC<LessonEditorProps> = ({
     videoDuration: lessonData?.videoDuration || 1800, // 30 minutes in seconds
     isPublished: lessonData?.isPublished || false,
     resources: lessonData?.resources || [],
+    whatYoullMaster: lessonData?.whatYoullMaster || [],
+    keyPractice: lessonData?.keyPractice || '',
+    theme: lessonData?.theme || '',
+    learningObjectives: lessonData?.learningObjectives || [],
   });
 
   const [newResource, setNewResource] = useState({ title: '', url: '' });
+  const [newMasteryPoint, setNewMasteryPoint] = useState('');
+  const [newLearningObjective, setNewLearningObjective] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [extractingDuration, setExtractingDuration] = useState(false);
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
@@ -74,6 +83,40 @@ const LessonEditor: React.FC<LessonEditorProps> = ({
     setFormData(prev => ({
       ...prev,
       resources: prev.resources.filter((r: any) => r.id !== resourceId),
+    }));
+  };
+
+  const addMasteryPoint = () => {
+    if (newMasteryPoint.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        whatYoullMaster: [...prev.whatYoullMaster, newMasteryPoint.trim()],
+      }));
+      setNewMasteryPoint('');
+    }
+  };
+
+  const removeMasteryPoint = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      whatYoullMaster: prev.whatYoullMaster.filter((_: string, i: number) => i !== index),
+    }));
+  };
+
+  const addLearningObjective = () => {
+    if (newLearningObjective.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        learningObjectives: [...prev.learningObjectives, newLearningObjective.trim()],
+      }));
+      setNewLearningObjective('');
+    }
+  };
+
+  const removeLearningObjective = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      learningObjectives: prev.learningObjectives.filter((_: string, i: number) => i !== index),
     }));
   };
 
@@ -116,9 +159,35 @@ const LessonEditor: React.FC<LessonEditorProps> = ({
   };
 
   const formatDuration = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    return `${hours}h ${minutes}m`;
+    return formatVideoDuration(seconds);
+  };
+
+  const handleExtractDuration = async () => {
+    if (!formData.videoUrl) {
+      setError('Please enter a video URL first');
+      return;
+    }
+
+    setExtractingDuration(true);
+    setError(null);
+
+    try {
+      const duration = await extractVideoDuration(formData.videoUrl);
+      if (duration) {
+        setFormData(prev => ({
+          ...prev,
+          videoDuration: duration,
+        }));
+        setSuccess(`Duration extracted: ${formatVideoDuration(duration)}`);
+      } else {
+        setError('Could not extract duration. Please check the video URL.');
+      }
+    } catch (error) {
+      console.error('Error extracting duration:', error);
+      setError('Failed to extract duration. Please enter it manually.');
+    } finally {
+      setExtractingDuration(false);
+    }
   };
 
   return (
@@ -142,6 +211,7 @@ const LessonEditor: React.FC<LessonEditorProps> = ({
 
         <form onSubmit={handleSubmit}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {/* 1. Lesson Title */}
             <TextField
               fullWidth
               label="Lesson Title"
@@ -150,6 +220,7 @@ const LessonEditor: React.FC<LessonEditorProps> = ({
               required
             />
 
+            {/* 2. Description */}
             <TextField
               fullWidth
               label="Description"
@@ -160,56 +231,133 @@ const LessonEditor: React.FC<LessonEditorProps> = ({
               required
             />
 
-            <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-              <TextField
-                fullWidth
-                label="Week Number"
-                type="number"
-                value={formData.weekNumber}
-                onChange={(e) => handleInputChange('weekNumber', Number(e.target.value))}
-                required
-              />
-
-              <TextField
-                fullWidth
-                label="Order"
-                type="number"
-                value={formData.order}
-                onChange={(e) => handleInputChange('order', Number(e.target.value))}
-                required
-              />
-            </Box>
-
+            {/* 3. Theme */}
             <TextField
               fullWidth
-              label="Video URL (YouTube/Vimeo)"
-              value={formData.videoUrl}
-              onChange={(e) => handleInputChange('videoUrl', e.target.value)}
-              placeholder="https://www.youtube.com/watch?v=..."
+              label="Theme"
+              value={formData.theme}
+              onChange={(e) => handleInputChange('theme', e.target.value)}
+              placeholder="e.g., Mindset & Foundation, Nutrition & Metabolism, Movement & Recovery"
+              helperText="The main theme or topic of this lesson"
             />
 
-            <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-              <TextField
-                fullWidth
-                label="Video Duration (seconds)"
-                type="number"
-                value={formData.videoDuration}
-                onChange={(e) => handleInputChange('videoDuration', Number(e.target.value))}
-                helperText={`Current: ${formatDuration(formData.videoDuration)}`}
-              />
+            {/* 4. Learning Objectives Section */}
+            <Box>
+              <Typography variant="subtitle1" gutterBottom>
+                Learning Objectives
+              </Typography>
+              
+              {/* Add Learning Objective */}
+              <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                <TextField
+                  label="Learning Objective"
+                  value={newLearningObjective}
+                  onChange={(e) => setNewLearningObjective(e.target.value)}
+                  size="small"
+                  sx={{ flex: 1 }}
+                  placeholder="e.g., Understand the difference between healthspan and lifespan"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addLearningObjective();
+                    }
+                  }}
+                />
+                <Button
+                  variant="outlined"
+                  startIcon={<Add />}
+                  onClick={addLearningObjective}
+                  disabled={!newLearningObjective.trim()}
+                  size="small"
+                >
+                  Add
+                </Button>
+              </Box>
 
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={formData.isPublished}
-                    onChange={(e) => handleInputChange('isPublished', e.target.checked)}
-                  />
-                }
-                label="Published"
-              />
+              {/* Existing Learning Objectives */}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {formData.learningObjectives.map((objective: string, index: number) => (
+                  <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="body2" sx={{ flex: 1 }}>
+                      • {objective}
+                    </Typography>
+                    <IconButton
+                      size="small"
+                      onClick={() => removeLearningObjective(index)}
+                      color="error"
+                    >
+                      <Delete />
+                    </IconButton>
+                  </Box>
+                ))}
+              </Box>
             </Box>
 
-            {/* Resources Section */}
+            {/* 5. Key Concepts (What You'll Master) Section */}
+            <Box>
+              <Typography variant="subtitle1" gutterBottom>
+                Key Concepts (What You'll Master)
+              </Typography>
+              
+              {/* Add Mastery Point */}
+              <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                <TextField
+                  label="Key Concept"
+                  value={newMasteryPoint}
+                  onChange={(e) => setNewMasteryPoint(e.target.value)}
+                  size="small"
+                  sx={{ flex: 1 }}
+                  placeholder="e.g., Healthspan vs. lifespan understanding"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addMasteryPoint();
+                    }
+                  }}
+                />
+                <Button
+                  variant="outlined"
+                  startIcon={<Add />}
+                  onClick={addMasteryPoint}
+                  disabled={!newMasteryPoint.trim()}
+                  size="small"
+                >
+                  Add
+                </Button>
+              </Box>
+
+              {/* Existing Mastery Points */}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {formData.whatYoullMaster.map((point: string, index: number) => (
+                  <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="body2" sx={{ flex: 1 }}>
+                      • {point}
+                    </Typography>
+                    <IconButton
+                      size="small"
+                      onClick={() => removeMasteryPoint(index)}
+                      color="error"
+                    >
+                      <Delete />
+                    </IconButton>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+
+            {/* 6. Key Practices */}
+            <TextField
+              fullWidth
+              label="Key Practice"
+              value={formData.keyPractice}
+              onChange={(e) => handleInputChange('keyPractice', e.target.value)}
+              multiline
+              rows={2}
+              placeholder="e.g., Morning meditation (5-10 min) + daily journaling to build awareness"
+              helperText="This will be displayed on the dashboard as the key practice for this week"
+            />
+
+            {/* 7. Resources Section */}
             <Box>
               <Typography variant="subtitle1" gutterBottom>
                 Resources
@@ -253,6 +401,74 @@ const LessonEditor: React.FC<LessonEditorProps> = ({
                     variant="outlined"
                   />
                 ))}
+              </Box>
+            </Box>
+
+            {/* 8. Technical Settings */}
+            <Box>
+              <Typography variant="subtitle1" gutterBottom>
+                Technical Settings
+              </Typography>
+              
+              <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
+                <TextField
+                  fullWidth
+                  label="Week Number"
+                  type="number"
+                  value={formData.weekNumber}
+                  onChange={(e) => handleInputChange('weekNumber', Number(e.target.value))}
+                  required
+                />
+
+                <TextField
+                  fullWidth
+                  label="Order"
+                  type="number"
+                  value={formData.order}
+                  onChange={(e) => handleInputChange('order', Number(e.target.value))}
+                  required
+                />
+              </Box>
+
+              <TextField
+                fullWidth
+                label="Video URL (YouTube/Vimeo)"
+                value={formData.videoUrl}
+                onChange={(e) => handleInputChange('videoUrl', e.target.value)}
+                placeholder="https://www.youtube.com/watch?v=..."
+              />
+
+              <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
+                <TextField
+                  fullWidth
+                  label="Video Duration (seconds)"
+                  type="number"
+                  value={formData.videoDuration}
+                  onChange={(e) => handleInputChange('videoDuration', Number(e.target.value))}
+                  helperText={`Current: ${formatDuration(formData.videoDuration)}`}
+                />
+
+                <Button
+                  variant="outlined"
+                  startIcon={extractingDuration ? <CircularProgress size={16} /> : <PlayArrow />}
+                  onClick={handleExtractDuration}
+                  disabled={extractingDuration || !formData.videoUrl}
+                  sx={{ minWidth: 140 }}
+                >
+                  {extractingDuration ? 'Extracting...' : 'Auto Extract'}
+                </Button>
+              </Box>
+
+              <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.isPublished}
+                      onChange={(e) => handleInputChange('isPublished', e.target.checked)}
+                    />
+                  }
+                  label="Published"
+                />
               </Box>
             </Box>
           </Box>

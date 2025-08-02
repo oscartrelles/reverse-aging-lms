@@ -78,7 +78,13 @@ const Header: React.FC = () => {
       {currentUser?.isAdmin && (
         <MenuItem onClick={() => { handleMenuClose(); navigate('/admin'); }}>
           <School sx={{ mr: 1 }} />
-          Admin
+          Admin Dashboard
+        </MenuItem>
+      )}
+      {currentUser?.isAdmin && (
+        <MenuItem onClick={() => { handleMenuClose(); navigate('/admin/users'); }}>
+          <Person sx={{ mr: 1 }} />
+          User Management
         </MenuItem>
       )}
       <MenuItem onClick={handleLogout}>
@@ -107,7 +113,13 @@ const Header: React.FC = () => {
       {currentUser?.isAdmin && (
         <MenuItem onClick={() => { handleMenuClose(); navigate('/admin'); }}>
           <School sx={{ mr: 1 }} />
-          Admin
+          Admin Dashboard
+        </MenuItem>
+      )}
+      {currentUser?.isAdmin && (
+        <MenuItem onClick={() => { handleMenuClose(); navigate('/admin/users'); }}>
+          <Person sx={{ mr: 1 }} />
+          User Management
         </MenuItem>
       )}
       <MenuItem onClick={handleLogout}>

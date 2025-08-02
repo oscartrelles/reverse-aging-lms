@@ -2,21 +2,28 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { collection, getDocs, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { useAuth } from './AuthContext';
-import { Course, Enrollment, Cohort, LessonProgress } from '../types';
+import { Course, Enrollment, Cohort, LessonProgress, Lesson } from '../types';
+import { lessonProgressService, StreakData } from '../services/lessonProgressService';
 
 interface CourseContextType {
   courses: Course[];
   enrollments: Enrollment[];
   cohorts: Cohort[];
+  lessons: Lesson[];
   currentEnrollment: Enrollment | null;
   currentCohort: Cohort | null;
   lessonProgress: LessonProgress[];
+  streakData: StreakData | null;
   loading: boolean;
   getCourse: (courseId: string) => Course | undefined;
   getEnrollment: (courseId: string) => Enrollment | undefined;
   getCohort: (cohortId: string) => Cohort | undefined;
   getLessonProgress: (lessonId: string) => LessonProgress | undefined;
+  getLessonsByCourse: (courseId: string) => Lesson[];
   refreshData: () => Promise<void>;
+  updateLessonProgress: (lessonId: string, progress: Partial<LessonProgress>) => Promise<void>;
+  completeLesson: (lessonId: string) => Promise<void>;
+  loadStreakData: () => Promise<void>;
 }
 
 const CourseContext = createContext<CourseContextType | undefined>(undefined);
@@ -34,7 +41,9 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
   const [courses, setCourses] = useState<Course[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [cohorts, setCohorts] = useState<Cohort[]>([]);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
   const [lessonProgress, setLessonProgress] = useState<LessonProgress[]>([]);
+  const [streakData, setStreakData] = useState<StreakData | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Get current enrollment and cohort
@@ -87,11 +96,31 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
       const cohortsData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
+        startDate: doc.data().startDate,
+        endDate: doc.data().endDate,
       })) as Cohort[];
       
+      console.log('CourseContext: Loaded cohorts:', cohortsData);
       setCohorts(cohortsData);
     } catch (error) {
       console.error('Error loading cohorts:', error);
+    }
+  }
+
+  async function loadLessons() {
+    try {
+      console.log('CourseContext: Loading lessons...');
+      const lessonsQuery = query(collection(db, 'lessons'));
+      const snapshot = await getDocs(lessonsQuery);
+      const lessonsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Lesson[];
+      
+      console.log('CourseContext: Loaded lessons:', lessonsData);
+      setLessons(lessonsData);
+    } catch (error) {
+      console.error('Error loading lessons:', error);
     }
   }
 
@@ -123,15 +152,22 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
         loadCourses(),
         loadEnrollments(),
         loadCohorts(),
+        loadLessons(),
         loadLessonProgress(),
       ]);
+      
+      // Load streak data after other data is loaded
+      if (currentUser && currentEnrollment) {
+        await loadStreakData();
+      }
+      
       console.log('CourseContext: Data refresh completed successfully');
     } catch (error) {
       console.error('CourseContext: Error refreshing data:', error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentUser, currentEnrollment]);
 
   function getCourse(courseId: string): Course | undefined {
     return courses.find(course => course.id === courseId);
@@ -147,6 +183,61 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
 
   function getLessonProgress(lessonId: string): LessonProgress | undefined {
     return lessonProgress.find(progress => progress.lessonId === lessonId);
+  }
+
+  function getLessonsByCourse(courseId: string): Lesson[] {
+    return lessons.filter(lesson => lesson.courseId === courseId).sort((a, b) => a.order - b.order);
+  }
+
+  // Load streak data for the current user and course
+  async function loadStreakData() {
+    if (!currentUser || !currentEnrollment) return;
+
+    try {
+      const streak = await lessonProgressService.getUserStreak(currentUser.id, currentEnrollment.courseId);
+      setStreakData(streak);
+    } catch (error) {
+      console.error('Error loading streak data:', error);
+    }
+  }
+
+  // Update lesson progress
+  async function updateLessonProgress(lessonId: string, progress: Partial<LessonProgress>) {
+    if (!currentUser || !currentEnrollment) return;
+
+    try {
+      await lessonProgressService.updateLessonProgress(
+        currentUser.id,
+        lessonId,
+        currentEnrollment.courseId,
+        progress
+      );
+      
+      // Refresh streak data after progress update
+      await loadStreakData();
+    } catch (error) {
+      console.error('Error updating lesson progress:', error);
+      throw error;
+    }
+  }
+
+  // Complete a lesson
+  async function completeLesson(lessonId: string) {
+    if (!currentUser || !currentEnrollment) return;
+
+    try {
+      await lessonProgressService.completeLesson(
+        currentUser.id,
+        lessonId,
+        currentEnrollment.courseId
+      );
+      
+      // Refresh streak data after completion
+      await loadStreakData();
+    } catch (error) {
+      console.error('Error completing lesson:', error);
+      throw error;
+    }
   }
 
   useEffect(() => {
@@ -185,15 +276,21 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
     courses,
     enrollments,
     cohorts,
+    lessons,
     currentEnrollment,
     currentCohort,
     lessonProgress,
+    streakData,
     loading,
     getCourse,
     getEnrollment,
     getCohort,
     getLessonProgress,
+    getLessonsByCourse,
     refreshData,
+    updateLessonProgress,
+    completeLesson,
+    loadStreakData,
   };
 
   return (
