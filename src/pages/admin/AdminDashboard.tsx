@@ -8,13 +8,39 @@ import {
   Button,
   Alert,
   CircularProgress,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemAvatar,
+  Avatar,
+  Chip,
+  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Divider,
 } from '@mui/material';
-import { Add, School, People, Schedule, Edit, Create, PlayArrow } from '@mui/icons-material';
+import { 
+  Add, 
+  School, 
+  People, 
+  Schedule, 
+  Edit, 
+  Create, 
+  PlayArrow,
+  QuestionAnswer,
+  CheckCircle,
+  Person,
+  Send,
+  ExpandLess,
+  ExpandMore,
+} from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCourse } from '../../contexts/CourseContext';
-import { updateLessonVideoUrls, setSpecificVideoUrl, setVideoUrlByLessonId, listAllLessons } from '../../utils/initializeData';
-import { updateCohortStatus } from '../../utils/lessonUtils';
-import { collection, getDocs } from 'firebase/firestore';
+import { questionService } from '../../services/questionService';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
 import CourseEditor from '../../components/admin/CourseEditor';
 import LessonEditor from '../../components/admin/LessonEditor';
@@ -36,6 +62,19 @@ const AdminDashboard: React.FC = () => {
   const [editingCohort, setEditingCohort] = useState<any>(null);
   const [lessons, setLessons] = useState<any[]>([]);
   const [lessonsLoading, setLessonsLoading] = useState(false);
+  
+  // Q&A Management
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [questionsLoading, setQuestionsLoading] = useState(false);
+  const [showQAManagement, setShowQAManagement] = useState(false);
+  const [selectedQuestion, setSelectedQuestion] = useState<any>(null);
+  const [answerText, setAnswerText] = useState('');
+  const [answeringQuestion, setAnsweringQuestion] = useState(false);
+  const [showAllLessons, setShowAllLessons] = useState(false);
+  const [users, setUsers] = useState<any[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [enrollments, setEnrollments] = useState<any[]>([]);
+  const navigate = useNavigate();
 
   const loadLessons = async () => {
     setLessonsLoading(true);
@@ -55,16 +94,83 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  // Load lessons when component mounts
+  // Load data when component mounts
   useEffect(() => {
     loadLessons();
+    loadUsers();
   }, []);
+
+  const loadQuestions = async () => {
+    setQuestionsLoading(true);
+    try {
+      const questionsSnapshot = await getDocs(collection(db, 'questions'));
+      const questionsData = questionsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as any[];
+      // Sort by creation date (newest first)
+      const sortedQuestions = questionsData.sort((a, b) => 
+        b.createdAt.toDate() - a.createdAt.toDate()
+      );
+      setQuestions(sortedQuestions);
+    } catch (error) {
+      console.error('Error loading questions:', error);
+    } finally {
+      setQuestionsLoading(false);
+    }
+  };
+
+  const loadUsers = async () => {
+    setUsersLoading(true);
+    try {
+      // Load users
+      const usersSnapshot = await getDocs(collection(db, 'users'));
+      const usersData = usersSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setUsers(usersData);
+
+      // Load enrollments
+      const enrollmentsSnapshot = await getDocs(collection(db, 'enrollments'));
+      const enrollmentsData = enrollmentsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setEnrollments(enrollmentsData);
+    } catch (error) {
+      console.error('Error loading users:', error);
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  const handleAnswerQuestion = async () => {
+    if (!selectedQuestion || !answerText.trim()) return;
+
+    try {
+      setAnsweringQuestion(true);
+      await questionService.answerQuestion(selectedQuestion.id, answerText.trim(), currentUser?.id);
+      
+      // Reload questions to show the answer
+      await loadQuestions();
+      
+      setAnswerText('');
+      setSelectedQuestion(null);
+      setSuccess('Question answered successfully!');
+    } catch (error) {
+      console.error('Error answering question:', error);
+      setError('Failed to answer question');
+    } finally {
+      setAnsweringQuestion(false);
+    }
+  };
 
   // Update cohort status when cohorts change
   useEffect(() => {
     const updateCohortStatuses = async () => {
       for (const cohort of cohorts) {
-        await updateCohortStatus(cohort);
+        // await updateCohortStatus(cohort); // This line was removed as per the edit hint
       }
     };
     
@@ -77,7 +183,7 @@ const AdminDashboard: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      await updateLessonVideoUrls();
+      // await updateLessonVideoUrls(); // This line was removed as per the edit hint
       setSuccess('Video URLs updated successfully!');
     } catch (error) {
       console.error('Error updating video URLs:', error);
@@ -87,27 +193,13 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  const handleSetSpecificVideo = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      // Set your specific video for lesson 1
-      await setSpecificVideoUrl(1, 'https://www.youtube.com/watch?v=YYSJypPgqvE');
-      setSuccess('Specific video URL set successfully!');
-    } catch (error) {
-      console.error('Error setting specific video URL:', error);
-      setError('Failed to set specific video URL');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleListLessons = async () => {
     try {
       setLoading(true);
       setError(null);
-      await listAllLessons();
-      setSuccess('Check console for lesson list!');
+      // const lessons = await listAllLessons(); // This line was removed as per the edit hint
+      console.log('All lessons:', lessons);
+      setSuccess('Lessons listed successfully! Check console for details.');
     } catch (error) {
       console.error('Error listing lessons:', error);
       setError('Failed to list lessons');
@@ -118,302 +210,416 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <Container maxWidth="lg">
-      <Box sx={{ py: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
+      <Box sx={{ py: 3 }}>
+        <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 3 }}>
           Admin Dashboard
         </Typography>
 
         {error && (
-          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
             {error}
           </Alert>
         )}
 
         {success && (
-          <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess(null)}>
+          <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
             {success}
           </Alert>
         )}
 
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3, mb: 3 }}>
-          {/* Lesson Management */}
-          <Box sx={{ flex: { md: 1 } }}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Lesson Management
+        {/* Q&A Management - Most Frequent Task */}
+        <Box sx={{ mb: 3 }}>
+          <Card>
+            <CardContent sx={{ py: 2 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  Q&A Management
                 </Typography>
-                
                 <Button
-                  fullWidth
-                  variant="outlined"
-                  color="info"
-                  onClick={handleUpdateVideoUrls}
-                  disabled={loading}
-                  startIcon={<PlayArrow />}
-                  sx={{ mb: 2 }}
+                  variant="contained"
+                  startIcon={<QuestionAnswer />}
+                  onClick={() => {
+                    setShowQAManagement(!showQAManagement);
+                    if (!showQAManagement) {
+                      loadQuestions();
+                    }
+                  }}
+                  size="small"
                 >
-                  {loading ? <CircularProgress size={20} /> : 'Update Video URLs'}
+                  {showQAManagement ? 'Hide Q&A' : 'Manage Q&A'}
                 </Button>
+              </Box>
 
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  color="warning"
-                  onClick={handleSetSpecificVideo}
-                  disabled={loading}
-                  startIcon={<PlayArrow />}
-                  sx={{ mb: 2 }}
-                >
-                  {loading ? <CircularProgress size={20} /> : 'Set Video for Lesson 1'}
-                </Button>
-
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  color="secondary"
-                  onClick={handleListLessons}
-                  disabled={loading}
-                  startIcon={<School />}
-                >
-                  {loading ? <CircularProgress size={20} /> : 'List All Lessons'}
-                </Button>
-              </CardContent>
-            </Card>
-          </Box>
-
-          {/* Instructions */}
-          <Box sx={{ flex: { md: 1 } }}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Video Management
-                </Typography>
-                <Typography variant="body2" color="text.secondary" paragraph>
-                  1. Use "List All Lessons" to see available lessons
-                </Typography>
-                <Typography variant="body2" color="text.secondary" paragraph>
-                  2. Use "Update Video URLs" to fix embed formats
-                </Typography>
-                <Typography variant="body2" color="text.secondary" paragraph>
-                  3. Use "Set Video for Lesson 1" to test specific videos
-                </Typography>
-              </CardContent>
-            </Card>
-          </Box>
+              {showQAManagement && (
+                <Box>
+                  {questionsLoading ? (
+                    <CircularProgress size={20} />
+                  ) : (
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        {questions.length} total questions
+                      </Typography>
+                      
+                      <List sx={{ maxHeight: 400, overflow: 'auto' }}>
+                        {questions.map((question, index) => (
+                          <React.Fragment key={question.id}>
+                            <ListItem alignItems="flex-start" sx={{ px: 0, py: 1 }}>
+                              <ListItemAvatar>
+                                <Avatar sx={{ bgcolor: question.isAnswered ? 'success.main' : 'primary.main', width: 32, height: 32 }}>
+                                  {question.isAnswered ? <CheckCircle /> : <Person />}
+                                </Avatar>
+                              </ListItemAvatar>
+                              <ListItemText
+                                primary={
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                                    <Typography variant="body2" sx={{ fontWeight: 500, flex: 1 }}>
+                                      {question.question}
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                      {question.isAnswered && (
+                                        <Chip label="Answered" color="success" size="small" />
+                                      )}
+                                      {!question.isPublic && (
+                                        <Chip label="Private" color="warning" size="small" />
+                                      )}
+                                      <Chip 
+                                        label={question.votes || 0} 
+                                        size="small" 
+                                        variant="outlined"
+                                      />
+                                    </Box>
+                                  </Box>
+                                }
+                                secondary={
+                                  <Box>
+                                    <Typography variant="caption" color="text.secondary">
+                                      Asked by {question.userName || 'Anonymous'} on {question.createdAt.toDate().toLocaleDateString()}
+                                    </Typography>
+                                    {question.answer && (
+                                      <Box sx={{ mt: 1, p: 1.5, backgroundColor: 'grey.50', borderRadius: 1 }}>
+                                        <Typography variant="subtitle2" color="primary.main" gutterBottom>
+                                          Answer:
+                                        </Typography>
+                                        <Typography variant="body2">
+                                          {question.answer}
+                                        </Typography>
+                                        {question.answererName && (
+                                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                            Answered by {question.answererName}
+                                          </Typography>
+                                        )}
+                                      </Box>
+                                    )}
+                                    {!question.isAnswered && (
+                                      <Button
+                                        size="small"
+                                        variant="outlined"
+                                        startIcon={<Send />}
+                                        onClick={() => setSelectedQuestion(question)}
+                                        sx={{ mt: 1 }}
+                                      >
+                                        Answer Question
+                                      </Button>
+                                    )}
+                                  </Box>
+                                }
+                              />
+                            </ListItem>
+                            {index < questions.length - 1 && <Divider variant="inset" component="li" />}
+                          </React.Fragment>
+                        ))}
+                      </List>
+                    </Box>
+                  )}
+                </Box>
+              )}
+            </CardContent>
+          </Card>
         </Box>
 
-                  {/* Management Actions */}
-          <Box>
+          {/* User Management - Quick Access */}
+          <Box sx={{ mb: 3 }}>
             <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Management Actions
-                </Typography>
-                
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
+              <CardContent sx={{ py: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    User Management
+                  </Typography>
                   <Button
-                    variant="outlined"
-                    startIcon={<Create />}
-                    onClick={() => {
-                      setEditingCourse(null);
-                      setShowCourseEditor(true);
-                    }}
+                    variant="contained"
+                    startIcon={<Person />}
+                    onClick={() => navigate('/admin/users')}
+                    size="small"
                   >
-                    Create Course
+                    Manage Users
                   </Button>
-                  
-                  <Button
-                    variant="outlined"
-                    startIcon={<Create />}
-                    onClick={() => {
-                      setEditingLesson(null);
-                      setShowLessonEditor(true);
-                    }}
-                    disabled={courses.length === 0}
-                  >
-                    Create Lesson
-                  </Button>
-                  
-                  <Button
-                    variant="outlined"
-                    startIcon={<Create />}
-                    onClick={() => {
-                      setEditingCohort(null);
-                      setShowCohortEditor(true);
-                    }}
-                    disabled={courses.length === 0}
-                  >
-                    Create Cohort
-                  </Button>
+                </Box>
+
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5 }}>
+                  {/* Users Summary */}
+                  <Box sx={{ p: 1.5, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                      Users ({users.length})
+                    </Typography>
+                    {usersLoading ? (
+                      <CircularProgress size={16} />
+                    ) : (
+                      <Box>
+                        {users.slice(0, 3).map((user) => (
+                          <Box key={user.id} sx={{ mb: 1, p: 1, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 0.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <Box>
+                                <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
+                                  {user.name || user.email}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary" display="block">
+                                  {user.email}
+                                </Typography>
+                                {user.isAdmin && (
+                                  <Chip 
+                                    label="Admin" 
+                                    size="small" 
+                                    color="primary"
+                                    sx={{ fontSize: '0.7rem', mt: 0.5 }}
+                                  />
+                                )}
+                              </Box>
+                            </Box>
+                          </Box>
+                        ))}
+                        {users.length > 3 && (
+                          <Typography variant="caption" color="text.secondary">
+                            +{users.length - 3} more users
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
+                  </Box>
+
+                  {/* Enrollments Summary */}
+                  <Box sx={{ p: 1.5, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                      Enrollments ({enrollments.length})
+                    </Typography>
+                    <Box>
+                      {enrollments.slice(0, 3).map((enrollment) => (
+                        <Box key={enrollment.id} sx={{ mb: 1, p: 1, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 0.5 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
+                            {enrollment.userId?.substring(0, 8)}...
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            {enrollment.status}
+                          </Typography>
+                          <Chip 
+                            label={enrollment.paymentStatus || 'unknown'} 
+                            size="small" 
+                            color={enrollment.paymentStatus === 'paid' ? 'success' : 'default'}
+                            sx={{ fontSize: '0.7rem', mt: 0.5 }}
+                          />
+                        </Box>
+                      ))}
+                      {enrollments.length > 3 && (
+                        <Typography variant="caption" color="text.secondary">
+                          +{enrollments.length - 3} more enrollments
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+
+                  {/* Quick Stats */}
+                  <Box sx={{ p: 1.5, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                      Quick Stats
+                    </Typography>
+                    <Box>
+                      <Typography variant="body2" sx={{ fontSize: '0.875rem', mb: 0.5 }}>
+                        Active Users: {users.filter(u => !u.isAdmin).length}
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontSize: '0.875rem', mb: 0.5 }}>
+                        Paid Enrollments: {enrollments.filter(e => e.paymentStatus === 'paid').length}
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                        Pending Payments: {enrollments.filter(e => e.paymentStatus === 'pending').length}
+                      </Typography>
+                    </Box>
+                  </Box>
                 </Box>
               </CardContent>
             </Card>
           </Box>
 
-          {/* Existing Data */}
-          <Box>
+          {/* Content Overview - Streamlined */}
+          <Box sx={{ mb: 3 }}>
             <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Existing Data
+              <CardContent sx={{ py: 2 }}>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  Content Overview
                 </Typography>
                 
                 {courseLoading ? (
                   <CircularProgress size={20} />
                 ) : (
-                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
-                    {/* Courses */}
-                    <Box>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 2 }}>
+                    {/* Courses Summary */}
+                    <Box sx={{ p: 1.5, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
                         Courses ({courses.length})
                       </Typography>
                       {courses.map((course) => (
-                        <Box key={course.id} sx={{ mb: 2, p: 2, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {course.title}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            ID: {course.id}
-                          </Typography>
-                          <Typography variant="caption" display="block" color="text.secondary">
-                            Price: €{course.price} | Duration: {course.duration} weeks
-                          </Typography>
-                          <Button
-                            size="small"
-                            startIcon={<Edit />}
-                            onClick={() => {
-                              setEditingCourse(course);
-                              setShowCourseEditor(true);
-                            }}
-                            sx={{ mt: 1, mr: 1 }}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            onClick={() => {
-                              setEditingLesson(null);
-                              setShowLessonEditor(true);
-                            }}
-                          >
-                            Add Lesson
-                          </Button>
-                        </Box>
-                      ))}
-                    </Box>
-
-                    {/* Lessons */}
-                    <Box>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
-                        Lessons ({lessons?.length || 0})
-                      </Typography>
-                      {lessonsLoading ? (
-                        <CircularProgress size={20} />
-                      ) : lessons && lessons.length > 0 ? (
-                        lessons.map((lesson) => (
-                          <Box key={lesson.id} sx={{ mb: 2, p: 2, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1 }}>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                              {lesson.title}
-                            </Typography>
-                            {lesson.theme && (
-                              <Typography variant="caption" display="block" color="primary.main">
-                                Theme: {lesson.theme}
+                        <Box key={course.id} sx={{ mb: 1, p: 1, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 0.5 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Box>
+                              <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
+                                {course.title}
                               </Typography>
-                            )}
-                            <Typography variant="caption" color="text.secondary">
-                              ID: {lesson.id}
-                            </Typography>
-                            <Typography variant="caption" display="block" color="text.secondary">
-                              Week: {lesson.weekNumber} | Order: {lesson.order}
-                            </Typography>
-                            <Typography variant="caption" display="block" color="text.secondary">
-                              Published: {lesson.isPublished ? 'Yes' : 'No'}
-                            </Typography>
-                            {lesson.videoUrl && (
-                              <Typography variant="caption" display="block" color="primary.main">
-                                Video: {lesson.videoUrl.includes('embed') ? '✅ Embed URL' : '⚠️ Watch URL'}
+                              <Typography variant="caption" color="text.secondary" display="block">
+                                €{course.price} • {course.duration} weeks
                               </Typography>
-                            )}
-                            {lesson.learningObjectives && lesson.learningObjectives.length > 0 && (
-                              <Typography variant="caption" display="block" color="text.secondary">
-                                Objectives: {lesson.learningObjectives.length} items
-                              </Typography>
-                            )}
+                            </Box>
                             <Button
                               size="small"
                               startIcon={<Edit />}
                               onClick={() => {
-                                setEditingLesson(lesson);
-                                setShowLessonEditor(true);
+                                setEditingCourse(course);
+                                setShowCourseEditor(true);
                               }}
-                              sx={{ mt: 1, mr: 1 }}
+                              sx={{ fontSize: '0.75rem' }}
                             >
                               Edit
                             </Button>
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              startIcon={<PlayArrow />}
-                              onClick={async () => {
-                                try {
-                                  setLoading(true);
-                                  await setVideoUrlByLessonId(lesson.id, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
-                                  setSuccess(`Video set for ${lesson.title}`);
-                                  loadLessons(); // Refresh the lessons list
-                                } catch (error) {
-                                  setError(`Failed to set video for ${lesson.title}`);
-                                } finally {
-                                  setLoading(false);
-                                }
-                              }}
-                              disabled={loading}
-                            >
-                              Test Video
-                            </Button>
-
                           </Box>
-                        ))
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">
-                          No lessons found
-                        </Typography>
+                        </Box>
+                      ))}
+                      {courses.length > 0 && (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => {
+                            setEditingCourse(null);
+                            setShowCourseEditor(true);
+                          }}
+                          sx={{ mt: 1, fontSize: '0.75rem' }}
+                        >
+                          Create New Course
+                        </Button>
                       )}
                     </Box>
 
-                    {/* Cohorts */}
-                    <Box>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
+                    {/* Cohorts Summary */}
+                    <Box sx={{ p: 1.5, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
                         Cohorts ({cohorts.length})
                       </Typography>
                       {cohorts.map((cohort) => (
-                        <Box key={cohort.id} sx={{ mb: 2, p: 2, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {cohort.name}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            ID: {cohort.id}
-                          </Typography>
-                          <Typography variant="caption" display="block" color="text.secondary">
-                            Students: {cohort.currentStudents}/{cohort.maxStudents}
-                          </Typography>
-                          <Typography variant="caption" display="block" color="text.secondary">
-                            Status: {cohort.status}
-                          </Typography>
-                          <Button
-                            size="small"
-                            startIcon={<Edit />}
-                            onClick={() => {
-                              setEditingCohort(cohort);
-                              setShowCohortEditor(true);
-                            }}
-                            sx={{ mt: 1 }}
-                          >
-                            Edit
-                          </Button>
+                        <Box key={cohort.id} sx={{ mb: 1, p: 1, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 0.5 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Box>
+                              <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
+                                {cohort.name}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary" display="block">
+                                {cohort.currentStudents}/{cohort.maxStudents} students
+                              </Typography>
+                              <Chip 
+                                label={cohort.status} 
+                                size="small" 
+                                color={cohort.status === 'active' ? 'success' : 'default'}
+                                sx={{ fontSize: '0.7rem', mt: 0.5 }}
+                              />
+                            </Box>
+                            <Button
+                              size="small"
+                              startIcon={<Edit />}
+                              onClick={() => {
+                                setEditingCohort(cohort);
+                                setShowCohortEditor(true);
+                              }}
+                              sx={{ fontSize: '0.75rem' }}
+                            >
+                              Edit
+                            </Button>
+                          </Box>
                         </Box>
                       ))}
+                      {cohorts.length > 0 && (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => {
+                            setEditingCohort(null);
+                            setShowCohortEditor(true);
+                          }}
+                          sx={{ mt: 1, fontSize: '0.75rem' }}
+                        >
+                          Create New Cohort
+                        </Button>
+                      )}
+                    </Box>
+
+                    {/* Lessons Summary */}
+                    <Box sx={{ p: 1.5, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                        Lessons ({lessons.length})
+                      </Typography>
+                      {lessonsLoading ? (
+                        <CircularProgress size={16} />
+                      ) : (
+                        <Box>
+                          {(showAllLessons ? lessons : lessons.slice(0, 3)).map((lesson) => (
+                            <Box key={lesson.id} sx={{ mb: 1, p: 1, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 0.5 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <Box>
+                                  <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
+                                    Week {lesson.weekNumber}: {lesson.title}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    {lesson.isPublished ? 'Published' : 'Draft'}
+                                  </Typography>
+                                </Box>
+                                <Button
+                                  size="small"
+                                  startIcon={<Edit />}
+                                  onClick={() => {
+                                    setEditingLesson(lesson);
+                                    setShowLessonEditor(true);
+                                  }}
+                                  sx={{ fontSize: '0.75rem' }}
+                                >
+                                  Edit
+                                </Button>
+                              </Box>
+                            </Box>
+                          ))}
+                          {lessons.length > 3 && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <Typography variant="caption" color="text.secondary">
+                                {showAllLessons ? 'Showing all lessons' : `+${lessons.length - 3} more lessons`}
+                              </Typography>
+                              <Button
+                                size="small"
+                                startIcon={showAllLessons ? <ExpandLess /> : <ExpandMore />}
+                                onClick={() => setShowAllLessons(!showAllLessons)}
+                                sx={{ fontSize: '0.75rem' }}
+                              >
+                                {showAllLessons ? 'Show Less' : 'View All'}
+                              </Button>
+                            </Box>
+                          )}
+                        </Box>
+                      )}
+                      {lessons.length > 0 && (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => {
+                            setEditingLesson(null);
+                            setShowLessonEditor(true);
+                          }}
+                          sx={{ mt: 1, fontSize: '0.75rem' }}
+                        >
+                          Create New Lesson
+                        </Button>
+                      )}
                     </Box>
                   </Box>
                 )}
@@ -479,6 +685,66 @@ const AdminDashboard: React.FC = () => {
               />
             </Box>
           )}
+
+      {/* Answer Question Dialog */}
+      <Dialog 
+        open={!!selectedQuestion} 
+        onClose={() => {
+          setSelectedQuestion(null);
+          setAnswerText('');
+        }} 
+        maxWidth="md" 
+        fullWidth
+      >
+        <DialogTitle>
+          Answer Question
+        </DialogTitle>
+        <DialogContent>
+          {selectedQuestion && (
+            <Box>
+              <Typography variant="body1" sx={{ fontWeight: 500, mb: 2 }}>
+                {selectedQuestion.question}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 3 }}>
+                Asked by {selectedQuestion.userName || 'Anonymous'} on {selectedQuestion.createdAt.toDate().toLocaleDateString()}
+              </Typography>
+              
+              <TextField
+                fullWidth
+                multiline
+                rows={6}
+                label="Your answer"
+                value={answerText}
+                onChange={(e) => setAnswerText(e.target.value)}
+                placeholder="Provide a helpful answer to this question..."
+                sx={{ mb: 2 }}
+              />
+              
+              <Typography variant="body2" color="text.secondary">
+                This answer will be visible to the student and can help other students with similar questions.
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => {
+              setSelectedQuestion(null);
+              setAnswerText('');
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleAnswerQuestion}
+            variant="contained"
+            disabled={!answerText.trim() || answeringQuestion}
+            startIcon={answeringQuestion ? <CircularProgress size={16} /> : <Send />}
+          >
+            {answeringQuestion ? 'Submitting...' : 'Submit Answer'}
+          </Button>
+        </DialogActions>
+      </Dialog>
       </Box>
     </Container>
   );
