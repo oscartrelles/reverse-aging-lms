@@ -13,6 +13,13 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
     
+    // Lessons - public read, admin write
+    match /lessons/{lessonId} {
+      allow read: if true;
+      allow write: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+    
     // Enrollments - users can read their own, admins can read all
     match /enrollments/{enrollmentId} {
       allow read: if request.auth != null && 
