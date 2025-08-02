@@ -23,6 +23,7 @@ import {
   Security,
   VerifiedUser,
   Support,
+  Science,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { useCourse } from '../contexts/CourseContext';
@@ -39,6 +40,7 @@ import VideoPlayer from '../components/VideoPlayer';
 import LessonQA from '../components/LessonQA';
 import CommunityPulse from '../components/CommunityPulse';
 import { communityService, CommunityStats } from '../services/communityService';
+import { scientificUpdateService } from '../services/scientificUpdateService';
 
 const Dashboard: React.FC = () => {
   const { currentUser } = useAuth();
@@ -58,6 +60,10 @@ const Dashboard: React.FC = () => {
   const [lessonAvailability, setLessonAvailability] = useState<Record<string, boolean>>({});
   const [loadingAvailability, setLoadingAvailability] = useState(false);
   const [communityStats, setCommunityStats] = useState<CommunityStats | null>(null);
+  
+  // Scientific Updates
+  const [unreadUpdatesCount, setUnreadUpdatesCount] = useState<number>(0);
+  const [loadingUnreadCount, setLoadingUnreadCount] = useState(false);
 
   // Track user activity for community stats
   useEffect(() => {
@@ -85,7 +91,7 @@ const Dashboard: React.FC = () => {
     };
   }, [currentUser]);
 
-  // Fetch community stats (only on mount)
+  // Fetch community stats and unread updates (only on mount)
   useEffect(() => {
     if (!currentCohort?.id) return;
 
@@ -98,8 +104,48 @@ const Dashboard: React.FC = () => {
       }
     };
 
+    const fetchUnreadCount = async () => {
+      if (!currentUser?.id) return;
+      
+      setLoadingUnreadCount(true);
+      try {
+        const count = await scientificUpdateService.getUnreadCount(currentUser.id);
+        setUnreadUpdatesCount(count);
+      } catch (error) {
+        console.error('Error fetching unread updates count:', error);
+      } finally {
+        setLoadingUnreadCount(false);
+      }
+    };
+
     fetchCommunityStats();
-  }, [currentCohort?.id]);
+    fetchUnreadCount();
+  }, [currentCohort?.id, currentUser?.id]);
+
+  // Function to refresh unread count (can be called when returning from evidence page)
+  const refreshUnreadCount = async () => {
+    if (!currentUser?.id) return;
+    
+    setLoadingUnreadCount(true);
+    try {
+      const count = await scientificUpdateService.getUnreadCount(currentUser.id);
+      setUnreadUpdatesCount(count);
+    } catch (error) {
+      console.error('Error refreshing unread updates count:', error);
+    } finally {
+      setLoadingUnreadCount(false);
+    }
+  };
+
+  // Refresh unread count when user returns to the dashboard tab
+  useEffect(() => {
+    const handleFocus = () => {
+      refreshUnreadCount();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [currentUser?.id]);
 
   // Use real data from Firestore
   const activeCohort = currentCohort;
@@ -385,6 +431,80 @@ const Dashboard: React.FC = () => {
               You're making great progress on your health transformation journey
             </Typography>
           </Box>
+
+          {/* Scientific Updates Notifications */}
+          {unreadUpdatesCount > 0 ? (
+            <Card sx={{ mb: 3, background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)', color: 'white' }}>
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Science sx={{ fontSize: 32, opacity: 0.9 }} />
+                    <Box sx={{ 
+                      backgroundColor: 'rgba(255,255,255,0.2)', 
+                      borderRadius: '50%', 
+                      p: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minWidth: 40,
+                      minHeight: 40
+                    }}>
+                      <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                        {unreadUpdatesCount}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
+                        New Scientific Evidence Available
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                        Stay ahead with the latest research on healthspan and longevity
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Button
+                    variant="contained"
+                    sx={{
+                      backgroundColor: 'white',
+                      color: 'primary.main',
+                      '&:hover': {
+                        backgroundColor: 'grey.100',
+                      },
+                    }}
+                    onClick={() => navigate('/evidence')}
+                  >
+                    Read Updates
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card sx={{ mb: 3, border: '1px solid rgba(25, 118, 210, 0.2)', backgroundColor: 'rgba(25, 118, 210, 0.02)' }}>
+              <CardContent sx={{ p: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Science sx={{ fontSize: 24, color: 'primary.main' }} />
+                    <Box>
+                      <Typography variant="body1" sx={{ fontWeight: 500, color: 'primary.main' }}>
+                        Scientific Evidence Library
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Explore the latest research on healthspan and longevity
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Button
+                    variant="outlined"
+                    color="primary"
+                    size="small"
+                    onClick={() => navigate('/evidence')}
+                  >
+                    Browse Evidence
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
+          )}
 
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
             {/* Progress Overview */}

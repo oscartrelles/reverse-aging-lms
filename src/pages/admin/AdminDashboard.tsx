@@ -35,16 +35,19 @@ import {
   Send,
   ExpandLess,
   ExpandMore,
+  Science,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCourse } from '../../contexts/CourseContext';
 import { questionService } from '../../services/questionService';
+import { scientificUpdateService } from '../../services/scientificUpdateService';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
 import CourseEditor from '../../components/admin/CourseEditor';
 import LessonEditor from '../../components/admin/LessonEditor';
 import CohortEditor from '../../components/admin/CohortEditor';
+import ScientificUpdateEditor from '../../components/admin/ScientificUpdateEditor';
 
 const AdminDashboard: React.FC = () => {
   const { currentUser } = useAuth();
@@ -74,6 +77,13 @@ const AdminDashboard: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [enrollments, setEnrollments] = useState<any[]>([]);
+  
+  // Scientific Updates Management
+  const [scientificUpdates, setScientificUpdates] = useState<any[]>([]);
+  const [scientificUpdatesLoading, setScientificUpdatesLoading] = useState(false);
+  const [showScientificUpdateEditor, setShowScientificUpdateEditor] = useState(false);
+  const [editingScientificUpdate, setEditingScientificUpdate] = useState<any>(null);
+  
   const navigate = useNavigate();
 
   const loadLessons = async () => {
@@ -98,6 +108,7 @@ const AdminDashboard: React.FC = () => {
   useEffect(() => {
     loadLessons();
     loadUsers();
+    loadScientificUpdates();
   }, []);
 
   const loadQuestions = async () => {
@@ -123,25 +134,35 @@ const AdminDashboard: React.FC = () => {
   const loadUsers = async () => {
     setUsersLoading(true);
     try {
-      // Load users
       const usersSnapshot = await getDocs(collection(db, 'users'));
       const usersData = usersSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-      }));
+      })) as any[];
       setUsers(usersData);
 
-      // Load enrollments
       const enrollmentsSnapshot = await getDocs(collection(db, 'enrollments'));
       const enrollmentsData = enrollmentsSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-      }));
+      })) as any[];
       setEnrollments(enrollmentsData);
     } catch (error) {
       console.error('Error loading users:', error);
     } finally {
       setUsersLoading(false);
+    }
+  };
+
+  const loadScientificUpdates = async () => {
+    setScientificUpdatesLoading(true);
+    try {
+      const updates = await scientificUpdateService.getAllUpdates();
+      setScientificUpdates(updates);
+    } catch (error) {
+      console.error('Error loading scientific updates:', error);
+    } finally {
+      setScientificUpdatesLoading(false);
     }
   };
 
@@ -229,7 +250,7 @@ const AdminDashboard: React.FC = () => {
 
         {/* Q&A Management - Most Frequent Task */}
         <Box sx={{ mb: 3 }}>
-          <Card>
+            <Card>
             <CardContent sx={{ py: 2 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
@@ -285,7 +306,7 @@ const AdminDashboard: React.FC = () => {
                                       <Chip 
                                         label={question.votes || 0} 
                                         size="small" 
-                                        variant="outlined"
+                  variant="outlined"
                                       />
                                     </Box>
                                   </Box>
@@ -311,15 +332,15 @@ const AdminDashboard: React.FC = () => {
                                       </Box>
                                     )}
                                     {!question.isAnswered && (
-                                      <Button
+                <Button
                                         size="small"
-                                        variant="outlined"
+                  variant="outlined"
                                         startIcon={<Send />}
                                         onClick={() => setSelectedQuestion(question)}
                                         sx={{ mt: 1 }}
                                       >
                                         Answer Question
-                                      </Button>
+                </Button>
                                     )}
                                   </Box>
                                 }
@@ -333,9 +354,9 @@ const AdminDashboard: React.FC = () => {
                   )}
                 </Box>
               )}
-            </CardContent>
-          </Card>
-        </Box>
+              </CardContent>
+            </Card>
+          </Box>
 
           {/* User Management - Quick Access */}
           <Box sx={{ mb: 3 }}>
@@ -344,7 +365,7 @@ const AdminDashboard: React.FC = () => {
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                   <Typography variant="h6" sx={{ fontWeight: 600 }}>
                     User Management
-                  </Typography>
+                </Typography>
                   <Button
                     variant="contained"
                     startIcon={<Person />}
@@ -470,38 +491,38 @@ const AdminDashboard: React.FC = () => {
                           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <Box>
                               <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
-                                {course.title}
-                              </Typography>
+                            {course.title}
+                          </Typography>
                               <Typography variant="caption" color="text.secondary" display="block">
                                 €{course.price} • {course.duration} weeks
-                              </Typography>
+                          </Typography>
                             </Box>
-                            <Button
-                              size="small"
-                              startIcon={<Edit />}
-                              onClick={() => {
-                                setEditingCourse(course);
-                                setShowCourseEditor(true);
-                              }}
+                          <Button
+                            size="small"
+                            startIcon={<Edit />}
+                            onClick={() => {
+                              setEditingCourse(course);
+                              setShowCourseEditor(true);
+                            }}
                               sx={{ fontSize: '0.75rem' }}
-                            >
-                              Edit
-                            </Button>
+                          >
+                            Edit
+                          </Button>
                           </Box>
                         </Box>
                       ))}
                       {courses.length > 0 && (
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          onClick={() => {
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() => {
                             setEditingCourse(null);
                             setShowCourseEditor(true);
-                          }}
+                            }}
                           sx={{ mt: 1, fontSize: '0.75rem' }}
-                        >
+                          >
                           Create New Course
-                        </Button>
+                          </Button>
                       )}
                     </Box>
 
@@ -542,9 +563,9 @@ const AdminDashboard: React.FC = () => {
                         </Box>
                       ))}
                       {cohorts.length > 0 && (
-                        <Button
-                          size="small"
-                          variant="outlined"
+                            <Button
+                              size="small"
+                              variant="outlined"
                           onClick={() => {
                             setEditingCohort(null);
                             setShowCohortEditor(true);
@@ -552,7 +573,7 @@ const AdminDashboard: React.FC = () => {
                           sx={{ mt: 1, fontSize: '0.75rem' }}
                         >
                           Create New Cohort
-                        </Button>
+                            </Button>
                       )}
                     </Box>
 
@@ -571,25 +592,25 @@ const AdminDashboard: React.FC = () => {
                                 <Box>
                                   <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
                                     Week {lesson.weekNumber}: {lesson.title}
-                                  </Typography>
-                                  <Typography variant="caption" color="text.secondary">
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
                                     {lesson.isPublished ? 'Published' : 'Draft'}
-                                  </Typography>
+                          </Typography>
                                 </Box>
-                                <Button
-                                  size="small"
-                                  startIcon={<Edit />}
-                                  onClick={() => {
+                          <Button
+                            size="small"
+                            startIcon={<Edit />}
+                            onClick={() => {
                                     setEditingLesson(lesson);
                                     setShowLessonEditor(true);
-                                  }}
+                            }}
                                   sx={{ fontSize: '0.75rem' }}
-                                >
-                                  Edit
-                                </Button>
+                          >
+                            Edit
+                          </Button>
                               </Box>
-                            </Box>
-                          ))}
+                        </Box>
+                      ))}
                           {lessons.length > 3 && (
                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                               <Typography variant="caption" color="text.secondary">
@@ -621,6 +642,100 @@ const AdminDashboard: React.FC = () => {
                         </Button>
                       )}
                     </Box>
+                  </Box>
+                )}
+              </CardContent>
+            </Card>
+          </Box>
+
+          {/* Scientific Updates Management */}
+          <Box sx={{ mb: 3 }}>
+            <Card>
+              <CardContent sx={{ py: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Scientific Updates Management
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    startIcon={<Science />}
+                    onClick={() => {
+                      setEditingScientificUpdate(null);
+                      setShowScientificUpdateEditor(true);
+                    }}
+                    size="small"
+                  >
+                    Create New Update
+                  </Button>
+                </Box>
+
+                {scientificUpdatesLoading ? (
+                  <CircularProgress size={20} />
+                ) : (
+                  <Box>
+                    {scientificUpdates.length === 0 ? (
+                      <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                        No scientific updates yet. Create the first one!
+                      </Typography>
+                    ) : (
+                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+                        {scientificUpdates.slice(0, 4).map((update) => (
+                          <Box key={update.id} sx={{ p: 1.5, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                              <Box>
+                                <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
+                                  {update.title}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary" display="block">
+                                  {update.category} • {new Date(update.publishedDate.toDate()).toLocaleDateString()}
+                                </Typography>
+                              </Box>
+                              <Button
+                                size="small"
+                                startIcon={<Edit />}
+                                onClick={() => {
+                                  setEditingScientificUpdate(update);
+                                  setShowScientificUpdateEditor(true);
+                                }}
+                                sx={{ fontSize: '0.75rem' }}
+                              >
+                                Edit
+                              </Button>
+                            </Box>
+                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                              <Chip
+                                label={`${update.votes || 0} votes`}
+                                size="small"
+                                color="primary"
+                                variant="outlined"
+                                sx={{ fontSize: '0.7rem' }}
+                              />
+                              <Chip
+                                label={`${update.readCount || 0} reads`}
+                                size="small"
+                                color="secondary"
+                                variant="outlined"
+                                sx={{ fontSize: '0.7rem' }}
+                              />
+                              <Chip
+                                label={`${update.shareCount || 0} shares`}
+                                size="small"
+                                color="info"
+                                variant="outlined"
+                                sx={{ fontSize: '0.7rem' }}
+                              />
+                            </Box>
+                          </Box>
+                        ))}
+                      </Box>
+                    )}
+                    {scientificUpdates.length > 4 && (
+                      <Box sx={{ mt: 2, textAlign: 'center' }}>
+                        <Typography variant="caption" color="text.secondary">
+                          +{scientificUpdates.length - 4} more updates
+                        </Typography>
+                      </Box>
+                    )}
                   </Box>
                 )}
               </CardContent>
@@ -681,6 +796,26 @@ const AdminDashboard: React.FC = () => {
                 onCancel={() => {
                   setShowCohortEditor(false);
                   setEditingCohort(null);
+                }}
+              />
+            </Box>
+          )}
+
+          {showScientificUpdateEditor && (
+            <Box sx={{ mt: 3 }}>
+              <ScientificUpdateEditor
+                updateId={editingScientificUpdate?.id}
+                updateData={editingScientificUpdate}
+                onSave={async (updateData) => {
+                  setShowScientificUpdateEditor(false);
+                  setEditingScientificUpdate(null);
+                  setSuccess('Scientific update saved successfully!');
+                  // Reload scientific updates to show the updated list
+                  await loadScientificUpdates();
+                }}
+                onCancel={() => {
+                  setShowScientificUpdateEditor(false);
+                  setEditingScientificUpdate(null);
                 }}
               />
             </Box>

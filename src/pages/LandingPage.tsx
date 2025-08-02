@@ -14,10 +14,15 @@ import {
   useTheme,
   useMediaQuery,
   IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
-import { Google, Facebook, ChevronLeft, ChevronRight } from '@mui/icons-material';
+import { Google, Facebook, ChevronLeft, ChevronRight, Science } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { handleRedirectResult } from '../firebaseConfig';
+import { useSearchParams } from 'react-router-dom';
 
 const LandingPage: React.FC = () => {
   const { signUp, signIn, signInWithGoogle, signInWithFacebook, currentUser, loading: authLoading } = useAuth();
@@ -29,6 +34,13 @@ const LandingPage: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
+  
+  // Authentication Modal
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  
+  // Scientific Updates Preview
+  const [recentUpdate, setRecentUpdate] = useState<any>(null);
+  const [loadingUpdate, setLoadingUpdate] = useState(false);
 
   const testimonials = [
     {
@@ -59,6 +71,42 @@ const LandingPage: React.FC = () => {
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [searchParams] = useSearchParams();
+
+  // Handle URL parameters for auth modal
+  useEffect(() => {
+    const signup = searchParams.get('signup');
+    const signin = searchParams.get('signin');
+    
+    if (signup === 'true') {
+      setIsSignUp(true);
+      setShowAuthModal(true);
+    } else if (signin === 'true') {
+      setIsSignUp(false);
+      setShowAuthModal(true);
+    }
+  }, [searchParams]);
+
+  // Load a recent scientific update for preview
+  useEffect(() => {
+    const loadRecentUpdate = async () => {
+      setLoadingUpdate(true);
+      try {
+        // Import the service dynamically to avoid issues with authentication
+        const { scientificUpdateService } = await import('../services/scientificUpdateService');
+        const updates = await scientificUpdateService.getAllUpdates({ limit: 1 });
+        if (updates.length > 0) {
+          setRecentUpdate(updates[0]);
+        }
+      } catch (error) {
+        console.error('Error loading recent scientific update:', error);
+      } finally {
+        setLoadingUpdate(false);
+      }
+    };
+
+    loadRecentUpdate();
+  }, []);
 
   // Redirect authenticated users to dashboard
   useEffect(() => {
@@ -79,6 +127,8 @@ const LandingPage: React.FC = () => {
       } else {
         await signIn(email, password);
       }
+      // Close modal on successful authentication
+      setShowAuthModal(false);
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -96,6 +146,8 @@ const LandingPage: React.FC = () => {
       } else {
         await signInWithFacebook();
       }
+      // Close modal on successful authentication
+      setShowAuthModal(false);
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -146,8 +198,44 @@ const LandingPage: React.FC = () => {
             </Typography>
             <Typography variant="body1" paragraph sx={{ mb: 3 }}>
               Join thousands of students who have already transformed their lives through 
-              our evidence-based approach to health and wellness.
+              our evidence-based approach to health and wellness. Plus, get access to cutting-edge 
+              scientific research on healthspan and longevity with a free account.
             </Typography>
+
+            {/* Call to Action */}
+            <Box sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 2, mb: 4 }}>
+              <Button
+                variant="contained"
+                size="large"
+                onClick={() => {
+                  setIsSignUp(true);
+                  setShowAuthModal(true);
+                }}
+                sx={{
+                  px: 4,
+                  py: 1.5,
+                  fontWeight: 600,
+                }}
+              >
+                Start Your Journey
+              </Button>
+              <Button
+                variant="outlined"
+                size="large"
+                onClick={() => {
+                  setIsSignUp(true);
+                  setShowAuthModal(true);
+                }}
+                startIcon={<Science />}
+                sx={{
+                  px: 4,
+                  py: 1.5,
+                  fontWeight: 600,
+                }}
+              >
+                Get Free Evidence Access
+              </Button>
+            </Box>
             
             {/* Course Preview Section */}
             <Box sx={{ mb: 4 }}>
@@ -263,108 +351,208 @@ const LandingPage: React.FC = () => {
 
           {/* Right Column - Auth & Pricing */}
           <Box sx={{ flex: { xs: 1, md: 2 }, display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {/* Auth Form */}
-            <Card sx={{ width: '100%', minWidth: 350, maxWidth: 400 }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h5" component="h2" gutterBottom align="center">
-                {isSignUp ? 'Create Account' : 'Sign In'}
-              </Typography>
+            {/* Scientific Updates Preview */}
+            <Card sx={{ 
+              width: '100%', 
+              minWidth: 350, 
+              maxWidth: 400,
+              background: 'linear-gradient(135deg, rgba(25, 118, 210, 0.05) 0%, rgba(66, 165, 245, 0.05) 100%)',
+              border: '1px solid rgba(25, 118, 210, 0.2)'
+            }}>
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Science sx={{ fontSize: 28, color: 'primary.main' }} />
+                  <Typography variant="h6" component="h3" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                    Latest Scientific Evidence
+                  </Typography>
+                </Box>
+                
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  Get access to cutting-edge research on healthspan and longevity. Stay ahead with weekly scientific updates.
+                </Typography>
 
-              {error && (
-                <Alert severity="error" sx={{ mb: 2 }}>
-                  {error}
-                </Alert>
-              )}
-
-              <form onSubmit={handleSubmit}>
-                {isSignUp && (
-                  <TextField
-                    fullWidth
-                    label="Full Name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    margin="normal"
-                    required
-                    disabled={loading}
-                  />
+                {loadingUpdate ? (
+                  <Box sx={{ textAlign: 'center', py: 2 }}>
+                    <CircularProgress size={24} />
+                  </Box>
+                ) : recentUpdate ? (
+                  <Box sx={{ 
+                    p: 2, 
+                    backgroundColor: 'rgba(255,255,255,0.5)', 
+                    borderRadius: 2,
+                    border: '1px solid rgba(25, 118, 210, 0.1)'
+                  }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: 'primary.main' }}>
+                      {recentUpdate.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.5 }}>
+                      {recentUpdate.summary.length > 120 
+                        ? `${recentUpdate.summary.substring(0, 120)}...` 
+                        : recentUpdate.summary
+                      }
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                      <Box sx={{ 
+                        px: 1.5, 
+                        py: 0.5, 
+                        backgroundColor: 'primary.main', 
+                        borderRadius: 1,
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}>
+                        <Typography variant="caption" sx={{ color: 'white', fontWeight: 600 }}>
+                          {recentUpdate.category}
+                        </Typography>
+                      </Box>
+                      <Typography variant="caption" color="text.secondary">
+                        {new Date(recentUpdate.publishedDate.toDate()).toLocaleDateString()}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Typography variant="caption" color="text.secondary">
+                        {recentUpdate.readCount || 0} reads
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {recentUpdate.votes || 0} votes
+                      </Typography>
+                    </Box>
+                  </Box>
+                ) : (
+                  <Box sx={{ 
+                    p: 2, 
+                    backgroundColor: 'rgba(255,255,255,0.5)', 
+                    borderRadius: 2,
+                    border: '1px solid rgba(25, 118, 210, 0.1)',
+                    textAlign: 'center'
+                  }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Weekly scientific updates coming soon...
+                    </Typography>
+                  </Box>
                 )}
-                <TextField
-                  fullWidth
-                  label="Email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  margin="normal"
-                  required
-                  disabled={loading}
-                />
-                <TextField
-                  fullWidth
-                  label="Password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  margin="normal"
-                  required
-                  disabled={loading}
-                />
-                <Button
-                  type="submit"
-                  fullWidth
-                  variant="contained"
-                  size="large"
-                  disabled={loading}
-                  sx={{ mt: 3, mb: 2 }}
-                >
-                  {loading ? (
-                    <CircularProgress size={24} color="inherit" />
-                  ) : (
-                    isSignUp ? 'Create Account' : 'Sign In'
-                  )}
-                </Button>
-              </form>
 
-              <Divider sx={{ my: 2 }}>
-                <Typography variant="body2" color="text.secondary">
-                  OR
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: 'center' }}>
+                  <strong>Free accounts</strong> get access to all scientific evidence
                 </Typography>
-              </Divider>
+              </CardContent>
+            </Card>
 
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<Google />}
-                  onClick={() => handleSocialSignIn('google')}
-                  disabled={loading}
-                >
-                  Continue with Google
-                </Button>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<Facebook />}
-                  onClick={() => handleSocialSignIn('facebook')}
-                  disabled={loading}
-                >
-                  Continue with Facebook
-                </Button>
-              </Box>
+            {/* Call to Action Card */}
+            <Card sx={{ 
+              width: '100%', 
+              minWidth: 350, 
+              maxWidth: 400,
+              background: 'linear-gradient(135deg, rgba(80, 235, 151, 0.1) 0%, rgba(172, 255, 34, 0.05) 100%)',
+              border: '2px solid rgba(80, 235, 151, 0.3)'
+            }}>
+              <CardContent sx={{ p: 4, textAlign: 'center' }}>
+                <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
+                  Ready to Transform Your Health?
+                </Typography>
+                
+                <Typography variant="body1" sx={{ mb: 3, color: 'text.secondary' }}>
+                  Join thousands of students who have already started their health transformation journey. Get access to our comprehensive course and cutting-edge scientific evidence.
+                </Typography>
 
-              <Box sx={{ mt: 2, textAlign: 'center' }}>
-                <Typography variant="body2" color="text.secondary">
-                  {isSignUp ? 'Already have an account?' : "Don't have an account?"}
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
                   <Button
-                    onClick={() => setIsSignUp(!isSignUp)}
-                    sx={{ ml: 1 }}
-                    disabled={loading}
+                    variant="contained"
+                    size="large"
+                    onClick={() => {
+                      setIsSignUp(true);
+                      setShowAuthModal(true);
+                    }}
+                    sx={{
+                      py: 1.5,
+                      fontWeight: 600,
+                      fontSize: '1.1rem',
+                    }}
                   >
-                    {isSignUp ? 'Sign In' : 'Sign Up'}
+                    Start Your Journey
                   </Button>
+                  
+                  <Button
+                    variant="outlined"
+                    size="large"
+                    onClick={() => {
+                      setIsSignUp(false);
+                      setShowAuthModal(true);
+                    }}
+                    sx={{
+                      py: 1.5,
+                      fontWeight: 600,
+                      fontSize: '1.1rem',
+                    }}
+                  >
+                    Sign In
+                  </Button>
+                </Box>
+
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  <strong>Free accounts</strong> get access to:
                 </Typography>
-              </Box>
-            </CardContent>
-          </Card>
+                
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, textAlign: 'left' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ 
+                      width: 16, 
+                      height: 16, 
+                      borderRadius: '50%', 
+                      backgroundColor: 'primary.main', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      <Typography variant="caption" sx={{ color: '#000', fontWeight: 'bold', fontSize: '0.7rem' }}>
+                        ✓
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary">
+                      Weekly scientific updates
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ 
+                      width: 16, 
+                      height: 16, 
+                      borderRadius: '50%', 
+                      backgroundColor: 'primary.main', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      <Typography variant="caption" sx={{ color: '#000', fontWeight: 'bold', fontSize: '0.7rem' }}>
+                        ✓
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary">
+                      Community access
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ 
+                      width: 16, 
+                      height: 16, 
+                      borderRadius: '50%', 
+                      backgroundColor: 'primary.main', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      <Typography variant="caption" sx={{ color: '#000', fontWeight: 'bold', fontSize: '0.7rem' }}>
+                        ✓
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary">
+                      Health resources library
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
 
           {/* Pricing Card */}
           <Card sx={{ minWidth: 350, maxWidth: 400, width: '100%' }}>
@@ -588,6 +776,146 @@ const LandingPage: React.FC = () => {
           </Card>
         </Container>
       </Box>
+
+      {/* Authentication Modal */}
+      <Dialog
+        open={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            background: 'linear-gradient(135deg, #2A2D35 0%, #1C1F26 100%)',
+            border: '1px solid rgba(80, 235, 151, 0.2)',
+          }
+        }}
+      >
+        <DialogTitle sx={{ textAlign: 'center', pb: 1 }}>
+          <Typography variant="h5" component="h2" sx={{ fontWeight: 600, color: 'primary.main' }}>
+            {isSignUp ? 'Create Your Account' : 'Welcome Back'}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            {isSignUp 
+              ? 'Join our community and start your health transformation journey'
+              : 'Sign in to access your personalized health dashboard'
+            }
+          </Typography>
+        </DialogTitle>
+
+        <DialogContent sx={{ pb: 2 }}>
+          {error && (
+            <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
+              {error}
+            </Alert>
+          )}
+
+          <form onSubmit={handleSubmit}>
+            {isSignUp && (
+              <TextField
+                fullWidth
+                label="Full Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                margin="normal"
+                required
+                disabled={loading}
+                sx={{ mb: 2 }}
+              />
+            )}
+            <TextField
+              fullWidth
+              label="Email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              margin="normal"
+              required
+              disabled={loading}
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              fullWidth
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              margin="normal"
+              required
+              disabled={loading}
+              sx={{ mb: 3 }}
+            />
+            
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              size="large"
+              disabled={loading}
+              sx={{ mb: 3, py: 1.5, fontWeight: 600 }}
+            >
+              {loading ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                isSignUp ? 'Create Account' : 'Sign In'
+              )}
+            </Button>
+          </form>
+
+          <Divider sx={{ my: 3 }}>
+            <Typography variant="body2" color="text.secondary">
+              OR
+            </Typography>
+          </Divider>
+
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<Google />}
+              onClick={() => handleSocialSignIn('google')}
+              disabled={loading}
+              sx={{ py: 1.5, fontWeight: 600 }}
+            >
+              Continue with Google
+            </Button>
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<Facebook />}
+              onClick={() => handleSocialSignIn('facebook')}
+              disabled={loading}
+              sx={{ py: 1.5, fontWeight: 600 }}
+            >
+              Continue with Facebook
+            </Button>
+          </Box>
+
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              {isSignUp ? 'Already have an account?' : "Don't have an account?"}
+              <Button
+                onClick={() => setIsSignUp(!isSignUp)}
+                sx={{ ml: 1 }}
+                disabled={loading}
+                color="primary"
+              >
+                {isSignUp ? 'Sign In' : 'Sign Up'}
+              </Button>
+            </Typography>
+          </Box>
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, pb: 3, justifyContent: 'center' }}>
+          <Button
+            onClick={() => setShowAuthModal(false)}
+            disabled={loading}
+            sx={{ color: 'text.secondary' }}
+          >
+            Cancel
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

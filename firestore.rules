@@ -89,5 +89,28 @@ service cloud.firestore {
       allow write: if request.auth != null && 
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
+    
+    // Scientific updates - public read, admin write
+    match /scientificUpdates/{updateId} {
+      allow read: if true;
+      allow write: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+      // Allow queries for search and filtering
+      allow list: if true;
+    }
+    
+    // User read status - users can read/write their own
+    match /userReadStatus/{readStatusId} {
+      allow read, write: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+      // Allow queries for user read status
+      allow list: if request.auth != null;
+    }
+    
+    // Email preferences - users can read/write their own
+    match /emailPreferences/{preferenceId} {
+      allow read, write: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+    }
   }
 } 

@@ -19,6 +19,7 @@ import PaymentPage from './pages/PaymentPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminStudentManagement from './pages/admin/AdminStudentManagement';
 import AdminUserManagement from './pages/admin/AdminUserManagement';
+import EvidencePage from './pages/EvidencePage';
 
 // Components
 import Header from './components/layout/Header';
@@ -195,6 +196,18 @@ function App() {
                   <Route path="/payment/:courseId" element={
                     <PrivateRoute>
                       <PaymentPage />
+                    </PrivateRoute>
+                  } />
+                  
+                  <Route path="/evidence" element={
+                    <PrivateRoute allowUnauthenticated={true}>
+                      <EvidencePage />
+                    </PrivateRoute>
+                  } />
+                  
+                  <Route path="/evidence/:updateId" element={
+                    <PrivateRoute allowUnauthenticated={true}>
+                      <EvidencePage />
                     </PrivateRoute>
                   } />
                   

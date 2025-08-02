@@ -20,6 +20,7 @@ import {
   School,
   Person,
   Logout,
+  Science,
 } from '@mui/icons-material';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -75,6 +76,10 @@ const Header: React.FC = () => {
         <Person sx={{ mr: 1 }} />
         Profile
       </MenuItem>
+      <MenuItem onClick={() => { handleMenuClose(); navigate('/evidence'); }}>
+        <Science sx={{ mr: 1 }} />
+        Evidence
+      </MenuItem>
       {currentUser?.isAdmin && (
         <MenuItem onClick={() => { handleMenuClose(); navigate('/admin'); }}>
           <School sx={{ mr: 1 }} />
@@ -109,6 +114,10 @@ const Header: React.FC = () => {
       <MenuItem onClick={() => { handleMenuClose(); navigate('/profile'); }}>
         <Person sx={{ mr: 1 }} />
         Profile
+      </MenuItem>
+      <MenuItem onClick={() => { handleMenuClose(); navigate('/evidence'); }}>
+        <Science sx={{ mr: 1 }} />
+        Evidence
       </MenuItem>
       {currentUser?.isAdmin && (
         <MenuItem onClick={() => { handleMenuClose(); navigate('/admin'); }}>
@@ -183,6 +192,14 @@ const Header: React.FC = () => {
                   sx={{ mr: 2 }}
                 >
                   Dashboard
+                </Button>
+                <Button
+                  color="inherit"
+                  component={Link}
+                  to="/evidence"
+                  sx={{ mr: 2 }}
+                >
+                  Evidence
                 </Button>
                 <IconButton
                   size="large"

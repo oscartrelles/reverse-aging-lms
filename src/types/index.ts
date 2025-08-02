@@ -121,6 +121,44 @@ export interface Question {
   answererName?: string; // admin name who answered
 }
 
+export interface ScientificUpdate {
+  id: string;
+  title: string;
+  summary: string;
+  keyFindings: string[];
+  fullReview: string;
+  implications: string;
+  externalLink?: string | null;
+  category: 'Mindset' | 'Nourishment' | 'Breath' | 'Cold' | 'Heat' | 'Movement' | 'Community';
+  tags: string[];
+  publishedDate: Timestamp;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  // Voting functionality (like questions)
+  votes: number;
+  votedBy: string[]; // array of user IDs who voted
+  // Analytics
+  readCount: number; // number of unique users who have read this
+  shareCount: number; // number of times shared
+}
+
+export interface UserReadStatus {
+  id: string;
+  userId: string;
+  updateId: string;
+  isRead: boolean;
+  readAt?: Timestamp;
+  createdAt: Timestamp;
+}
+
+export interface EmailPreferences {
+  userId: string;
+  weeklyEvidenceUpdates: boolean;
+  courseProgress: boolean;
+  marketing: boolean;
+  updatedAt: Timestamp;
+}
+
 // Community types
 export interface CommunityStats {
   id: string;
