@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Box,
@@ -8,12 +8,6 @@ import {
   LinearProgress,
   Button,
   Chip,
-  Avatar,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemAvatar,
-  Divider,
   IconButton,
   Accordion,
   AccordionSummary,
@@ -21,14 +15,8 @@ import {
 } from '@mui/material';
 
 import {
-  PlayCircle,
-  CheckCircle,
   Schedule,
   People,
-  TrendingUp,
-  EmojiEvents,
-  AccessTime,
-  School,
   ChevronLeft,
   ChevronRight,
   ExpandMore,
@@ -39,19 +27,18 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useCourse } from '../contexts/CourseContext';
 import { useNavigate } from 'react-router-dom';
-import { format, addDays, differenceInDays, differenceInHours } from 'date-fns';
-import { Timestamp } from 'firebase/firestore';
+import { differenceInDays } from 'date-fns';
 import {
   isLessonAvailable,
   getCurrentWeek,
-  getCountdownToNextLesson,
   getAvailableLessons,
   getUpcomingLessons,
-  getCohortStatus,
   isLessonReleased,
 } from '../utils/lessonUtils';
 import VideoPlayer from '../components/VideoPlayer';
 import LessonQA from '../components/LessonQA';
+import CommunityPulse from '../components/CommunityPulse';
+import { communityService, CommunityStats } from '../services/communityService';
 
 const Dashboard: React.FC = () => {
   const { currentUser } = useAuth();
@@ -70,12 +57,62 @@ const Dashboard: React.FC = () => {
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
   const [lessonAvailability, setLessonAvailability] = useState<Record<string, boolean>>({});
   const [loadingAvailability, setLoadingAvailability] = useState(false);
+  const [communityStats, setCommunityStats] = useState<CommunityStats | null>(null);
+
+  // Track user activity for community stats
+  useEffect(() => {
+    if (!currentUser) return;
+
+    // Update user status when component mounts
+    communityService.updateUserStatus(currentUser.id, true);
+
+    // Update user status every 2 minutes to show as "online"
+    const activityInterval = setInterval(() => {
+      communityService.updateUserStatus(currentUser.id, true);
+    }, 120000); // 2 minutes
+
+    // Update user status when user leaves the page
+    const handleBeforeUnload = () => {
+      communityService.updateUserStatus(currentUser.id, false);
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      clearInterval(activityInterval);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      communityService.updateUserStatus(currentUser.id, false);
+    };
+  }, [currentUser]);
+
+  // Fetch community stats
+  useEffect(() => {
+    if (!currentCohort?.id) return;
+
+    const fetchCommunityStats = async () => {
+      try {
+        const stats = await communityService.getCommunityStats(currentCohort.id);
+        setCommunityStats(stats);
+      } catch (error) {
+        console.error('Error fetching community stats:', error);
+      }
+    };
+
+    fetchCommunityStats();
+    
+    // Refresh stats every 30 seconds
+    const interval = setInterval(fetchCommunityStats, 30000);
+    
+    return () => clearInterval(interval);
+  }, [currentCohort?.id]);
 
   // Use real data from Firestore
   const activeCohort = currentCohort;
   const activeCourseLessons = currentEnrollment ? getLessonsByCourse(currentEnrollment.courseId) : [];
   const currentWeek = activeCohort ? getCurrentWeek(activeCohort) : 0;
   
+  // Get the current course data
+  const currentCourse = courses.find(course => course.id === currentEnrollment?.courseId);
 
   const availableLessons = activeCohort && currentEnrollment ? getAvailableLessons(activeCourseLessons, activeCohort, currentEnrollment) : [];
   const upcomingLessons = activeCohort && currentEnrollment ? getUpcomingLessons(activeCourseLessons, activeCohort, currentEnrollment) : [];
@@ -107,35 +144,12 @@ const Dashboard: React.FC = () => {
   }, [activeCohort?.id, activeCourseLessons.length, currentEnrollment?.id]);
 
 
-  // Community stats - replace with real data later
-  const [communityStats] = useState({
-    activeStudents: 47,
-    totalQuestions: 23,
-    lastActivity: Timestamp.now(),
-  });
 
-  const [recentQuestions] = useState([
-    {
-      id: '1',
-      question: 'How long should I practice the breathing exercise?',
-      studentName: 'Student A',
-      timestamp: Timestamp.fromDate(new Date(Date.now() - 2 * 60 * 60 * 1000)), // 2 hours ago
-    },
-    {
-      id: '2',
-      question: 'Can I do the morning routine in the evening?',
-      studentName: 'Student B',
-      timestamp: Timestamp.fromDate(new Date(Date.now() - 4 * 60 * 60 * 1000)), // 4 hours ago
-    },
-  ]);
+
+
 
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
-  const [timeLeft, setTimeLeft] = useState({
-    days: 0,
-    hours: 0,
-    minutes: 0,
-    seconds: 0
-  });
+
 
   const testimonials = [
     {
@@ -164,57 +178,14 @@ const Dashboard: React.FC = () => {
     }
   ];
 
-  // Countdown timer logic
-  useEffect(() => {
-    // Set deadline to September 30, 2025 at 11:59:59 PM
-    const deadline = new Date(2025, 8, 30, 23, 59, 59).getTime(); // Month is 0-indexed, so 8 = September
 
-    const updateTimer = () => {
-      const now = new Date().getTime();
-      const distance = deadline - now;
-
-      if (distance > 0) {
-        setTimeLeft({
-          days: Math.floor(distance / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-          minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
-          seconds: Math.floor((distance % (1000 * 60)) / 1000)
-        });
-      } else {
-        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-      }
-    };
-
-    // Update immediately
-    updateTimer();
-    
-    // Then update every second
-    const timer = setInterval(updateTimer, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
 
   // Calculate progress and timing
   const totalLessons = activeCourseLessons.length;
   const completedLessons = lessonProgress.filter(p => p.isCompleted).length;
   const progressPercentage = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
 
-  const getNextLessonRelease = () => {
-    if (!currentCohort) return null;
-    const now = new Date();
-    const nextSaturday = new Date(now);
-    nextSaturday.setDate(now.getDate() + (6 - now.getDay() + 7) % 7);
-    nextSaturday.setHours(8, 0, 0, 0);
-    return nextSaturday;
-  };
 
-  const nextLessonRelease = getNextLessonRelease();
-  const daysUntilNextLesson = nextLessonRelease 
-    ? differenceInDays(nextLessonRelease, new Date())
-    : 0;
-  const hoursUntilNextLesson = nextLessonRelease 
-    ? differenceInHours(nextLessonRelease, new Date())
-    : 0;
 
   // Dashboard states
   const isEnrolled = currentEnrollment && currentEnrollment.status === 'active';
@@ -293,7 +264,7 @@ const Dashboard: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                 <People sx={{ color: 'primary.main' }} />
                 <Typography variant="h6">
-                  {communityStats.activeStudents} students are preparing with you
+                  47 students are preparing with you
                 </Typography>
               </Box>
               <Typography variant="body2" color="text.secondary">
@@ -440,169 +411,90 @@ const Dashboard: React.FC = () => {
                     sx={{ height: 12, borderRadius: 6, mb: 2 }}
                   />
                   
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                     {progressPercentage.toFixed(0)}% complete • {totalLessons - completedLessons} lessons remaining
                   </Typography>
-                </CardContent>
-              </Card>
 
-              {/* Next Lesson Countdown */}
-              <Card sx={{ mb: 3 }}>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                    <AccessTime sx={{ color: 'primary.main' }} />
-                    <Typography variant="h6">Next Lesson Release</Typography>
+                  {/* Cohort Progress and Weekly Goals */}
+                  {communityStats && (
+                    <Box sx={{ mt: 3 }}>
+                      {/* Cohort Progress */}
+                      {communityStats.cohortProgress > 0 && (
+                        <Box sx={{ mb: 2 }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              Your cohort progress
+                      </Typography>
+                            <Typography variant="body2" color="primary.main" fontWeight="medium">
+                              {communityStats.cohortProgress.toFixed(0)}%
+                            </Typography>
+                          </Box>
+                          <LinearProgress 
+                            variant="determinate" 
+                            value={communityStats.cohortProgress} 
+                            sx={{ height: 6, borderRadius: 3 }}
+                          />
+                          <Typography variant="caption" color="text.secondary">
+                            overall course completion
+                      </Typography>
+                    </Box>
+                  )}
+
+                      {/* Weekly Goals */}
+                      {communityStats.weeklyGoals > 0 && (
+                        <Box sx={{ mb: 2 }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                              <Typography variant="body2" color="text.secondary">
+                              This week's goals
+                              </Typography>
+                            <Typography variant="body2" color="success.main" fontWeight="medium">
+                              {communityStats.weeklyGoals.toFixed(0)}%
+                    </Typography>
                   </Box>
-                  
-                  {nextLessonRelease && (
-                    <Box sx={{ textAlign: 'center', py: 2 }}>
-                      <Typography variant="h3" color="primary.main" sx={{ fontWeight: 700, mb: 1 }}>
-                        {daysUntilNextLesson}d {hoursUntilNextLesson % 24}h
-                      </Typography>
-                      <Typography variant="body1" color="text.secondary">
-                        until your next lesson unlocks at 8:00 AM
-                      </Typography>
+                          <LinearProgress 
+                            variant="determinate" 
+                            value={communityStats.weeklyGoals} 
+                            sx={{ height: 6, borderRadius: 3 }}
+                            color="success"
+                          />
+                          <Typography variant="caption" color="text.secondary">
+                            of cohort completed this week's lessons
+                    </Typography>
+                  </Box>
+                      )}
                     </Box>
                   )}
                 </CardContent>
               </Card>
 
-              {/* Recent Activity */}
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Recent Community Activity
-                  </Typography>
-                  <List>
-                    {recentQuestions.map((question, index) => (
-                      <React.Fragment key={question.id}>
-                        <ListItem alignItems="flex-start">
-                          <ListItemAvatar>
-                            <Avatar sx={{ bgcolor: 'primary.main' }}>
-                              <School />
-                            </Avatar>
-                          </ListItemAvatar>
-                          <ListItemText
-                            primary={question.question}
-                            secondary={
-                              <Typography variant="body2" color="text.secondary">
-                                {question.studentName} • {format(question.timestamp.toDate(), 'MMM d, h:mm a')}
-                              </Typography>
-                            }
-                          />
-                        </ListItem>
-                        {index < recentQuestions.length - 1 && <Divider variant="inset" component="li" />}
-                      </React.Fragment>
-                    ))}
-                  </List>
-                  <Button variant="outlined" fullWidth sx={{ mt: 2 }}>
-                    View All Questions
-                  </Button>
-                </CardContent>
-              </Card>
-            </Box>
+
+
+
+                  </Box>
 
             {/* Sidebar */}
             <Box sx={{ flex: { md: 1 } }}>
-              {/* Community Stats */}
-              <Card sx={{ mb: 3 }}>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Community Pulse
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                    <People sx={{ color: 'primary.main' }} />
-                    <Typography variant="h4" color="primary.main">
-                      {communityStats.activeStudents}
-                    </Typography>
-                  </Box>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    students learning with you right now
-                  </Typography>
-                  
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                    <TrendingUp sx={{ color: 'secondary.main', fontSize: 20 }} />
-                    <Typography variant="body2">
-                      {communityStats.totalQuestions} questions asked this week
-                    </Typography>
-                  </Box>
-                </CardContent>
-              </Card>
-
-              {/* Streak Tracking */}
-              <Card sx={{ mb: 3 }}>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Your Streak
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                    <EmojiEvents sx={{ color: 'secondary.main', fontSize: 40 }} />
-                    <Typography variant="h4" color="secondary.main">
-                      {streakData?.currentStreak || 0}
-                    </Typography>
-                  </Box>
-                  <Typography variant="body2" color="text.secondary">
-                    {streakData?.currentStreak 
-                      ? `lessons completed in a row! Keep it up!`
-                      : `Start your learning streak today!`
-                    }
-                  </Typography>
-                  {streakData && (
-                    <Box sx={{ mt: 2 }}>
-                      <Typography variant="caption" color="text.secondary">
-                        Longest streak: {streakData.longestStreak} • Total completed: {streakData.totalCompleted}
-                      </Typography>
-                    </Box>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Quick Actions */}
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Quick Actions
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    fullWidth
-                    startIcon={<PlayCircle />}
-                    sx={{ mb: 2 }}
-                  >
-                    Continue Learning
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    fullWidth
-                    startIcon={<School />}
-                  >
-                    Ask a Question
-                  </Button>
-                </CardContent>
-              </Card>
+              {/* Community Pulse */}
+              <CommunityPulse 
+                cohortId={currentCohort?.id} 
+                sx={{ mb: 3 }}
+              />
             </Box>
           </Box>
 
-          {/* Detailed Week Cards */}
+          {/* Course Content */}
           <Box sx={{ mt: 4 }}>
-            <Typography variant="h5" component="h2" gutterBottom sx={{ mb: 3, color: 'primary.main' }}>
-              Your {activeCourseLessons.length}-Week Journey
+            {/* Course Title */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h5" component="h2" gutterBottom>
+                {currentCourse?.title || 'Course Lessons'}
             </Typography>
+              <Typography variant="body1" color="text.secondary">
+                Complete each week's lesson to unlock the next one
+              </Typography>
+            </Box>
             
-            {/* Current Week Status */}
-            <Box sx={{ mb: 3, p: 2, backgroundColor: 'primary.main', borderRadius: 2, color: 'white' }}>
-              <Typography variant="h6" sx={{ mb: 1 }}>
-                🎯 Week {currentWeek} of {activeCourseLessons.length}
-                        </Typography>
-              <Typography variant="body2">
-                {loadingAvailability ? (
-                  'Loading lesson availability...'
-                ) : (
-                  `${Object.values(lessonAvailability).filter(Boolean).length} lessons available • ${Object.values(lessonAvailability).filter(v => !v).length} lessons coming up`
-                )}
-                    </Typography>
-                  </Box>
-                  
+            {/* Lesson Cards */}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {activeCourseLessons.map((lesson) => {
                 const isAvailable = lessonAvailability[lesson.id] || false;
@@ -648,33 +540,43 @@ const Dashboard: React.FC = () => {
                             {lesson.weekNumber}
                         </Typography>
                         {isCompleted && (
-                          <Box sx={{
+                      <Box sx={{ 
                             position: 'absolute',
                             top: -2,
                             right: -2,
                             width: 12,
                             height: 12,
-                            borderRadius: '50%',
+                        borderRadius: '50%', 
                             backgroundColor: 'success.main',
                             border: '2px solid white',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}>
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center'
+                      }}>
                             <Typography variant="caption" sx={{ fontSize: 8, color: 'white', fontWeight: 'bold' }}>
                               ✓
-                            </Typography>
-                          </Box>
-                        )}
+                        </Typography>
                       </Box>
+                        )}
+                    </Box>
                       <Box>
                         <Typography variant="h6" sx={{ fontWeight: 600, color: isAvailable ? 'text.primary' : 'rgba(255,255,255,0.5)' }}>
                           Week {lesson.weekNumber}: {lesson.title}
-                        </Typography>
+                    </Typography>
                                                 <Typography variant="caption" sx={{ color: isSequentiallyAvailable ? 'primary.main' : 'rgba(255,255,255,0.4)' }}>
                           {isCompleted ? '🎉 Completed' : isSequentiallyAvailable ? '✅ Available' : !isAvailable ? '🔒 Locked' : '⏳ Complete previous lessons first'}
-                        </Typography>
-                    </Box>
+                  </Typography>
+                        {!isAvailable && activeCohort && (() => {
+                          const releaseDate = new Date(activeCohort.startDate.toDate());
+                          releaseDate.setDate(releaseDate.getDate() + (lesson.weekNumber - 1) * 7);
+                          releaseDate.setHours(8, 0, 0, 0);
+                          return (
+                            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', display: 'block', mt: 0.5 }}>
+                              📅 Releases {releaseDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at 8:00 AM
+                      </Typography>
+                          );
+                        })()}
+                      </Box>
                     </Box>
                     <Typography variant="h6" sx={{ color: isAvailable ? 'primary.main' : 'rgba(255,255,255,0.3)' }}>
                         {expandedWeek === lesson.weekNumber ? '−' : '+'}
@@ -747,7 +649,7 @@ const Dashboard: React.FC = () => {
                         
                         {/* Sequential Restriction Message */}
                         {lesson.videoUrl && !isSequentiallyAvailable && isAvailable && (
-                          <Box sx={{ 
+                      <Box sx={{ 
                             p: 3, 
                             backgroundColor: 'warning.light', 
                             borderRadius: 2,
@@ -757,11 +659,11 @@ const Dashboard: React.FC = () => {
                           }}>
                             <Typography variant="h6" sx={{ color: 'warning.dark', mb: 1 }}>
                               🔒 Complete Previous Lessons First
-                            </Typography>
+                        </Typography>
                             <Typography variant="body2" sx={{ color: 'warning.dark' }}>
                               You need to complete Week {lesson.weekNumber - 1} before accessing this lesson.
-                            </Typography>
-                          </Box>
+                      </Typography>
+                    </Box>
                         )}
 
                         {/* Q&A Section */}
@@ -823,7 +725,7 @@ const Dashboard: React.FC = () => {
             </Typography>
             
             <Typography variant="body1" sx={{ mb: 4, color: 'text.secondary', lineHeight: 1.7, fontSize: '1.1rem' }}>
-              Join {communityStats.activeStudents} students around the world already transforming their lives through our evidence-based, comprehensive 7-week program. 
+              Join 47 students around the world already transforming their lives through our evidence-based, comprehensive 7-week program. 
               Start your journey today and unlock the secrets to reverse aging naturally through proven scientific protocols.
             </Typography>
 
@@ -995,55 +897,7 @@ const Dashboard: React.FC = () => {
                   </Box>
                 </Box>
 
-                {/* Countdown Timer */}
-                <Box sx={{ mb: 3, textAlign: 'center' }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    ⏰ Special offer ends in:
-                  </Typography>
-                  <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
-                    <Box sx={{ textAlign: 'center', minWidth: 40 }}>
-                      <Typography variant="h6" color="primary.main" sx={{ fontWeight: 700 }}>
-                        {timeLeft.days}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Days
-                      </Typography>
-                    </Box>
-                    <Typography variant="h6" color="primary.main" sx={{ fontWeight: 700 }}>
-                      :
-                    </Typography>
-                    <Box sx={{ textAlign: 'center', minWidth: 40 }}>
-                      <Typography variant="h6" color="primary.main" sx={{ fontWeight: 700 }}>
-                        {timeLeft.hours.toString().padStart(2, '0')}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Hours
-                      </Typography>
-                    </Box>
-                    <Typography variant="h6" color="primary.main" sx={{ fontWeight: 700 }}>
-                      :
-                    </Typography>
-                    <Box sx={{ textAlign: 'center', minWidth: 40 }}>
-                      <Typography variant="h6" color="primary.main" sx={{ fontWeight: 700 }}>
-                        {timeLeft.minutes.toString().padStart(2, '0')}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Min
-                      </Typography>
-                    </Box>
-                    <Typography variant="h6" color="primary.main" sx={{ fontWeight: 700 }}>
-                      :
-                    </Typography>
-                    <Box sx={{ textAlign: 'center', minWidth: 40 }}>
-                      <Typography variant="h6" color="primary.main" sx={{ fontWeight: 700 }}>
-                        {timeLeft.seconds.toString().padStart(2, '0')}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Sec
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Box>
+
 
                 <Button 
                   variant="contained" 

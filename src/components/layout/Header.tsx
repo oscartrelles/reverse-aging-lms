@@ -153,7 +153,7 @@ const Header: React.FC = () => {
               fontWeight: 700,
             }}
           >
-            The Reverse Aging Challenge
+            The Reverse Aging Academy
           </Typography>
         </Box>
 

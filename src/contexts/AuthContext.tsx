@@ -10,7 +10,7 @@ import {
   getRedirectResult,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, Timestamp } from 'firebase/firestore';
-import { auth, db, googleProvider, facebookProvider, handleRedirectResult, signInWithGoogle as firebaseSignInWithGoogle } from '../firebaseConfig';
+import { auth, db, googleProvider, facebookProvider, handleRedirectResult, signInWithGoogle as firebaseSignInWithGoogle, signInWithFacebook as firebaseSignInWithFacebook } from '../firebaseConfig';
 import { User } from '../types';
 
 interface AuthContextType {
@@ -100,7 +100,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function signInWithFacebook() {
     try {
-      await signInWithRedirect(auth, facebookProvider);
+      console.log('=== Facebook Sign-In Debug ===');
+      console.log('Starting Facebook sign-in...');
+      
+      // Use the working implementation from firebaseConfig
+      await firebaseSignInWithFacebook();
+      console.log('=== End Facebook Sign-In Debug ===');
     } catch (error) {
       console.error('Error signing in with Facebook:', error);
       throw error;

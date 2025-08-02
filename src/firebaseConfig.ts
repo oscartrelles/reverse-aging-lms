@@ -39,6 +39,30 @@ googleProvider.setCustomParameters({
 });
 
 export const facebookProvider = new FacebookAuthProvider();
+facebookProvider.addScope('email');
+facebookProvider.addScope('public_profile');
+
+// Facebook Sign-In function
+export const signInWithFacebook = async () => {
+  try {
+    console.log('Starting Facebook sign-in process...');
+    console.log('Current URL:', window.location.href);
+    console.log('Firebase auth domain:', firebaseConfig.authDomain);
+    console.log('Facebook provider:', facebookProvider);
+    
+    // Debug: Check if we can access the client ID
+    console.log('Firebase config:', {
+      projectId: firebaseConfig.projectId,
+      authDomain: firebaseConfig.authDomain,
+      apiKey: firebaseConfig.apiKey ? 'Present' : 'Missing'
+    });
+    
+    await signInWithRedirect(auth, facebookProvider);
+  } catch (error) {
+    console.error('Facebook sign-in error:', (error as any).message);
+    throw error;
+  }
+};
 
 // Google Sign-In function (back to redirect)
 export const signInWithGoogle = async () => {
