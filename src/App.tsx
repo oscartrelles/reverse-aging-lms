@@ -4,6 +4,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AuthProvider } from './contexts/AuthContext';
 import { CourseProvider } from './contexts/CourseContext';
+import { AuthModalProvider } from './contexts/AuthModalContext';
 import PrivateRoute from './components/auth/PrivateRoute';
 import AdminRoute from './components/auth/AdminRoute';
 import AuthRedirect from './components/auth/AuthRedirect';
@@ -24,6 +25,7 @@ import EvidencePage from './pages/EvidencePage';
 // Components
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
+import AuthModal from './components/auth/AuthModal';
 
 // Create theme with your brand colors
 const theme = createTheme({
@@ -160,85 +162,88 @@ function App() {
       <CssBaseline />
       <AuthProvider>
         <CourseProvider>
-          <Router>
-            <div className="App">
-              <Header />
-              <main style={{ minHeight: 'calc(100vh - 140px)' }}>
-                <Routes>
-                  {/* Root path - show landing page directly */}
-                  <Route path="/" element={<LandingPage />} />
-                  
-                  {/* Protected routes */}
-                  <Route path="/dashboard" element={
-                    <PrivateRoute>
-                      <Dashboard />
-                    </PrivateRoute>
-                  } />
-                  
-                  <Route path="/course/:courseId" element={
-                    <PrivateRoute>
-                      <CoursePage />
-                    </PrivateRoute>
-                  } />
-                  
-                  <Route path="/course/:courseId/lesson/:lessonId" element={
-                    <PrivateRoute>
-                      <LessonPage />
-                    </PrivateRoute>
-                  } />
-                  
-                  <Route path="/profile" element={
-                    <PrivateRoute>
-                      <ProfilePage />
-                    </PrivateRoute>
-                  } />
-                  
-                  <Route path="/payment/:courseId" element={
-                    <PrivateRoute>
-                      <PaymentPage />
-                    </PrivateRoute>
-                  } />
-                  
-                  <Route path="/evidence" element={
-                    <PrivateRoute allowUnauthenticated={true}>
-                      <EvidencePage />
-                    </PrivateRoute>
-                  } />
-                  
-                  <Route path="/evidence/:updateId" element={
-                    <PrivateRoute allowUnauthenticated={true}>
-                      <EvidencePage />
-                    </PrivateRoute>
-                  } />
-                  
-                  {/* Admin routes */}
-                  <Route path="/admin" element={
-                    <AdminRoute>
-                      <AdminDashboard />
-                    </AdminRoute>
-                  } />
-                  
+          <AuthModalProvider>
+            <Router>
+              <div className="App">
+                <Header />
+                <main style={{ minHeight: 'calc(100vh - 140px)' }}>
+                  <Routes>
+                    {/* Root path - show landing page directly */}
+                    <Route path="/" element={<LandingPage />} />
+                    
+                    {/* Protected routes */}
+                    <Route path="/dashboard" element={
+                      <PrivateRoute>
+                        <Dashboard />
+                      </PrivateRoute>
+                    } />
+                    
+                    <Route path="/course/:courseId" element={
+                      <PrivateRoute>
+                        <CoursePage />
+                      </PrivateRoute>
+                    } />
+                    
+                    <Route path="/course/:courseId/lesson/:lessonId" element={
+                      <PrivateRoute>
+                        <LessonPage />
+                      </PrivateRoute>
+                    } />
+                    
+                    <Route path="/profile" element={
+                      <PrivateRoute>
+                        <ProfilePage />
+                      </PrivateRoute>
+                    } />
+                    
+                    <Route path="/payment/:courseId" element={
+                      <PrivateRoute>
+                        <PaymentPage />
+                      </PrivateRoute>
+                    } />
+                    
+                    <Route path="/evidence" element={
+                      <PrivateRoute allowUnauthenticated={true}>
+                        <EvidencePage />
+                      </PrivateRoute>
+                    } />
+                    
+                    <Route path="/evidence/:updateId" element={
+                      <PrivateRoute allowUnauthenticated={true}>
+                        <EvidencePage />
+                      </PrivateRoute>
+                    } />
+                    
+                    {/* Admin routes */}
+                    <Route path="/admin" element={
+                      <AdminRoute>
+                        <AdminDashboard />
+                      </AdminRoute>
+                    } />
+                    
 
-                  
-                  <Route path="/admin/students" element={
-                    <AdminRoute>
-                      <AdminStudentManagement />
-                    </AdminRoute>
-                  } />
-                  
-                  <Route path="/admin/users" element={
-                    <AdminRoute>
-                      <AdminUserManagement />
-                    </AdminRoute>
-                  } />
-                  
-                  {/* Fallback */}
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </main>
-              <Footer />
-            </div>
-          </Router>
+                    
+                    <Route path="/admin/students" element={
+                      <AdminRoute>
+                        <AdminStudentManagement />
+                      </AdminRoute>
+                    } />
+                    
+                    <Route path="/admin/users" element={
+                      <AdminRoute>
+                        <AdminUserManagement />
+                      </AdminRoute>
+                    } />
+                    
+                    {/* Fallback */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </main>
+                <Footer />
+                <AuthModal />
+              </div>
+            </Router>
+          </AuthModalProvider>
         </CourseProvider>
       </AuthProvider>
     </ThemeProvider>

@@ -7,36 +7,22 @@ import {
   Button,
   Card,
   CardContent,
-  TextField,
-  Divider,
-  Alert,
   CircularProgress,
   useTheme,
   useMediaQuery,
   IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
 } from '@mui/material';
 import { Google, Facebook, ChevronLeft, ChevronRight, Science } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
+import { useAuthModal } from '../contexts/AuthModalContext';
 import { handleRedirectResult } from '../firebaseConfig';
 import { useSearchParams } from 'react-router-dom';
 
 const LandingPage: React.FC = () => {
-  const { signUp, signIn, signInWithGoogle, signInWithFacebook, currentUser, loading: authLoading } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
+  const { showAuthModal } = useAuthModal();
   const navigate = useNavigate();
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
-  
-  // Authentication Modal
-  const [showAuthModal, setShowAuthModal] = useState(false);
   
   // Scientific Updates Preview
   const [recentUpdate, setRecentUpdate] = useState<any>(null);
@@ -79,13 +65,11 @@ const LandingPage: React.FC = () => {
     const signin = searchParams.get('signin');
     
     if (signup === 'true') {
-      setIsSignUp(true);
-      setShowAuthModal(true);
+      showAuthModal('signup', 'Create Your Account', 'Join our community and start your health transformation journey.');
     } else if (signin === 'true') {
-      setIsSignUp(false);
-      setShowAuthModal(true);
+      showAuthModal('signin', 'Welcome Back', 'Sign in to continue your health transformation journey.');
     }
-  }, [searchParams]);
+  }, [searchParams, showAuthModal]);
 
   // Load a recent scientific update for preview
   useEffect(() => {
@@ -116,44 +100,7 @@ const LandingPage: React.FC = () => {
     }
   }, [currentUser, authLoading, navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
 
-    try {
-      if (isSignUp) {
-        await signUp(email, password, name);
-      } else {
-        await signIn(email, password);
-      }
-      // Close modal on successful authentication
-      setShowAuthModal(false);
-    } catch (error: any) {
-      setError(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSocialSignIn = async (provider: 'google' | 'facebook') => {
-    setError('');
-    setLoading(true);
-
-    try {
-      if (provider === 'google') {
-        await signInWithGoogle();
-      } else {
-        await signInWithFacebook();
-      }
-      // Close modal on successful authentication
-      setShowAuthModal(false);
-    } catch (error: any) {
-      setError(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <Container maxWidth="lg">
@@ -207,10 +154,7 @@ const LandingPage: React.FC = () => {
               <Button
                 variant="contained"
                 size="large"
-                onClick={() => {
-                  setIsSignUp(true);
-                  setShowAuthModal(true);
-                }}
+                onClick={() => showAuthModal('signup', 'Create Your Account', 'Join our community and start your health transformation journey.')}
                 sx={{
                   px: 4,
                   py: 1.5,
@@ -222,10 +166,7 @@ const LandingPage: React.FC = () => {
               <Button
                 variant="outlined"
                 size="large"
-                onClick={() => {
-                  setIsSignUp(true);
-                  setShowAuthModal(true);
-                }}
+                onClick={() => showAuthModal('signup', 'Create Your Account', 'Join our community and start your health transformation journey.')}
                 startIcon={<Science />}
                 sx={{
                   px: 4,
@@ -458,10 +399,7 @@ const LandingPage: React.FC = () => {
                   <Button
                     variant="contained"
                     size="large"
-                    onClick={() => {
-                      setIsSignUp(true);
-                      setShowAuthModal(true);
-                    }}
+                    onClick={() => showAuthModal('signup', 'Create Your Account', 'Join our community and start your health transformation journey.')}
                     sx={{
                       py: 1.5,
                       fontWeight: 600,
@@ -474,10 +412,7 @@ const LandingPage: React.FC = () => {
                   <Button
                     variant="outlined"
                     size="large"
-                    onClick={() => {
-                      setIsSignUp(false);
-                      setShowAuthModal(true);
-                    }}
+                    onClick={() => showAuthModal('signin', 'Welcome Back', 'Sign in to access your personalized health dashboard.')}
                     sx={{
                       py: 1.5,
                       fontWeight: 600,
@@ -777,145 +712,7 @@ const LandingPage: React.FC = () => {
         </Container>
       </Box>
 
-      {/* Authentication Modal */}
-      <Dialog
-        open={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 3,
-            background: 'linear-gradient(135deg, #2A2D35 0%, #1C1F26 100%)',
-            border: '1px solid rgba(80, 235, 151, 0.2)',
-          }
-        }}
-      >
-        <DialogTitle sx={{ textAlign: 'center', pb: 1 }}>
-          <Typography variant="h5" component="h2" sx={{ fontWeight: 600, color: 'primary.main' }}>
-            {isSignUp ? 'Create Your Account' : 'Welcome Back'}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            {isSignUp 
-              ? 'Join our community and start your health transformation journey'
-              : 'Sign in to access your personalized health dashboard'
-            }
-          </Typography>
-        </DialogTitle>
 
-        <DialogContent sx={{ pb: 2 }}>
-          {error && (
-            <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
-              {error}
-            </Alert>
-          )}
-
-          <form onSubmit={handleSubmit}>
-            {isSignUp && (
-              <TextField
-                fullWidth
-                label="Full Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                margin="normal"
-                required
-                disabled={loading}
-                sx={{ mb: 2 }}
-              />
-            )}
-            <TextField
-              fullWidth
-              label="Email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              margin="normal"
-              required
-              disabled={loading}
-              sx={{ mb: 2 }}
-            />
-            <TextField
-              fullWidth
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              margin="normal"
-              required
-              disabled={loading}
-              sx={{ mb: 3 }}
-            />
-            
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              size="large"
-              disabled={loading}
-              sx={{ mb: 3, py: 1.5, fontWeight: 600 }}
-            >
-              {loading ? (
-                <CircularProgress size={24} color="inherit" />
-              ) : (
-                isSignUp ? 'Create Account' : 'Sign In'
-              )}
-            </Button>
-          </form>
-
-          <Divider sx={{ my: 3 }}>
-            <Typography variant="body2" color="text.secondary">
-              OR
-            </Typography>
-          </Divider>
-
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<Google />}
-              onClick={() => handleSocialSignIn('google')}
-              disabled={loading}
-              sx={{ py: 1.5, fontWeight: 600 }}
-            >
-              Continue with Google
-            </Button>
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<Facebook />}
-              onClick={() => handleSocialSignIn('facebook')}
-              disabled={loading}
-              sx={{ py: 1.5, fontWeight: 600 }}
-            >
-              Continue with Facebook
-            </Button>
-          </Box>
-
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="body2" color="text.secondary">
-              {isSignUp ? 'Already have an account?' : "Don't have an account?"}
-              <Button
-                onClick={() => setIsSignUp(!isSignUp)}
-                sx={{ ml: 1 }}
-                disabled={loading}
-                color="primary"
-              >
-                {isSignUp ? 'Sign In' : 'Sign Up'}
-              </Button>
-            </Typography>
-          </Box>
-        </DialogContent>
-
-        <DialogActions sx={{ px: 3, pb: 3, justifyContent: 'center' }}>
-          <Button
-            onClick={() => setShowAuthModal(false)}
-            disabled={loading}
-            sx={{ color: 'text.secondary' }}
-          >
-            Cancel
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Container>
   );
 };
