@@ -24,9 +24,11 @@ import {
 } from '@mui/icons-material';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useAuthModal } from '../../contexts/AuthModalContext';
 
 const Header: React.FC = () => {
   const { currentUser, logout } = useAuth();
+  const { showAuthModal } = useAuthModal();
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -224,7 +226,17 @@ const Header: React.FC = () => {
               </>
             )}
           </Box>
-        ) : null}
+        ) : (
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Button
+              color="inherit"
+              onClick={() => showAuthModal('signin', 'Welcome back!')}
+              sx={{ mr: 2 }}
+            >
+              Sign In
+            </Button>
+          </Box>
+        )}
       </Toolbar>
     </AppBar>
   );
