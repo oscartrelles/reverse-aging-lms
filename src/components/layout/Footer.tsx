@@ -15,10 +15,24 @@ import {
   WhatsApp,
   ArrowUpward,
 } from '@mui/icons-material';
+import { useContactModal } from '../../contexts/ContactModalContext';
 
 const Footer: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
+  // Add error handling for the contact modal hook
+  let openContactModal: (() => void) | null = null;
+  try {
+    const contactModal = useContactModal();
+    openContactModal = contactModal.openContactModal;
+  } catch (error) {
+    console.warn('ContactModal context not available:', error);
+    openContactModal = () => {
+      // Fallback: open email client
+      window.open('mailto:info@breathingflame.com', '_blank');
+    };
+  }
 
   const socialLinks = [
     {
@@ -205,28 +219,56 @@ const Footer: React.FC = () => {
             flexDirection: { xs: 'column', sm: 'row' },
             alignItems: 'center'
           }}>
-            {[
-              { name: 'Privacy Policy', href: '/privacy' },
-              { name: 'Terms of Service', href: '/terms' },
-              { name: 'Contact', href: '/contact' },
-            ].map((link) => (
-              <Typography
-                key={link.name}
-                variant="body2"
-                component="a"
-                href={link.href}
-                sx={{
-                  color: theme.palette.text.secondary,
-                  textDecoration: 'none',
-                  transition: 'color 0.3s ease',
-                  '&:hover': { 
-                    color: theme.palette.primary.main 
-                  }
-                }}
-              >
-                {link.name}
-              </Typography>
-            ))}
+            <Typography
+              variant="body2"
+              component="a"
+              href="/privacy"
+              sx={{
+                color: theme.palette.text.secondary,
+                textDecoration: 'none',
+                transition: 'color 0.3s ease',
+                '&:hover': { 
+                  color: theme.palette.primary.main 
+                }
+              }}
+            >
+              Privacy Policy
+            </Typography>
+            <Typography
+              variant="body2"
+              component="a"
+              href="/terms"
+              sx={{
+                color: theme.palette.text.secondary,
+                textDecoration: 'none',
+                transition: 'color 0.3s ease',
+                '&:hover': { 
+                  color: theme.palette.primary.main 
+                }
+              }}
+            >
+              Terms of Service
+            </Typography>
+            <Typography
+              variant="body2"
+              component="button"
+              onClick={openContactModal || (() => {})}
+              sx={{
+                color: theme.palette.text.secondary,
+                textDecoration: 'none',
+                transition: 'color 0.3s ease',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                fontSize: 'inherit',
+                '&:hover': { 
+                  color: theme.palette.primary.main 
+                }
+              }}
+            >
+              Contact
+            </Typography>
           </Box>
 
           {/* Back to Top Button */}

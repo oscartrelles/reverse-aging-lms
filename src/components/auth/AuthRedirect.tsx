@@ -33,7 +33,7 @@ const AuthRedirect: React.FC = () => {
     return <Navigate to="/dashboard" replace />;
   } else {
     console.log('AuthRedirect - redirecting to landing...');
-    return <Navigate to="/landing" replace />;
+    return <Navigate to="/" replace />;
   }
 };
 

@@ -9,10 +9,21 @@ export interface User {
   createdAt: Timestamp;
   isAdmin: boolean;
   timezone?: string;
+  // Extended profile fields
+  firstName?: string;
+  lastName?: string;
+  bio?: string;
+  age?: number;
+  location?: string;
+  goals?: string[];
+  // Enhanced notification preferences
   notificationPreferences: {
     email: boolean;
     push: boolean;
     reminderTime?: string; // "08:00" for 8am
+    weeklyDigest?: boolean;
+    scientificUpdates?: boolean;
+    communityUpdates?: boolean;
   };
 }
 

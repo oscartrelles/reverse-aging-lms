@@ -5,6 +5,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { AuthProvider } from './contexts/AuthContext';
 import { CourseProvider } from './contexts/CourseContext';
 import { AuthModalProvider } from './contexts/AuthModalContext';
+import { ContactModalProvider } from './contexts/ContactModalContext';
 import PrivateRoute from './components/auth/PrivateRoute';
 import AdminRoute from './components/auth/AdminRoute';
 import AuthRedirect from './components/auth/AuthRedirect';
@@ -24,11 +25,13 @@ import EvidencePage from './pages/EvidencePage';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
 import AboutPage from './pages/AboutPage';
+import ProgramsPage from './pages/ProgramsPage';
 
 // Components
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import AuthModal from './components/auth/AuthModal';
+import ContactModalWrapper from './components/ContactModalWrapper';
 
 // Create theme with your brand colors
 const theme = createTheme({
@@ -166,7 +169,8 @@ function App() {
       <AuthProvider>
         <CourseProvider>
           <AuthModalProvider>
-            <Router>
+            <ContactModalProvider>
+              <Router>
               <div className="App">
                 <Header />
                 <main style={{ minHeight: 'calc(100vh - 140px)' }}>
@@ -218,9 +222,10 @@ function App() {
                     } />
                     
                     {/* Public pages */}
-                    <Route path="/privacy" element={<PrivacyPage />} />
-                    <Route path="/terms" element={<TermsPage />} />
-                    <Route path="/about" element={<AboutPage />} />
+                            <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/programs" element={<ProgramsPage />} />
                     
                     {/* Admin routes */}
                     <Route path="/admin" element={
@@ -249,8 +254,10 @@ function App() {
                 </main>
                 <Footer />
                 <AuthModal />
+                <ContactModalWrapper />
               </div>
             </Router>
+            </ContactModalProvider>
           </AuthModalProvider>
         </CourseProvider>
       </AuthProvider>
