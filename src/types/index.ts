@@ -217,4 +217,62 @@ export interface LessonRelease {
   isReleased: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+}
+
+export interface CachedUserProgress {
+  // Core metrics (updated on lesson completion)
+  coursesCompleted: number;
+  lessonsCompleted: number;
+  totalLessons: number;
+  availableLessons: number;
+
+  // Streak data (updated daily)
+  currentStreak: number;
+  longestStreak: number;
+  lastActivityDate: Timestamp;
+
+  // Cohort comparison (updated weekly)
+  cohortComparison?: {
+    isAhead: boolean;
+    isBehind: boolean;
+    percentageDifference: number;
+    lastCalculated: Timestamp;
+  };
+
+  // Watch time (updated on lesson progress)
+  totalWatchTime: number; // in minutes
+
+  // Achievements (updated when earned)
+  achievementCount: number;
+  recentAchievements: string[]; // Last 5 achievement titles
+
+  // Metadata
+  lastCalculated: Timestamp;
+  version: number; // For future schema updates
+}
+
+export interface UserProfileCache {
+  // Cached progress data
+  progress: CachedUserProgress;
+  
+  // Cached enrollment status
+  activeEnrollment?: {
+    courseId: string;
+    cohortId: string;
+    enrolledAt: Timestamp;
+  };
+  
+  // Cached lesson availability
+  lessonAvailability?: {
+    availableLessons: string[]; // lesson IDs
+    nextLessonId?: string;
+    lastUpdated: Timestamp;
+  };
+  
+  // Cached community stats
+  communityStats?: {
+    totalMembers: number;
+    activeToday: number;
+    lastUpdated: Timestamp;
+  };
 } 

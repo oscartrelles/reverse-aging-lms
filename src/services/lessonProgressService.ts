@@ -1,6 +1,7 @@
 import { doc, setDoc, updateDoc, getDoc, collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { LessonProgress } from '../types';
+import { userCacheService } from './userCacheService';
 
 export interface VideoProgress {
   currentTime: number;
@@ -55,6 +56,10 @@ export const lessonProgressService = {
         completedAt: Timestamp.now(),
         lastWatchedAt: Timestamp.now(),
       });
+      
+      // Invalidate cache since progress changed
+      await userCacheService.updateProgressOnLessonComplete(userId, lessonId);
+      
       console.log(`✅ Marked lesson ${lessonId} as completed`);
     } catch (error) {
       console.error('❌ Error completing lesson:', error);

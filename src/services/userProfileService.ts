@@ -2,6 +2,7 @@ import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, Time
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '../firebaseConfig';
 import { User, LessonProgress, Enrollment } from '../types';
+import { userCacheService } from './userCacheService';
 
 export interface ExtendedProfile {
   userId: string;
@@ -192,110 +193,27 @@ export const userProfileService = {
     }
   },
 
-  // Get user progress statistics
+  // Get user progress statistics (now using cache)
   async getUserProgress(userId: string): Promise<UserProgress> {
     try {
-      // Get all lesson progress for the user
-      const progressQuery = query(
-        collection(db, 'lessonProgress'),
-        where('userId', '==', userId)
-      );
-      const progressDocs = await getDocs(progressQuery);
+      // Use cached progress data
+      const cachedProgress = await userCacheService.getCachedProgress(userId);
       
-      // Get all enrollments for the user
-      const enrollmentQuery = query(
-        collection(db, 'enrollments'),
-        where('userId', '==', userId)
-      );
-      const enrollmentDocs = await getDocs(enrollmentQuery);
-
-      // Calculate statistics
-      const completedLessons = progressDocs.docs.filter(doc => doc.data().isCompleted);
-      const completedCourses = enrollmentDocs.docs.filter(doc => doc.data().status === 'completed');
-      
-      // Get total lessons for the course (like Dashboard does)
-      let totalLessons = 0;
-      let availableLessons = 0;
-      const activeEnrollment = enrollmentDocs.docs.find(doc => doc.data().status === 'active');
-      if (activeEnrollment) {
-        const courseId = activeEnrollment.data().courseId;
-        const cohortId = activeEnrollment.data().cohortId;
-        
-        // Get all lessons for the course
-        const lessonsQuery = query(
-          collection(db, 'lessons'),
-          where('courseId', '==', courseId)
-        );
-        const lessonsDocs = await getDocs(lessonsQuery);
-        totalLessons = lessonsDocs.docs.length;
-        
-        // Get cohort data to determine which lessons are released
-        const cohortRef = doc(db, 'cohorts', cohortId);
-        const cohortDoc = await getDoc(cohortRef);
-        
-        if (cohortDoc.exists()) {
-          const cohortData = cohortDoc.data();
-          const cohortStartDate = cohortData.startDate.toDate();
-          const now = new Date();
-          
-          // Calculate which lessons should be released based on cohort start date
-          // Assuming one lesson per week, starting from week 1
-          const weeksSinceStart = Math.floor((now.getTime() - cohortStartDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
-          availableLessons = Math.max(0, Math.min(weeksSinceStart + 1, totalLessons)); // +1 because week 1 is available immediately
-        }
-      }
-      
-      // Calculate cohort comparison
-      let cohortComparison: CohortComparison | undefined;
-      if (availableLessons > 0) {
-        const userCompletionRate = (completedLessons.length / availableLessons) * 100;
-        
-        // Get average completion rate for the cohort (simplified - could be enhanced with actual cohort data)
-        // For now, we'll use a reasonable baseline of 60% completion rate
-        const cohortAverageRate = 60;
-        const percentageDifference = userCompletionRate - cohortAverageRate;
-        
-        cohortComparison = {
-          isAhead: percentageDifference > 10, // More than 10% ahead
-          isBehind: percentageDifference < -10, // More than 10% behind
-          percentageDifference: Math.abs(percentageDifference),
-        };
-      }
-      
-      // Calculate streak (simplified - could be enhanced)
-      const lastCompleted = completedLessons
-        .map(doc => doc.data().completedAt?.toDate())
-        .filter(date => date)
-        .sort((a, b) => b.getTime() - a.getTime())[0];
-      
-      const streakDays = lastCompleted ? 
-        Math.floor((Date.now() - lastCompleted.getTime()) / (1000 * 60 * 60 * 24)) : 0;
-
-      // Calculate total watch time
-      const totalWatchTime = progressDocs.docs.reduce((total, doc) => {
-        const data = doc.data();
-        return total + (data.watchedPercentage || 0);
-      }, 0);
-
-      // Get achievements (with error handling)
-      let achievements: any[] = [];
-      try {
-        achievements = await this.getUserAchievements(userId);
-      } catch (error) {
-        console.warn('Could not fetch achievements:', error);
-        achievements = [];
-      }
-
+      // Convert cached data to UserProgress format
       return {
-        coursesCompleted: completedCourses.length,
-        lessonsCompleted: completedLessons.length,
-        totalLessons: totalLessons,
-        availableLessons: availableLessons,
-        streakDays: Math.min(streakDays, 30), // Cap at 30 for display
-        achievements: achievements.map(a => a.title),
-        totalWatchTime: Math.round(totalWatchTime / 60), // Convert to minutes
-        lastActivity: lastCompleted ? Timestamp.fromDate(lastCompleted) : Timestamp.now(),
-        cohortComparison: cohortComparison,
+        coursesCompleted: cachedProgress.coursesCompleted,
+        lessonsCompleted: cachedProgress.lessonsCompleted,
+        totalLessons: cachedProgress.totalLessons,
+        availableLessons: cachedProgress.availableLessons,
+        streakDays: cachedProgress.currentStreak,
+        achievements: cachedProgress.recentAchievements,
+        totalWatchTime: cachedProgress.totalWatchTime,
+        lastActivity: cachedProgress.lastActivityDate,
+        cohortComparison: cachedProgress.cohortComparison ? {
+          isAhead: cachedProgress.cohortComparison.isAhead,
+          isBehind: cachedProgress.cohortComparison.isBehind,
+          percentageDifference: cachedProgress.cohortComparison.percentageDifference,
+        } : undefined,
       };
     } catch (error) {
       console.error('❌ Error fetching user progress:', error);
