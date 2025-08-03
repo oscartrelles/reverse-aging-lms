@@ -21,6 +21,9 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminStudentManagement from './pages/admin/AdminStudentManagement';
 import AdminUserManagement from './pages/admin/AdminUserManagement';
 import EvidencePage from './pages/EvidencePage';
+import PrivacyPage from './pages/PrivacyPage';
+import TermsPage from './pages/TermsPage';
+import AboutPage from './pages/AboutPage';
 
 // Components
 import Header from './components/layout/Header';
@@ -213,6 +216,11 @@ function App() {
                         <EvidencePage />
                       </PrivateRoute>
                     } />
+                    
+                    {/* Public pages */}
+                    <Route path="/privacy" element={<PrivacyPage />} />
+                    <Route path="/terms" element={<TermsPage />} />
+                    <Route path="/about" element={<AboutPage />} />
                     
                     {/* Admin routes */}
                     <Route path="/admin" element={

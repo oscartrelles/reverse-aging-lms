@@ -6,13 +6,14 @@ import {
   IconButton,
   Divider,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
 } from '@mui/material';
 import {
   Instagram,
   LinkedIn,
   Facebook,
   WhatsApp,
+  ArrowUpward,
 } from '@mui/icons-material';
 
 const Footer: React.FC = () => {
@@ -24,71 +25,118 @@ const Footer: React.FC = () => {
       name: 'Instagram',
       icon: Instagram,
       url: 'https://www.instagram.com/reverse.aging.challenge',
-      color: '#E4405F'
+      color: '#E4405F',
+      followers: '2.5K'
     },
     {
       name: 'LinkedIn',
       icon: LinkedIn,
       url: 'https://www.linkedin.com/company/breathingflame',
-      color: '#0077B5'
+      color: '#0077B5',
+      followers: '1.2K'
     },
     {
       name: 'Facebook',
       icon: Facebook,
       url: 'https://www.facebook.com/breathingflame',
-      color: '#1877F2'
+      color: '#1877F2',
+      followers: '3.8K'
     },
     {
       name: 'WhatsApp',
       icon: WhatsApp,
       url: 'https://wa.me/34611006408',
-      color: '#25D366'
+      color: '#25D366',
+      followers: 'Direct'
     }
   ];
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <Box
       component="footer"
       sx={{
-        backgroundColor: 'background.paper',
-        borderTop: '1px solid',
-        borderColor: 'divider',
+        backgroundColor: `${theme.palette.background.paper}E6`,
+        backdropFilter: 'blur(20px)',
+        borderTop: `1px solid ${theme.palette.divider}`,
         mt: 'auto',
+        position: 'relative'
       }}
     >
       <Container maxWidth="lg">
         {/* Main Footer Content */}
-        <Box sx={{ py: 4 }}>
+        <Box sx={{ py: 6 }}>
           <Box sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', md: 'row' },
-            justifyContent: 'space-between',
-            alignItems: { xs: 'center', md: 'flex-start' },
-            gap: 3
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: '2fr 1fr 1fr' },
+            gap: 4,
+            alignItems: 'start'
           }}>
             {/* Brand Section */}
             <Box sx={{ textAlign: { xs: 'center', md: 'left' } }}>
               <Typography
-                variant="h6"
+                variant="h5"
                 sx={{
                   fontWeight: 700,
-                  color: 'primary.main',
-                  mb: 1
+                  background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                  backgroundClip: 'text',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  mb: 2
                 }}
               >
                 The Reverse Aging Challenge
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 300 }}>
-                Transform your health and vitality through our comprehensive 7-week program designed for people over 40.
+              <Typography variant="body1" color="text.secondary" sx={{ mb: 3, lineHeight: 1.6, maxWidth: 400 }}>
+                Transform your health and vitality through our comprehensive 7-week program and join a global movement reclaiming healthspan through evidence‑based, nature‑powered practices and a supportive community.
               </Typography>
             </Box>
 
-            {/* Social Links */}
-            <Box sx={{ textAlign: { xs: 'center', md: 'right' } }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, color: 'text.primary' }}>
-                Follow Our Journey
+            {/* Quick Links */}
+            <Box sx={{ textAlign: { xs: 'center', md: 'left' } }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, mb: 3, color: theme.palette.text.primary }}>
+                Quick Links
               </Typography>
-              <Box sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'center', md: 'flex-end' } }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {[
+                  { name: 'About Us', href: '/about' },
+                  { name: 'Our Programs', href: '/programs' },
+                  { name: 'Scientific Evidence', href: '/evidence' },
+                ].map((link) => (
+                  <Typography
+                    key={link.name}
+                    variant="body2"
+                    component="a"
+                    href={link.href}
+                    sx={{
+                      color: theme.palette.text.secondary,
+                      textDecoration: 'none',
+                      transition: 'all 0.3s ease',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        color: theme.palette.primary.main,
+                        transform: 'translateX(4px)',
+                      }
+                    }}
+                  >
+                    {link.name}
+                  </Typography>
+                ))}
+              </Box>
+            </Box>
+
+            {/* Social Links */}
+            <Box sx={{ textAlign: { xs: 'center', md: 'left' } }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, mb: 3, color: theme.palette.text.primary }}>
+                Join Our Community
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Follow our journey and connect with a global community of health enthusiasts
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 2, justifyContent: { xs: 'center', md: 'flex-start' }, flexWrap: 'wrap' }}>
                 {socialLinks.map((social) => {
                   const IconComponent = social.icon;
                   return (
@@ -99,15 +147,16 @@ const Footer: React.FC = () => {
                       target="_blank"
                       rel="noopener noreferrer"
                       sx={{
-                        backgroundColor: 'rgba(255,255,255,0.05)',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        color: 'text.secondary',
-                        '&:hover': {
-                          backgroundColor: 'rgba(255,255,255,0.1)',
-                          color: social.color,
-                          transform: 'translateY(-2px)',
-                        },
+                        backgroundColor: `${theme.palette.background.default}80`,
+                        border: `1px solid ${theme.palette.divider}`,
+                        color: theme.palette.text.secondary,
                         transition: 'all 0.3s ease',
+                        '&:hover': {
+                          backgroundColor: `${social.color}20`,
+                          color: social.color,
+                          transform: 'translateY(-4px) scale(1.1)',
+                          boxShadow: `0 8px 20px ${social.color}40`,
+                        },
                       }}
                     >
                       <IconComponent />
@@ -120,25 +169,25 @@ const Footer: React.FC = () => {
         </Box>
 
         {/* Divider */}
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />
+        <Divider sx={{ borderColor: theme.palette.divider }} />
 
         {/* Bottom Section */}
         <Box sx={{
-          py: 2,
+          py: 3,
           display: 'flex',
           flexDirection: { xs: 'column', sm: 'row' },
           justifyContent: 'space-between',
           alignItems: 'center',
           gap: 2
         }}>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
             © {new Date().getFullYear()} <Typography
               component="a"
               href="https://breathingflame.com"
               target="_blank"
               rel="noopener noreferrer"
               sx={{
-                color: 'primary.main',
+                color: theme.palette.primary.main,
                 textDecoration: 'none',
                 fontWeight: 600,
                 '&:hover': {
@@ -156,43 +205,48 @@ const Footer: React.FC = () => {
             flexDirection: { xs: 'column', sm: 'row' },
             alignItems: 'center'
           }}>
-            <Typography
-              variant="body2"
-              component="a"
-              href="/privacy"
-              sx={{
-                color: 'text.secondary',
-                textDecoration: 'none',
-                '&:hover': { color: 'primary.main' }
-              }}
-            >
-              Privacy Policy
-            </Typography>
-            <Typography
-              variant="body2"
-              component="a"
-              href="/terms"
-              sx={{
-                color: 'text.secondary',
-                textDecoration: 'none',
-                '&:hover': { color: 'primary.main' }
-              }}
-            >
-              Terms of Service
-            </Typography>
-            <Typography
-              variant="body2"
-              component="a"
-              href="/contact"
-              sx={{
-                color: 'text.secondary',
-                textDecoration: 'none',
-                '&:hover': { color: 'primary.main' }
-              }}
-            >
-              Contact
-            </Typography>
+            {[
+              { name: 'Privacy Policy', href: '/privacy' },
+              { name: 'Terms of Service', href: '/terms' },
+              { name: 'Contact', href: '/contact' },
+            ].map((link) => (
+              <Typography
+                key={link.name}
+                variant="body2"
+                component="a"
+                href={link.href}
+                sx={{
+                  color: theme.palette.text.secondary,
+                  textDecoration: 'none',
+                  transition: 'color 0.3s ease',
+                  '&:hover': { 
+                    color: theme.palette.primary.main 
+                  }
+                }}
+              >
+                {link.name}
+              </Typography>
+            ))}
           </Box>
+
+          {/* Back to Top Button */}
+          <IconButton
+            onClick={scrollToTop}
+            sx={{
+              backgroundColor: `${theme.palette.primary.main}20`,
+              color: theme.palette.primary.main,
+              border: `1px solid ${theme.palette.primary.main}30`,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                backgroundColor: theme.palette.primary.main,
+                color: '#000',
+                transform: 'translateY(-2px)',
+                boxShadow: `0 4px 12px ${theme.palette.primary.main}40`,
+              }
+            }}
+          >
+            <ArrowUpward />
+          </IconButton>
         </Box>
       </Container>
     </Box>

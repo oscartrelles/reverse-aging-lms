@@ -34,8 +34,9 @@ const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   
   // Scientific Updates Preview
-  const [recentUpdate, setRecentUpdate] = useState<any>(null);
+  const [scientificUpdates, setScientificUpdates] = useState<any[]>([]);
   const [loadingUpdate, setLoadingUpdate] = useState(false);
+  const [currentUpdateIndex, setCurrentUpdateIndex] = useState(0);
 
   // Testimonial carousel state
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
@@ -80,6 +81,16 @@ const LandingPage: React.FC = () => {
     return () => clearInterval(interval);
   }, [testimonials.length]);
 
+  // Auto-rotate scientific updates
+  useEffect(() => {
+    if (scientificUpdates.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentUpdateIndex((prev) => (prev === scientificUpdates.length - 1 ? 0 : prev + 1));
+      }, 4000);
+      return () => clearInterval(interval);
+    }
+  }, [scientificUpdates.length]);
+
   // Handle URL parameters for auth modal
   useEffect(() => {
     const signup = searchParams.get('signup');
@@ -92,24 +103,22 @@ const LandingPage: React.FC = () => {
     }
   }, [searchParams, showAuthModal]);
 
-  // Load a recent scientific update for preview
+  // Load recent scientific updates for preview
   useEffect(() => {
-    const loadRecentUpdate = async () => {
+    const loadRecentUpdates = async () => {
       setLoadingUpdate(true);
       try {
         const { scientificUpdateService } = await import('../services/scientificUpdateService');
-        const updates = await scientificUpdateService.getAllUpdates({ limit: 1 });
-        if (updates.length > 0) {
-          setRecentUpdate(updates[0]);
-        }
+        const updates = await scientificUpdateService.getAllUpdates({ limit: 5 });
+        setScientificUpdates(updates);
       } catch (error) {
-        console.error('Error loading recent scientific update:', error);
+        console.error('Error loading recent scientific updates:', error);
       } finally {
         setLoadingUpdate(false);
       }
     };
 
-    loadRecentUpdate();
+    loadRecentUpdates();
   }, []);
 
   // Redirect authenticated users to dashboard
@@ -300,59 +309,143 @@ const LandingPage: React.FC = () => {
                     <Box sx={{ textAlign: 'center', py: 2 }}>
                       <CircularProgress size={24} />
                     </Box>
-                  ) : recentUpdate ? (
-                    <Box sx={{ 
-                      p: 2, 
-                      backgroundColor: `${theme.palette.primary.main}15`, 
-                      borderRadius: 3,
-                      border: `1px solid ${theme.palette.primary.main}30`,
-                      boxShadow: `0 4px 12px ${theme.palette.primary.main}20`,
-                      position: 'relative',
-                      transition: 'all 0.3s ease',
-                      '&:hover': {
-                        backgroundColor: `${theme.palette.primary.main}25`,
-                        boxShadow: `0 6px 16px ${theme.palette.primary.main}30`,
-                      },
-                      '&::before': {
-                        content: '""',
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        background: `linear-gradient(135deg, ${theme.palette.primary.main}10 0%, ${theme.palette.primary.main}05 100%)`,
+                  ) : scientificUpdates.length > 0 ? (
+                    <Box sx={{ position: 'relative' }}>
+                      <Box sx={{ 
+                        p: 2, 
+                        backgroundColor: `${theme.palette.primary.main}15`, 
                         borderRadius: 3,
-                        pointerEvents: 'none',
-                      }
-                    }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5, color: theme.palette.text.primary, fontSize: '1rem' }}>
-                        {recentUpdate.title}
-                      </Typography>
-                      <Typography variant="body2" sx={{ mb: 1.5, lineHeight: 1.5, color: theme.palette.text.secondary, fontWeight: 500 }}>
-                        {recentUpdate.summary.length > 120 
-                          ? `${recentUpdate.summary.substring(0, 120)}...` 
-                          : recentUpdate.summary
+                        border: `1px solid ${theme.palette.primary.main}30`,
+                        boxShadow: `0 4px 12px ${theme.palette.primary.main}20`,
+                        position: 'relative',
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          backgroundColor: `${theme.palette.primary.main}25`,
+                          boxShadow: `0 6px 16px ${theme.palette.primary.main}30`,
+                        },
+                        '&::before': {
+                          content: '""',
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          background: `linear-gradient(135deg, ${theme.palette.primary.main}10 0%, ${theme.palette.primary.main}05 100%)`,
+                          borderRadius: 3,
+                          pointerEvents: 'none',
                         }
-                      </Typography>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                        <Box sx={{ 
-                          px: 2, 
-                          py: 0.75, 
-                          backgroundColor: theme.palette.primary.main, 
-                          borderRadius: 2,
-                          display: 'flex',
-                          alignItems: 'center',
-                          alignSelf: 'flex-start',
-                          boxShadow: `0 2px 8px ${theme.palette.primary.main}40`
-                        }}>
-                          <Typography variant="caption" sx={{ color: '#000', fontWeight: 700, fontSize: '0.75rem' }}>
-                            {recentUpdate.category}
+                      }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5, color: theme.palette.text.primary, fontSize: '1rem' }}>
+                          {scientificUpdates[currentUpdateIndex].title}
+                        </Typography>
+                        <Typography variant="body2" sx={{ mb: 1.5, lineHeight: 1.5, color: theme.palette.text.secondary, fontWeight: 500 }}>
+                          {scientificUpdates[currentUpdateIndex].summary.length > 120 
+                            ? `${scientificUpdates[currentUpdateIndex].summary.substring(0, 120)}...` 
+                            : scientificUpdates[currentUpdateIndex].summary
+                          }
+                        </Typography>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                          <Box sx={{ 
+                            px: 2, 
+                            py: 0.75, 
+                            backgroundColor: theme.palette.primary.main, 
+                            borderRadius: 2,
+                            display: 'flex',
+                            alignItems: 'center',
+                            alignSelf: 'flex-start',
+                            boxShadow: `0 2px 8px ${theme.palette.primary.main}40`
+                          }}>
+                            <Typography variant="caption" sx={{ color: '#000', fontWeight: 700, fontSize: '0.75rem' }}>
+                              {scientificUpdates[currentUpdateIndex].category}
+                            </Typography>
+                          </Box>
+                          <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
+                            Published: {new Date(scientificUpdates[currentUpdateIndex].publishedDate.toDate()).toLocaleDateString()}
                           </Typography>
                         </Box>
-                        <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
-                          Published: {new Date(recentUpdate.publishedDate.toDate()).toLocaleDateString()}
-                        </Typography>
                       </Box>
+
+                      {/* Navigation Controls */}
+                      {scientificUpdates.length > 1 && (
+                        <>
+                          {/* Previous/Next Buttons */}
+                          <Box sx={{ 
+                            position: 'absolute', 
+                            top: '50%', 
+                            left: 0, 
+                            right: 0, 
+                            transform: 'translateY(-50%)',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            px: 1,
+                            pointerEvents: 'none'
+                          }}>
+                            <IconButton
+                              onClick={() => setCurrentUpdateIndex(prev => prev === 0 ? scientificUpdates.length - 1 : prev - 1)}
+                              sx={{
+                                backgroundColor: `${theme.palette.background.paper}CC`,
+                                backdropFilter: 'blur(10px)',
+                                border: `1px solid ${theme.palette.divider}`,
+                                color: theme.palette.text.primary,
+                                pointerEvents: 'auto',
+                                transition: 'all 0.3s ease',
+                                '&:hover': {
+                                  backgroundColor: `${theme.palette.primary.main}20`,
+                                  transform: 'scale(1.1)',
+                                }
+                              }}
+                            >
+                              <ChevronLeft />
+                            </IconButton>
+                            <IconButton
+                              onClick={() => setCurrentUpdateIndex(prev => prev === scientificUpdates.length - 1 ? 0 : prev + 1)}
+                              sx={{
+                                backgroundColor: `${theme.palette.background.paper}CC`,
+                                backdropFilter: 'blur(10px)',
+                                border: `1px solid ${theme.palette.divider}`,
+                                color: theme.palette.text.primary,
+                                pointerEvents: 'auto',
+                                transition: 'all 0.3s ease',
+                                '&:hover': {
+                                  backgroundColor: `${theme.palette.primary.main}20`,
+                                  transform: 'scale(1.1)',
+                                }
+                              }}
+                            >
+                              <ChevronRight />
+                            </IconButton>
+                          </Box>
+
+                          {/* Dots Indicator */}
+                          <Box sx={{ 
+                            display: 'flex', 
+                            justifyContent: 'center', 
+                            gap: 1, 
+                            mt: 2 
+                          }}>
+                            {scientificUpdates.map((_, index) => (
+                              <Box
+                                key={index}
+                                onClick={() => setCurrentUpdateIndex(index)}
+                                sx={{
+                                  width: 8,
+                                  height: 8,
+                                  borderRadius: '50%',
+                                  backgroundColor: index === currentUpdateIndex 
+                                    ? theme.palette.primary.main 
+                                    : theme.palette.text.secondary,
+                                  cursor: 'pointer',
+                                  transition: 'all 0.3s ease',
+                                  '&:hover': {
+                                    backgroundColor: theme.palette.primary.main,
+                                    transform: 'scale(1.2)',
+                                  }
+                                }}
+                              />
+                            ))}
+                          </Box>
+                        </>
+                      )}
                     </Box>
                   ) : (
                     <Box sx={{ 
@@ -416,12 +509,8 @@ const LandingPage: React.FC = () => {
             >
               The Reverse Aging Challenge
             </Typography>
-            <Typography
-              variant="h6"
-              color="text.secondary"
-              sx={{ maxWidth: 800, mx: 'auto', mb: 3 }}
-            >
-              Transform your health and vitality through our comprehensive 7-week program
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3, lineHeight: 1.6, maxWidth: 800, mx: 'auto', textAlign: 'center' }}>
+              Transform your health and vitality through our comprehensive 7-week program designed for people to build sustainable habits supported by evidence‑based, nature‑powered practices and a golab community.
             </Typography>
           </Box>
 
@@ -596,8 +685,8 @@ const LandingPage: React.FC = () => {
             <Typography variant="h5" sx={{ fontWeight: 600, mb: 2, color: theme.palette.text.primary }}>
               Ready to Start Your Transformation?
             </Typography>
-            <Typography variant="h6" sx={{ mb: 1, maxWidth: 600, mx: 'auto', color: theme.palette.text.secondary }}>
-              Join thousands of students who have already transformed their lives through our evidence-based approach to health and wellness.
+            <Typography variant="h6" sx={{ mb: 4, maxWidth: 600, mx: 'auto', color: theme.palette.text.secondary }}>
+              Join a global community of people who are already transforming their lives through our evidence-based approach to health and wellness.
             </Typography>
             <Button
               variant="contained"
@@ -685,7 +774,7 @@ const LandingPage: React.FC = () => {
               </AccordionSummary>
               <AccordionDetails>
                 <Typography variant="body1" sx={{ lineHeight: 1.6, color: theme.palette.text.secondary }}>
-                  The program requires minimal equipment. You'll need comfortable clothing for movement, a quiet space for meditation, and access to cold water for cold exposure practices. We'll provide detailed guidance on any additional items.
+                  The program requires no equipment. You'll need comfortable clothing for movement, a quiet space for meditation, and access to cold water for cold exposure practices. We'll provide detailed guidance on any additional items.
                 </Typography>
               </AccordionDetails>
             </Accordion>
@@ -708,12 +797,6 @@ const LandingPage: React.FC = () => {
               }}
             >
               What Our Students Say
-            </Typography>
-            <Typography
-              variant="h6"
-              sx={{ maxWidth: 600, mx: 'auto', color: theme.palette.text.secondary }}
-            >
-              Join thousands of students who have transformed their lives through our evidence-based approach
             </Typography>
           </Box>
           
@@ -836,43 +919,28 @@ const LandingPage: React.FC = () => {
       <Box sx={{ py: { xs: 3, md: 4 }, backgroundColor: theme.palette.background.default, color: theme.palette.text.primary, borderTop: `1px solid ${theme.palette.divider}` }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mb: 3, fontWeight: 500, fontSize: '1.1rem' }}>
-              Trusted by thousands of students worldwide
-            </Typography>
             <Box sx={{ 
               display: 'flex', 
               justifyContent: 'center', 
               alignItems: 'center', 
-              gap: { xs: 2, md: 4 },
+              gap: { xs: 3, md: 6 },
               flexWrap: 'wrap'
             }}>
               <Box sx={{ 
-                px: 4, 
-                py: 2, 
-                backgroundColor: `${theme.palette.primary.main}20`, 
-                borderRadius: 3,
-                border: `1px solid ${theme.palette.primary.main}40`,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 2,
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  backgroundColor: `${theme.palette.primary.main}30`,
-                  transform: 'translateY(-2px)',
-                  boxShadow: `0 8px 20px ${theme.palette.primary.main}30`,
-                }
+                gap: 1,
               }}>
                 <Box sx={{ 
-                  width: 32, 
-                  height: 32, 
+                  width: 24, 
+                  height: 24, 
                   borderRadius: '50%', 
                   backgroundColor: theme.palette.primary.main, 
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center',
-                  boxShadow: `0 2px 8px ${theme.palette.primary.main}50`
                 }}>
-                  <Typography variant="body2" sx={{ color: '#000', fontWeight: 'bold', fontSize: '1.2rem' }}>
+                  <Typography variant="body2" sx={{ color: '#000', fontWeight: 'bold', fontSize: '1rem' }}>
                     ✓
                   </Typography>
                 </Box>
@@ -881,64 +949,40 @@ const LandingPage: React.FC = () => {
                 </Typography>
               </Box>
               <Box sx={{ 
-                px: 4, 
-                py: 2, 
-                backgroundColor: `${theme.palette.primary.main}20`, 
-                borderRadius: 3,
-                border: `1px solid ${theme.palette.primary.main}40`,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 2,
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  backgroundColor: `${theme.palette.primary.main}30`,
-                  transform: 'translateY(-2px)',
-                  boxShadow: `0 8px 20px ${theme.palette.primary.main}30`,
-                }
+                gap: 1,
               }}>
                 <Box sx={{ 
-                  width: 32, 
-                  height: 32, 
+                  width: 24, 
+                  height: 24, 
                   borderRadius: '50%', 
                   backgroundColor: theme.palette.primary.main, 
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center',
-                  boxShadow: `0 2px 8px ${theme.palette.primary.main}50`
                 }}>
-                  <Science sx={{ fontSize: 20, color: '#000' }} />
+                  <Science sx={{ fontSize: 16, color: '#000' }} />
                 </Box>
                 <Typography variant="body1" sx={{ fontWeight: 600, color: theme.palette.primary.main, fontSize: '1rem' }}>
                   Evidence-Based
                 </Typography>
               </Box>
               <Box sx={{ 
-                px: 4, 
-                py: 2, 
-                backgroundColor: `${theme.palette.primary.main}20`, 
-                borderRadius: 3,
-                border: `1px solid ${theme.palette.primary.main}40`,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 2,
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  backgroundColor: `${theme.palette.primary.main}30`,
-                  transform: 'translateY(-2px)',
-                  boxShadow: `0 8px 20px ${theme.palette.primary.main}30`,
-                }
+                gap: 1,
               }}>
                 <Box sx={{ 
-                  width: 32, 
-                  height: 32, 
+                  width: 24, 
+                  height: 24, 
                   borderRadius: '50%', 
                   backgroundColor: theme.palette.primary.main, 
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center',
-                  boxShadow: `0 2px 8px ${theme.palette.primary.main}50`
                 }}>
-                  <School sx={{ fontSize: 20, color: '#000' }} />
+                  <School sx={{ fontSize: 16, color: '#000' }} />
                 </Box>
                 <Typography variant="body1" sx={{ fontWeight: 600, color: theme.palette.primary.main, fontSize: '1rem' }}>
                   Expert-Led
