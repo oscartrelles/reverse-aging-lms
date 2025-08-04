@@ -5,6 +5,8 @@ service cloud.firestore {
     // Also allow queries for community stats
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Allow initial document creation for new users
+      allow create: if request.auth != null && request.auth.uid == userId;
       // Allow queries for community stats (user names)
       allow list: if request.auth != null;
     }

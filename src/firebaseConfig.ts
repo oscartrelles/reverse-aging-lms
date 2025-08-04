@@ -13,13 +13,6 @@ const firebaseConfig = {
   appId: process.env.REACT_APP_FIREBASE_APP_ID
 };
 
-// Debug: Log Firebase configuration
-console.log('Firebase config loaded:', {
-  projectId: firebaseConfig.projectId,
-  authDomain: firebaseConfig.authDomain,
-  hasApiKey: !!firebaseConfig.apiKey
-});
-
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
@@ -45,18 +38,6 @@ facebookProvider.addScope('public_profile');
 // Facebook Sign-In function
 export const signInWithFacebook = async () => {
   try {
-    console.log('Starting Facebook sign-in process...');
-    console.log('Current URL:', window.location.href);
-    console.log('Firebase auth domain:', firebaseConfig.authDomain);
-    console.log('Facebook provider:', facebookProvider);
-    
-    // Debug: Check if we can access the client ID
-    console.log('Firebase config:', {
-      projectId: firebaseConfig.projectId,
-      authDomain: firebaseConfig.authDomain,
-      apiKey: firebaseConfig.apiKey ? 'Present' : 'Missing'
-    });
-    
     await signInWithRedirect(auth, facebookProvider);
   } catch (error) {
     console.error('Facebook sign-in error:', (error as any).message);
@@ -64,47 +45,24 @@ export const signInWithFacebook = async () => {
   }
 };
 
-// Google Sign-In function (back to redirect)
+// Google Sign-In function
 export const signInWithGoogle = async () => {
   try {
-    console.log('Starting Google sign-in process...');
-    console.log('Current URL:', window.location.href);
-    console.log('Firebase auth domain:', firebaseConfig.authDomain);
-    console.log('Google provider:', googleProvider);
-    
-    // Debug: Check if we can access the client ID
-    console.log('Firebase config:', {
-      projectId: firebaseConfig.projectId,
-      authDomain: firebaseConfig.authDomain,
-      apiKey: firebaseConfig.apiKey ? 'Present' : 'Missing'
-    });
-    
     await signInWithRedirect(auth, googleProvider);
   } catch (error) {
-    console.error('Sign-in error:', (error as any).message);
+    console.error('Google sign-in error:', (error as any).message);
     throw error;
   }
 };
 
-// Handle redirect result function (copying the working implementation)
+// Handle redirect result function
 export const handleRedirectResult = async () => {
   try {
-    console.log('=== Redirect Result Debug ===');
-    console.log('Checking for redirect result...');
     const result = await getRedirectResult(auth);
-    console.log('getRedirectResult returned:', result);
-    if (result) {
-      console.log('Sign-in successful:', result.user.email);
-      return result;
-    } else {
-      console.log('No redirect result found');
-      return null;
-    }
+    return result;
   } catch (error) {
     console.error('Redirect error:', (error as any).message);
     return null;
-  } finally {
-    console.log('=== End Redirect Result Debug ===');
   }
 };
 

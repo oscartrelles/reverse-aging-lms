@@ -56,6 +56,9 @@ const Dashboard: React.FC = () => {
     loadStreakData
   } = useCourse();
   const navigate = useNavigate();
+  
+  // Trigger profile completion for new social users
+  
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
   const [lessonAvailability, setLessonAvailability] = useState<Record<string, boolean>>({});
   const [loadingAvailability, setLoadingAvailability] = useState(false);

@@ -170,7 +170,7 @@ function App() {
         <CourseProvider>
           <AuthModalProvider>
             <ContactModalProvider>
-              <Router>
+                <Router>
               <div className="App">
                 <Header />
                 <main style={{ minHeight: 'calc(100vh - 140px)' }}>

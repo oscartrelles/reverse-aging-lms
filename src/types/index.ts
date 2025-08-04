@@ -9,6 +9,9 @@ export interface User {
   createdAt: Timestamp;
   isAdmin: boolean;
   timezone?: string;
+  // Social provider tracking
+  authProvider?: 'email' | 'google' | 'facebook';
+  socialProviderId?: string; // Provider's unique ID for the user
   // Extended profile fields
   firstName?: string;
   lastName?: string;

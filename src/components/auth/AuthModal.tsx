@@ -4,13 +4,13 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
   Button,
+  TextField,
   Typography,
-  Divider,
+  Box,
   Alert,
   CircularProgress,
-  Box,
+  Divider,
 } from '@mui/material';
 import { Google, Facebook } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
@@ -46,18 +46,38 @@ const AuthModal: React.FC = () => {
   };
 
   const handleSocialSignIn = async (provider: 'google' | 'facebook') => {
-    setError('');
-    setLoading(true);
-
     try {
+      setLoading(true);
+      setError('');
+      
       if (provider === 'google') {
         await signInWithGoogle();
-      } else {
+      } else if (provider === 'facebook') {
         await signInWithFacebook();
       }
-      hideAuthModal();
-    } catch (error: any) {
-      setError(error.message || 'An error occurred. Please try again.');
+    } catch (error) {
+      console.error(`${provider} sign-in error:`, error);
+      
+      // Enhanced error handling
+      let errorMessage = 'Sign-in failed. Please try again.';
+      
+      if (provider === 'facebook') {
+        if (error instanceof Error) {
+          if (error.message.includes('domain') || error.message.includes('redirect')) {
+            errorMessage = 'Facebook login is being configured. Please try again in a few minutes or use Google sign-in.';
+          } else if (error.message.includes('popup')) {
+            errorMessage = 'Please allow popups for this site to sign in with Facebook.';
+          } else {
+            errorMessage = `Facebook sign-in error: ${error.message}`;
+          }
+        }
+      } else if (provider === 'google') {
+        if (error instanceof Error) {
+          errorMessage = `Google sign-in error: ${error.message}`;
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -159,6 +179,28 @@ const AuthModal: React.FC = () => {
               isSignUp ? 'Create Account' : 'Sign In'
             )}
           </Button>
+          
+          {/* Forgot Password link - only show on sign in */}
+          {!isSignUp && (
+            <Box sx={{ textAlign: 'center', mt: 1 }}>
+              <Button
+                onClick={() => {
+                  // For now, just show a message. In the future, this could open a password reset flow
+                  setError('Password reset functionality is coming soon. Please contact support if you need immediate assistance.');
+                }}
+                sx={{ 
+                  p: 0, 
+                  minWidth: 'auto', 
+                  textTransform: 'none',
+                  fontSize: '0.875rem',
+                  color: 'text.secondary'
+                }}
+                disabled={loading}
+              >
+                Forgot Password?
+              </Button>
+            </Box>
+          )}
         </form>
 
         <Divider sx={{ my: 1.5 }}>
@@ -183,14 +225,36 @@ const AuthModal: React.FC = () => {
           <Button
             fullWidth
             variant="outlined"
-            size="small"
+            size="large"
+            disabled={loading}
             startIcon={<Facebook />}
             onClick={() => handleSocialSignIn('facebook')}
-            disabled={loading}
-            sx={{ py: 0.75 }}
+            sx={{
+              mb: 2,
+              borderColor: '#1877f2',
+              color: '#1877f2',
+              '&:hover': {
+                borderColor: '#166fe5',
+                backgroundColor: 'rgba(24, 119, 242, 0.04)',
+              },
+            }}
           >
             Continue with Facebook
           </Button>
+          
+          {/* Temporary notice for Facebook configuration */}
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              display: 'block', 
+              textAlign: 'center', 
+              color: 'text.secondary',
+              fontStyle: 'italic',
+              mb: 2
+            }}
+          >
+            Facebook login is being configured. If you encounter issues, please use Google sign-in.
+          </Typography>
         </Box>
 
         <Box sx={{ textAlign: 'center', mt: 2 }}>

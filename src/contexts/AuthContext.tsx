@@ -90,9 +90,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function signInWithGoogle() {
     try {
-      console.log('=== Google Sign-In Debug ===');
-      console.log('Starting Google sign-in...');
-      
       // Add custom parameters to force account selection
       googleProvider.setCustomParameters({
         prompt: 'select_account'
@@ -100,48 +97,81 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Use the working implementation from firebaseConfig
       await firebaseSignInWithGoogle();
-      console.log('=== End Google Sign-In Debug ===');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error signing in with Google:', error);
+      
+      // Handle the specific case where an account already exists with the same email
+      if (error.code === 'auth/account-exists-with-different-credential') {
+        throw new Error('An account already exists with this email address using a different sign-in method. Please sign in with your original email and password, or use the "Forgot Password" option if you need to reset your password.');
+      }
+      
+      // Handle other common errors
+      if (error.code === 'auth/popup-closed-by-user') {
+        throw new Error('Sign-in was cancelled. Please try again.');
+      }
+      
+      if (error.code === 'auth/popup-blocked') {
+        throw new Error('Sign-in popup was blocked. Please allow popups for this site and try again.');
+      }
+      
       throw error;
     }
   }
 
   async function signInWithFacebook() {
     try {
-      console.log('=== Facebook Sign-In Debug ===');
-      console.log('Starting Facebook sign-in...');
-      
       // Use the working implementation from firebaseConfig
       await firebaseSignInWithFacebook();
-      console.log('=== End Facebook Sign-In Debug ===');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error signing in with Facebook:', error);
+      
+      // Handle the specific case where an account already exists with the same email
+      if (error.code === 'auth/account-exists-with-different-credential') {
+        throw new Error('An account already exists with this email address using a different sign-in method. Please sign in with your original email and password, or use the "Forgot Password" option if you need to reset your password.');
+      }
+      
+      // Handle other common errors
+      if (error.code === 'auth/popup-closed-by-user') {
+        throw new Error('Sign-in was cancelled. Please try again.');
+      }
+      
+      if (error.code === 'auth/popup-blocked') {
+        throw new Error('Sign-in popup was blocked. Please allow popups for this site and try again.');
+      }
+      
       throw error;
     }
   }
 
   async function handleSocialSignIn(firebaseUser: FirebaseUser) {
-    console.log('Handling social sign in for user:', firebaseUser.uid);
-    
     try {
       // Test Firestore connectivity first
-      console.log('Testing Firestore connectivity...');
       const testDoc = await getDoc(doc(db, 'users', 'test'));
-      console.log('Firestore connectivity test passed');
       
       const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
       
       if (!userDoc.exists()) {
-        console.log('Creating new user document...');
+        // Determine auth provider from Firebase user
+        const authProvider = firebaseUser.providerData[0]?.providerId === 'google.com' ? 'google' : 
+                           firebaseUser.providerData[0]?.providerId === 'facebook.com' ? 'facebook' : 
+                           'email';
+        
+        // Parse name more intelligently
+        const fullName = firebaseUser.displayName || 'Unknown User';
+        const nameParts = fullName.trim().split(' ').filter(part => part.length > 0);
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        
         // Create new user document
         const userData: User = {
           id: firebaseUser.uid,
           email: firebaseUser.email!,
-          name: firebaseUser.displayName || 'Unknown User',
-          firstName: firebaseUser.displayName?.split(' ')[0] || '',
-          lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
+          name: fullName,
+          firstName,
+          lastName,
           photoURL: firebaseUser.photoURL || undefined,
+          authProvider,
+          socialProviderId: firebaseUser.providerData[0]?.uid,
           createdAt: Timestamp.now(),
           isAdmin: false,
           bio: '',
@@ -159,41 +189,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
         
         await setDoc(doc(db, 'users', firebaseUser.uid), userData);
-        console.log('User document created successfully');
         setCurrentUser(userData);
+        
+        // Redirect new social users to profile page
+        if (authProvider !== 'email') {
+          // Use setTimeout to ensure the user is set before redirecting
+          setTimeout(() => {
+            window.location.href = '/profile';
+          }, 500);
+        }
       } else {
-        console.log('User document already exists, updating current user');
-        // Update existing user with latest info
-        const userData = userDoc.data() as User;
-        setCurrentUser(userData);
+        // Update existing user with latest social info
+        const existingUserData = userDoc.data() as User;
+        
+        // Update social provider info if not already set
+        const authProvider = existingUserData.authProvider || 
+                           (firebaseUser.providerData[0]?.providerId === 'google.com' ? 'google' : 
+                           firebaseUser.providerData[0]?.providerId === 'facebook.com' ? 'facebook' : 
+                           'email');
+        
+        const updates: Partial<User> = {
+          photoURL: firebaseUser.photoURL || existingUserData.photoURL,
+          authProvider,
+          socialProviderId: existingUserData.socialProviderId || firebaseUser.providerData[0]?.uid,
+        };
+        
+        // Update name if it's more complete from social provider
+        if (firebaseUser.displayName && (!existingUserData.firstName || !existingUserData.lastName)) {
+          const fullName = firebaseUser.displayName;
+          const nameParts = fullName.trim().split(' ').filter(part => part.length > 0);
+          updates.firstName = nameParts[0] || existingUserData.firstName;
+          updates.lastName = nameParts.slice(1).join(' ') || existingUserData.lastName;
+          updates.name = fullName;
+        }
+        
+        await updateDoc(doc(db, 'users', firebaseUser.uid), updates);
+        const updatedUserData = { ...existingUserData, ...updates };
+        setCurrentUser(updatedUserData);
       }
     } catch (error) {
       console.error('Error in handleSocialSignIn:', error);
-      // Even if Firestore fails, we should still set the user as authenticated
-      // Create a minimal user object from Firebase Auth data
-      const userData: User = {
-        id: firebaseUser.uid,
-        email: firebaseUser.email!,
-        name: firebaseUser.displayName || 'Unknown User',
-        firstName: firebaseUser.displayName?.split(' ')[0] || '',
-        lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
-        photoURL: firebaseUser.photoURL || undefined,
-        createdAt: Timestamp.now(),
-        isAdmin: false,
-        bio: '',
-        age: 0,
-        location: '',
-        goals: ['Improve energy levels', 'Build sustainable habits'],
-        notificationPreferences: {
-          email: true,
-          push: true,
-          reminderTime: '08:00',
-          weeklyDigest: true,
-          scientificUpdates: true,
-          communityUpdates: false,
-        },
-      };
-      setCurrentUser(userData);
+      throw error;
     }
   }
 
@@ -223,29 +259,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const initializeAuth = async () => {
-      console.log('=== INITIALIZING AUTH ===');
+      // Check for immediate OAuth parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const hasOAuthParams = urlParams.has('code') || urlParams.has('state') || urlParams.has('apiKey');
+
+      if (hasOAuthParams) {
+        // Immediate check
+        const immediateResult = await getRedirectResult(auth);
+        if (immediateResult) {
+          // User is already signed in from redirect
+          return;
+        }
+      }
       
       // Set up persistent auth state listener first
-      console.log('Setting up persistent auth state listener...');
       const unsubscribe = onAuthStateChanged(auth, async (user) => {
-        console.log('Auth state changed:', user ? `User signed in (${user.uid})` : 'User signed out');
         setFirebaseUser(user);
         
         if (user) {
           try {
-            console.log('Fetching user document for:', user.uid);
             const userDoc = await getDoc(doc(db, 'users', user.uid));
             if (userDoc.exists()) {
-              console.log('User document found, setting current user');
               setCurrentUser(userDoc.data() as User);
             } else {
-              console.log('User document not found, creating new user document');
               await handleSocialSignIn(user);
             }
           } catch (error) {
             console.error('Error fetching user data:', error);
             // Fallback: create user object from Firebase Auth data
-            console.log('Creating fallback user object from Firebase Auth data');
             const userData: User = {
               id: user.uid,
               email: user.email!,
@@ -262,7 +303,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setCurrentUser(userData);
           }
         } else {
-          console.log('Setting currentUser to null');
           setCurrentUser(null);
         }
         
@@ -270,27 +310,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       // Check for redirect result after setting up the listener
-      // Add a small delay to ensure Firebase is ready
-      setTimeout(async () => {
+      const checkRedirectResult = async (attempt: number = 1) => {
         try {
-          console.log('Checking for redirect result...');
           const result = await getRedirectResult(auth);
-          console.log('Direct getRedirectResult returned:', result);
           if (result) {
-            console.log('Redirect result found, user should be signed in');
             // The redirect result will trigger onAuthStateChanged
           } else {
-            console.log('No redirect result found');
+            // Check if there are any URL parameters that might indicate a redirect
+            const urlParams = new URLSearchParams(window.location.search);
+            const hasAuthParams = urlParams.has('apiKey') || urlParams.has('authType') || urlParams.has('providerId');
+            const hasCode = urlParams.has('code');
+            const hasState = urlParams.has('state');
+            
+            if (hasAuthParams || hasCode || hasState) {
+              // If we have a code parameter, this is likely a successful OAuth flow
+              if (hasCode) {
+                // Clear the URL parameters to prevent infinite loops
+                const cleanUrl = window.location.origin + window.location.pathname;
+                window.history.replaceState({}, document.title, cleanUrl);
+              }
+            }
+            
+            // Try again after a delay if this is the first attempt
+            if (attempt === 1) {
+              setTimeout(() => checkRedirectResult(2), 3000);
+            }
           }
         } catch (error) {
           console.error('Error handling redirect result:', error);
+          // Don't let redirect errors break the auth initialization
         }
-      }, 100);
+      };
+
+      setTimeout(() => checkRedirectResult(), 2000); // Initial delay of 2 seconds
 
       return unsubscribe;
     };
 
-    initializeAuth();
+    // Wrap initialization in try-catch to handle any DOM-related errors
+    try {
+      initializeAuth();
+    } catch (error) {
+      console.error('Error during auth initialization:', error);
+      setLoading(false);
+    }
   }, []);
 
   const value: AuthContextType = {

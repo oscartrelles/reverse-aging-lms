@@ -42,6 +42,7 @@ import {
   Delete as DeleteIcon,
   Add,
   People,
+  Close,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { useCourse } from '../contexts/CourseContext';
@@ -78,12 +79,32 @@ const ProfilePage: React.FC = () => {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Check if this is a new social user who needs to complete their profile
+  const isNewSocialUser = currentUser?.authProvider && 
+                         currentUser.authProvider !== 'email' && 
+                         (!currentUser.age || !currentUser.location || !currentUser.bio);
+
+  // State to track if welcome message should be shown
+  const [showWelcomeMessage, setShowWelcomeMessage] = useState(() => {
+    // Check localStorage for persistent state
+    if (!currentUser?.id) return true;
+    const key = `welcomeMessage_${currentUser.id}`;
+    return localStorage.getItem(key) !== 'dismissed';
+  });
+
+  // Function to handle closing the welcome message
+  const handleCloseWelcomeMessage = () => {
+    if (currentUser?.id) {
+      const key = `welcomeMessage_${currentUser.id}`;
+      localStorage.setItem(key, 'dismissed');
+    }
+    setShowWelcomeMessage(false);
+  };
+
   // Load user data on component mount
   useEffect(() => {
     const loadUserData = async () => {
       if (!currentUser) return;
-      
-      console.log('🔄 Loading user data for:', currentUser.id);
       
       try {
         setLoading(true);
@@ -92,14 +113,10 @@ const ProfilePage: React.FC = () => {
           userProfileService.getUserProgress(currentUser.id),
         ]);
 
-        console.log('📊 Loaded extended profile:', extendedProfile);
-        console.log('📈 Loaded progress data:', progress);
-
         // Initialize profile data with defaults if not exists
         if (extendedProfile) {
           setProfileData(extendedProfile);
         } else {
-          console.log('⚠️ No extended profile found, creating default...');
           // Create default profile data
           const defaultProfile: ExtendedProfile = {
             userId: currentUser.id,
@@ -123,7 +140,6 @@ const ProfilePage: React.FC = () => {
           // Automatically create the profile in Firestore
           try {
             await userProfileService.updateExtendedProfile(currentUser.id, defaultProfile);
-            console.log('✅ Created default profile for user');
           } catch (error) {
             console.warn('Could not create default profile:', error);
             // Continue with local profile data
@@ -132,7 +148,7 @@ const ProfilePage: React.FC = () => {
 
         setProgressData(progress);
       } catch (error) {
-        console.error('❌ Error loading user data:', error);
+        console.error('Error loading user data:', error);
         setMessage({ type: 'error', text: 'Failed to load profile data. Please refresh the page.' });
       } finally {
         setLoading(false);
@@ -366,6 +382,49 @@ const ProfilePage: React.FC = () => {
           </Alert>
         )}
 
+        {/* Welcome Message for New Social Users */}
+        {isNewSocialUser && showWelcomeMessage && (
+          <Paper
+            elevation={0}
+            sx={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              borderRadius: 3,
+              p: 3,
+              mb: 4,
+              color: 'white',
+              position: 'relative',
+            }}
+          >
+            {/* Close button */}
+            <IconButton
+              onClick={handleCloseWelcomeMessage}
+              sx={{
+                position: 'absolute',
+                top: 8,
+                right: 8,
+                color: 'white',
+                '&:hover': {
+                  backgroundColor: 'rgba(255,255,255,0.1)',
+                }
+              }}
+            >
+              <Close />
+            </IconButton>
+            
+            <Box display="flex" alignItems="center" gap={2}>
+              <Box>
+                <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
+                  Welcome, {currentUser?.firstName || currentUser?.name}!
+                </Typography>
+                <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                  We've imported your basic information from {currentUser?.authProvider === 'google' ? 'Google' : 'Facebook'}. 
+                  Take a moment to complete your profile and customize your experience.
+                </Typography>
+              </Box>
+            </Box>
+          </Paper>
+        )}
+
         {/* Header */}
         <Box sx={{ mb: 4 }}>
           <Typography
@@ -467,16 +526,7 @@ const ProfilePage: React.FC = () => {
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                     Upload a profile picture to personalize your account. Supported formats: JPG, PNG, GIF. Max size: 5MB.
                   </Typography>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={triggerFileInput}
-                      disabled={uploadingPhoto}
-                      startIcon={<PhotoCamera />}
-                    >
-                      {uploadingPhoto ? 'Uploading...' : 'Upload Photo'}
-                    </Button>
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 2 }}>
                     {currentUser.photoURL && (
                       <Button
                         variant="outlined"
@@ -488,6 +538,14 @@ const ProfilePage: React.FC = () => {
                       >
                         Remove
                       </Button>
+                    )}
+                    {currentUser.authProvider && currentUser.authProvider !== 'email' && (
+                      <Chip
+                        label={`Signed in with ${currentUser.authProvider === 'google' ? 'Google' : 'Facebook'}`}
+                        size="small"
+                        color="primary"
+                        variant="outlined"
+                      />
                     )}
                   </Box>
                 </Box>
