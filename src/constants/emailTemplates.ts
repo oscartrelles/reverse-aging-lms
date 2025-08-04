@@ -2,8 +2,8 @@
 // These will be created in the MailerSend dashboard
 export const EMAIL_TEMPLATES = {
   // Welcome Series
-  WELCOME_EMAIL: 'welcome-email',
-  WELCOME_SOCIAL: 'welcome-social',
+  WELCOME_EMAIL: 'k68zxl2en23lj905', // ✅ COMPLETE
+  WELCOME_SOCIAL: 'welcome-social', // ⏳ PENDING
   ONBOARDING_NAVIGATION: 'onboarding-navigation',
   ONBOARDING_FIRST_LESSON: 'onboarding-first-lesson',
   ONBOARDING_COMMUNITY: 'onboarding-community',
