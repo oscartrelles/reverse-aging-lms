@@ -54,7 +54,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         name: name,
         firstName: name.split(' ')[0],
         lastName: name.split(' ').slice(1).join(' '),
-        photoURL: result.user.photoURL || undefined,
         createdAt: Timestamp.now(),
         isAdmin: false,
         bio: '',
@@ -70,6 +69,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           communityUpdates: false,
         },
       };
+
+      // Only add photoURL if it exists
+      if (result.user.photoURL) {
+        userData.photoURL = result.user.photoURL;
+      }
       
       await setDoc(doc(db, 'users', result.user.uid), userData);
       setCurrentUser(userData);
@@ -175,7 +179,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           name: fullName,
           firstName,
           lastName,
-          photoURL: firebaseUser.photoURL || undefined,
           authProvider,
           socialProviderId: firebaseUser.providerData[0]?.uid,
           createdAt: Timestamp.now(),
@@ -193,6 +196,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             communityUpdates: false,
           },
         };
+
+        // Only add photoURL if it exists
+        if (firebaseUser.photoURL) {
+          userData.photoURL = firebaseUser.photoURL;
+        }
         
         await setDoc(doc(db, 'users', firebaseUser.uid), userData);
         setCurrentUser(userData);
@@ -224,10 +232,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                            'email');
         
         const updates: Partial<User> = {
-          photoURL: firebaseUser.photoURL || existingUserData.photoURL,
           authProvider,
           socialProviderId: existingUserData.socialProviderId || firebaseUser.providerData[0]?.uid,
         };
+
+        // Only update photoURL if it exists
+        if (firebaseUser.photoURL) {
+          updates.photoURL = firebaseUser.photoURL;
+        } else if (existingUserData.photoURL) {
+          updates.photoURL = existingUserData.photoURL;
+        }
         
         // Update name if it's more complete from social provider
         if (firebaseUser.displayName && (!existingUserData.firstName || !existingUserData.lastName)) {
