@@ -210,10 +210,13 @@ export const cohortAnalysisService = {
       const snapshot = await getDocs(userCohortsQuery);
       const topPerformingUsers = snapshot.docs.slice(0, 5).map(doc => doc.data().userId);
       
-      // Calculate engagement score
+      // Calculate engagement score with fallback values
+      const avgLessonsCompleted = cohortData?.engagementMetrics?.avgLessonsCompleted || 0;
+      const completionRate = cohortData?.engagementMetrics?.completionRate || 0;
+      
       const engagementScore = Math.round(
-        (cohortData.engagementMetrics.avgLessonsCompleted * 0.4) +
-        (cohortData.engagementMetrics.completionRate * 0.4) +
+        (avgLessonsCompleted * 0.4) +
+        (completionRate * 0.4) +
         (retentionRates.day30 * 0.2)
       );
       
@@ -222,10 +225,10 @@ export const cohortAnalysisService = {
       
       return {
         cohortId,
-        cohortName: cohortData.name,
+        cohortName: cohortData?.name || 'Unknown Cohort',
         period,
-        totalUsers: cohortData.totalUsers,
-        activeUsers: cohortData.activeUsers,
+        totalUsers: cohortData?.totalUsers || 0,
+        activeUsers: cohortData?.activeUsers || 0,
         retentionRate: retentionRates.day30,
         engagementScore,
         topPerformingUsers,
@@ -234,9 +237,9 @@ export const cohortAnalysisService = {
     } catch (error) {
       console.error('❌ Error getting cohort analysis:', error);
       
-      // Return fallback data if permissions are denied
-      if (error instanceof Error && error.message.includes('permission')) {
-        console.log('⚠️ Using fallback cohort data due to permissions');
+      // Return fallback data if permissions are denied or data structure issues
+      if (error instanceof Error && (error.message.includes('permission') || error.message.includes('Cannot read properties'))) {
+        console.log('⚠️ Using fallback cohort data due to permissions or data structure issues');
         return {
           cohortId: 'demo-cohort',
           cohortName: 'Demo Cohort',
@@ -270,7 +273,7 @@ export const cohortAnalysisService = {
       recommendations.push('Low 30-day retention: Focus on content engagement and community building');
     }
     
-    if (cohortData.engagementMetrics.avgLessonsCompleted < 3) {
+    if ((cohortData?.engagementMetrics?.avgLessonsCompleted || 0) < 3) {
       recommendations.push('Low lesson completion: Review lesson difficulty and content quality');
     }
     
