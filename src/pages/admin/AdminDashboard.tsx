@@ -36,6 +36,7 @@ import {
   ExpandLess,
   ExpandMore,
   Science,
+  Analytics,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -247,6 +248,41 @@ const AdminDashboard: React.FC = () => {
             {success}
           </Alert>
         )}
+
+        {/* Admin Navigation */}
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Admin Tools
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+              <Button
+                variant="outlined"
+                startIcon={<Analytics />}
+                onClick={() => navigate('/admin/analytics')}
+                size="small"
+              >
+                Analytics Dashboard
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<People />}
+                onClick={() => navigate('/admin/students')}
+                size="small"
+              >
+                Student Management
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<Person />}
+                onClick={() => navigate('/admin/users')}
+                size="small"
+              >
+                User Management
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
 
         {/* Q&A Management - Most Frequent Task */}
         <Box sx={{ mb: 3 }}>

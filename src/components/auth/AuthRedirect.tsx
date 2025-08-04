@@ -6,8 +6,7 @@ import { Box, CircularProgress, Typography } from '@mui/material';
 const AuthRedirect: React.FC = () => {
   const { currentUser, loading } = useAuth();
 
-  console.log('AuthRedirect - currentUser:', currentUser);
-  console.log('AuthRedirect - loading:', loading);
+
 
   // Show loading while authentication is being determined
   if (loading) {
@@ -29,10 +28,10 @@ const AuthRedirect: React.FC = () => {
 
   // Redirect based on authentication status
   if (currentUser) {
-    console.log('AuthRedirect - redirecting to dashboard...');
+    
     return <Navigate to="/dashboard" replace />;
   } else {
-    console.log('AuthRedirect - redirecting to landing...');
+    
     return <Navigate to="/" replace />;
   }
 };

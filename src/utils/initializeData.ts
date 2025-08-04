@@ -5,7 +5,7 @@ import { Course, Cohort, Lesson, Enrollment } from '../types';
 // Initialize test data in Firestore
 export const initializeTestData = async () => {
   try {
-    console.log('Initializing test data...');
+    
 
     // 1. Create the course
     const courseData: Course = {
@@ -22,7 +22,7 @@ export const initializeTestData = async () => {
     };
 
     await setDoc(doc(db, 'courses', courseData.id), courseData);
-    console.log('✅ Course created');
+
 
     // 2. Create a cohort that started 2 weeks ago
     const cohortData: Cohort = {
@@ -38,7 +38,7 @@ export const initializeTestData = async () => {
     };
 
     await setDoc(doc(db, 'cohorts', cohortData.id), cohortData);
-    console.log('✅ Cohort created');
+
 
     // 3. Create lessons
     const lessonsData: Lesson[] = [
@@ -216,18 +216,7 @@ export const initializeTestData = async () => {
     for (const lesson of lessonsData) {
       await setDoc(doc(db, 'lessons', lesson.id), lesson);
     }
-    console.log('✅ Lessons created');
-
-    console.log('🎉 Test data initialization complete!');
-    console.log('📊 Created:');
-    console.log('  - 1 course (The Reverse Aging Challenge)');
-    console.log('  - 1 cohort (Spring 2024 - started 2 weeks ago)');
-    console.log('  - 7 lessons (Weeks 1-7)');
-    console.log('');
-    console.log('🧪 Test Scenario:');
-    console.log('  - Current week: 3');
-    console.log('  - Available lessons: 1, 2, 3');
-    console.log('  - Locked lessons: 4, 5, 6, 7');
+    console.log('✅ Test data initialization complete!');
 
   } catch (error) {
     console.error('❌ Error initializing test data:', error);

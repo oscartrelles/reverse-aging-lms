@@ -31,6 +31,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCourse } from '../contexts/CourseContext';
 import { format, isAfter } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
+import { useAnalytics } from '../hooks/useAnalytics';
 
 interface Lesson {
   id: string;
@@ -55,6 +56,7 @@ const LessonPage: React.FC = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const { currentEnrollment, currentCohort, lessonProgress, getCourse } = useCourse();
+  const { trackEvent } = useAnalytics();
   // Mock lesson data - replace with real data from Firestore
   const [lesson] = useState<Lesson>({
     id: lessonId || 'week1',
@@ -125,21 +127,33 @@ const LessonPage: React.FC = () => {
   //   // Mark as complete if watched 90% or more
   //   if (progress >= 90 && !isCompleted) {
   //     setIsCompleted(true);
-  //     // TODO: Update progress in Firestore
+  
   //   }
   // };
 
   // Handle manual completion
   const handleMarkComplete = () => {
     setIsCompleted(true);
-    // TODO: Update progress in Firestore
+    
+    // Track lesson completion analytics
+    trackEvent.lessonComplete(
+      lesson.id,
+      lesson.title,
+      courseId || '',
+      lesson.weekNumber
+    );
+    
+  
   };
 
   // Handle question submission
   const handleSubmitQuestion = (e: React.FormEvent) => {
     e.preventDefault();
     if (question.trim()) {
-      // TODO: Save question to Firestore
+      // Track question asked analytics
+      trackEvent.questionAsked(Date.now().toString(), courseId || '');
+      
+    
       setRecentQuestions(prev => [{
         id: Date.now().toString(),
         question: question.trim(),

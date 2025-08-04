@@ -455,10 +455,14 @@ const Header: React.FC = () => {
                   sx={{
                     transition: 'all 0.3s ease',
                     border: `2px solid transparent`,
+                    width: 44,
+                    height: 44,
                     '&:hover': {
                       backgroundColor: `${theme.palette.primary.main}20`,
                       borderColor: theme.palette.primary.main,
                       transform: 'scale(1.05)',
+                      width: 48,
+                      height: 48,
                     }
                   }}
                 >
@@ -471,10 +475,21 @@ const Header: React.FC = () => {
                         height: 36,
                         border: `2px solid ${theme.palette.primary.main}30`,
                         transition: 'all 0.3s ease',
+                        '&:hover': {
+                          width: 40,
+                          height: 40,
+                          border: `2px solid ${theme.palette.primary.main}`,
+                        }
                       }}
                     />
                   ) : (
-                    <AccountCircle sx={{ fontSize: 36 }} />
+                    <AccountCircle sx={{ 
+                      fontSize: 36,
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        fontSize: 40,
+                      }
+                    }} />
                   )}
                 </IconButton>
                 {renderMenu}
@@ -485,7 +500,7 @@ const Header: React.FC = () => {
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <Button
               color="inherit"
-              onClick={() => showAuthModal('signin', 'Welcome back!', "singin")}
+              onClick={() => showAuthModal(undefined, 'Welcome back!')}
               sx={{ 
                 mr: 2,
                 transition: 'all 0.3s ease',

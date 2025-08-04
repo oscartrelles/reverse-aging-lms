@@ -12,6 +12,7 @@ import { doc, getDoc, setDoc, updateDoc, Timestamp } from 'firebase/firestore';
 import { auth, db, googleProvider, facebookProvider, signInWithGoogle as firebaseSignInWithGoogle, signInWithFacebook as firebaseSignInWithFacebook } from '../firebaseConfig';
 import { User } from '../types';
 import { emailIntegrationService } from '../services/emailIntegrationService';
+import { analyticsEvents } from '../services/analyticsService';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -42,6 +43,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function signUp(email: string, password: string, name: string) {
     try {
+      // Track sign up attempt
+      analyticsEvents.signUpAttempt('email');
+      
       const result = await createUserWithEmailAndPassword(auth, email, password);
       
       // Update Firebase Auth profile
@@ -68,6 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           scientificUpdates: true,
           communityUpdates: false,
         },
+        authProvider: 'email',
       };
 
       // Only add photoURL if it exists
@@ -77,6 +82,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       await setDoc(doc(db, 'users', result.user.uid), userData);
       setCurrentUser(userData);
+
+      // Track successful sign up
+      analyticsEvents.signUpSuccess('email');
 
       // Send welcome email and schedule welcome series
       try {
@@ -94,7 +102,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function signIn(email: string, password: string) {
     try {
+      // Track sign in attempt
+      analyticsEvents.signInAttempt('email');
+      
       await signInWithEmailAndPassword(auth, email, password);
+      
+      // Track successful sign in
+      analyticsEvents.signInSuccess('email');
     } catch (error) {
       console.error('Error signing in:', error);
       throw error;
@@ -103,6 +117,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function signInWithGoogle() {
     try {
+      // Track sign in attempt
+      analyticsEvents.signInAttempt('google');
+      
       // Add custom parameters to force account selection
       googleProvider.setCustomParameters({
         prompt: 'select_account'
@@ -110,6 +127,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Use the working implementation from firebaseConfig
       await firebaseSignInWithGoogle();
+      
+      // Track successful sign in
+      analyticsEvents.signInSuccess('google');
     } catch (error: any) {
       console.error('Error signing in with Google:', error);
       
@@ -133,8 +153,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function signInWithFacebook() {
     try {
+      // Track sign in attempt
+      analyticsEvents.signInAttempt('facebook');
+      
       // Use the working implementation from firebaseConfig
       await firebaseSignInWithFacebook();
+      
+      // Track successful sign in
+      analyticsEvents.signInSuccess('facebook');
     } catch (error: any) {
       console.error('Error signing in with Facebook:', error);
       
@@ -204,6 +230,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         await setDoc(doc(db, 'users', firebaseUser.uid), userData);
         setCurrentUser(userData);
+        
+        // Track successful sign up for new social users
+        analyticsEvents.signUpSuccess(authProvider);
         
         // Send welcome email for new social users
         try {

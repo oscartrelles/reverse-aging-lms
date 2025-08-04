@@ -18,6 +18,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { useAuth } from '../contexts/AuthContext';
 import { useCourse } from '../contexts/CourseContext';
 import PaymentForm from '../components/payment/PaymentForm';
+import { useAnalytics } from '../hooks/useAnalytics';
 
 // Initialize Stripe
 const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY!);
@@ -27,6 +28,7 @@ const PaymentPage: React.FC = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const { getCourse } = useCourse();
+  const { trackEvent } = useAnalytics();
   
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'success' | 'error'>('pending');
   const [errorMessage, setErrorMessage] = useState('');
@@ -62,8 +64,14 @@ const PaymentPage: React.FC = () => {
 
   const handlePaymentSuccess = (paymentId: string) => {
     setPaymentStatus('success');
-    // TODO: Create enrollment in Firestore
-    // TODO: Redirect to dashboard after a delay
+    
+    // Track successful payment analytics
+    if (course) {
+      trackEvent.paymentCompleted(courseId || '', course.price, 'USD');
+      trackEvent.courseEnroll(courseId || '', course.title, course.price);
+    }
+    
+
     
     // Add a delay before redirecting to allow user to see success message
     setTimeout(() => {

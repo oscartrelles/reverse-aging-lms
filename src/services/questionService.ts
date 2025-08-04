@@ -1,6 +1,7 @@
 import { doc, setDoc, collection, query, where, getDocs, orderBy, Timestamp, addDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { Question } from '../types';
+import { analyticsEvents } from './analyticsService';
 
 export interface CreateQuestionData {
   userId: string;
@@ -30,6 +31,9 @@ export const questionService = {
         userName: userData?.name || 'Anonymous',
         userPhotoURL: userData?.photoURL || null,
       });
+      
+      // Track question asked analytics
+      analyticsEvents.questionAsked(questionRef.id, questionData.courseId);
       
       console.log(`✅ Created question for lesson ${questionData.lessonId}`);
       return questionRef.id;

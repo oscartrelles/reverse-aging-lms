@@ -27,11 +27,13 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useAuthModal } from '../contexts/AuthModalContext';
 import { useSearchParams } from 'react-router-dom';
+import { useAnalytics } from '../hooks/useAnalytics';
 
 const LandingPage: React.FC = () => {
   const { currentUser, loading: authLoading } = useAuth();
   const { showAuthModal } = useAuthModal();
   const navigate = useNavigate();
+  const { trackEvent } = useAnalytics();
   
   // Scientific Updates Preview
   const [scientificUpdates, setScientificUpdates] = useState<any[]>([]);
@@ -124,7 +126,6 @@ const LandingPage: React.FC = () => {
   // Redirect authenticated users to dashboard
   useEffect(() => {
     if (!authLoading && currentUser) {
-      console.log('LandingPage: User is authenticated, redirecting to dashboard');
       navigate('/dashboard');
     }
   }, [currentUser, authLoading, navigate]);
@@ -208,7 +209,10 @@ const LandingPage: React.FC = () => {
               <Button
                 variant="contained"
                 size="large"
-                onClick={() => showAuthModal('signup', 'Create Your Account', 'Create a free account to access weekly evidence reports on healthspan and other exclusive content.')}
+                onClick={() => {
+                  trackEvent.ctaClick('create_account_hero', '/');
+                  showAuthModal('signup', 'Create Your Account', 'Create a free account to access weekly evidence reports on healthspan and other exclusive content.');
+                }}
                 sx={{
                   px: 4,
                   py: 2,
@@ -691,7 +695,10 @@ const LandingPage: React.FC = () => {
             <Button
               variant="contained"
               size="large"
-              onClick={() => showAuthModal('signup', 'Create Your Account', 'Create a free account to access weekly evidence reports on healthspan and other exclusive content.')}
+              onClick={() => {
+                trackEvent.ctaClick('start_journey_footer', '/');
+                showAuthModal('signup', 'Create Your Account', 'Create a free account to access weekly evidence reports on healthspan and other exclusive content.');
+              }}
               sx={{
                 px: 4,
                 py: 2,

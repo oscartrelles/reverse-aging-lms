@@ -1,6 +1,7 @@
 import { doc, setDoc, collection, query, where, getDocs, orderBy, Timestamp, addDoc, getDoc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { ScientificUpdate, UserReadStatus } from '../types';
+import { analyticsEvents } from './analyticsService';
 
 export interface CreateScientificUpdateData {
   title: string;
@@ -29,7 +30,7 @@ export const scientificUpdateService = {
         shareCount: 0,
       });
       
-      console.log(`✅ Created scientific update: ${updateData.title}`);
+
       return updateRef.id;
     } catch (error) {
       console.error('❌ Error creating scientific update:', error);
@@ -126,7 +127,7 @@ export const scientificUpdateService = {
       }
 
       await updateDoc(updateRef, dataToUpdate);
-      console.log(`✅ Updated scientific update: ${updateId}`);
+
     } catch (error) {
       console.error('❌ Error updating scientific update:', error);
       throw error;
@@ -137,7 +138,7 @@ export const scientificUpdateService = {
   async deleteUpdate(updateId: string): Promise<void> {
     try {
       await setDoc(doc(db, 'scientificUpdates', updateId), {}, { merge: true });
-      console.log(`✅ Deleted scientific update: ${updateId}`);
+
     } catch (error) {
       console.error('❌ Error deleting scientific update:', error);
       throw error;
@@ -211,6 +212,17 @@ export const scientificUpdateService = {
         await updateDoc(doc(db, 'scientificUpdates', updateId), {
           readCount: increment(1),
         });
+        
+        // Track scientific update read analytics
+        try {
+          const updateDoc = await getDoc(doc(db, 'scientificUpdates', updateId));
+          if (updateDoc.exists()) {
+            const updateData = updateDoc.data() as ScientificUpdate;
+            analyticsEvents.scientificUpdateRead(updateId, updateData.title);
+          }
+        } catch (analyticsError) {
+          console.warn('Failed to track scientific update read analytics:', analyticsError);
+        }
       } else {
         // Update existing read status
         const readStatusDoc = readStatusSnapshot.docs[0];
@@ -251,9 +263,13 @@ export const scientificUpdateService = {
     }
   },
 
-  // Get unread count for a user
+  // Get unread count for a user (considering last evidence check)
   async getUnreadCount(userId: string): Promise<number> {
     try {
+      // Get user's last evidence check timestamp
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      const lastEvidenceCheck = userDoc.exists() ? userDoc.data().lastEvidenceCheck : null;
+      
       const [updatesSnapshot, readStatusSnapshot] = await Promise.all([
         getDocs(collection(db, 'scientificUpdates')),
         getDocs(query(
@@ -263,10 +279,24 @@ export const scientificUpdateService = {
         ))
       ]);
       
-      const totalUpdates = updatesSnapshot.size;
-      const readUpdates = readStatusSnapshot.size;
+      // Get all updates and filter by last evidence check
+      const allUpdates = updatesSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as ScientificUpdate[];
       
-      return totalUpdates - readUpdates;
+      // Filter updates that are newer than the last evidence check
+      const relevantUpdates = lastEvidenceCheck 
+        ? allUpdates.filter(update => update.publishedDate.toDate() > lastEvidenceCheck.toDate())
+        : allUpdates;
+      
+      // Get read status for relevant updates only
+      const readUpdates = readStatusSnapshot.docs.filter(doc => {
+        const updateId = doc.data().updateId;
+        return relevantUpdates.some(update => update.id === updateId);
+      });
+      
+      return relevantUpdates.length - readUpdates.length;
     } catch (error) {
       console.error('❌ Error fetching unread count:', error);
       throw error;

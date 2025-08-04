@@ -117,7 +117,7 @@ export const userProfileService = {
         updateData.createdAt = Timestamp.now();
       }
 
-      console.log('🔄 Updating profile with data:', updateData);
+
       
       if (profileDoc.exists()) {
         await updateDoc(profileRef, updateData);
@@ -125,7 +125,7 @@ export const userProfileService = {
         await setDoc(profileRef, updateData);
       }
       
-      console.log(`✅ Updated extended profile for user ${userId}`);
+
     } catch (error) {
       console.error('❌ Error updating extended profile:', error);
       throw error;
@@ -150,7 +150,7 @@ export const userProfileService = {
       const userRef = doc(db, 'users', userId);
       await updateDoc(userRef, { photoURL: downloadURL });
       
-      console.log(`✅ Profile picture uploaded for user ${userId}`);
+
       return downloadURL;
     } catch (error) {
       console.error('❌ Error uploading profile picture:', error);
@@ -340,6 +340,22 @@ export const userProfileService = {
       };
     } catch (error) {
       console.error('❌ Error exporting user data:', error);
+      throw error;
+    }
+  },
+
+  // Update last evidence check timestamp
+  async updateLastEvidenceCheck(userId: string): Promise<void> {
+    try {
+      const userRef = doc(db, 'users', userId);
+      await updateDoc(userRef, { 
+        lastEvidenceCheck: Timestamp.now(),
+        updatedAt: Timestamp.now()
+      });
+      
+
+    } catch (error) {
+      console.error('❌ Error updating last evidence check:', error);
       throw error;
     }
   },

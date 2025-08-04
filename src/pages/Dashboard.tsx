@@ -24,6 +24,7 @@ import {
   VerifiedUser,
   Support,
   Science,
+  Close,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { useCourse } from '../contexts/CourseContext';
@@ -41,6 +42,7 @@ import LessonQA from '../components/LessonQA';
 import CommunityPulse from '../components/CommunityPulse';
 import { communityService, CommunityStats } from '../services/communityService';
 import { scientificUpdateService } from '../services/scientificUpdateService';
+import { useAnalytics } from '../hooks/useAnalytics';
 
 const Dashboard: React.FC = () => {
   const { currentUser } = useAuth();
@@ -56,6 +58,7 @@ const Dashboard: React.FC = () => {
     loadStreakData
   } = useCourse();
   const navigate = useNavigate();
+  const { trackEvent } = useAnalytics();
   
   // Trigger profile completion for new social users
   
@@ -67,6 +70,7 @@ const Dashboard: React.FC = () => {
   // Scientific Updates
   const [unreadUpdatesCount, setUnreadUpdatesCount] = useState<number>(0);
   const [loadingUnreadCount, setLoadingUnreadCount] = useState(false);
+  const [notificationDismissed, setNotificationDismissed] = useState(false);
 
   // Track user activity for community stats
   useEffect(() => {
@@ -149,6 +153,13 @@ const Dashboard: React.FC = () => {
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
   }, [currentUser?.id]);
+
+  // Reset notification dismissed state when new unread items arrive
+  useEffect(() => {
+    if (unreadUpdatesCount > 0) {
+      setNotificationDismissed(false);
+    }
+  }, [unreadUpdatesCount]);
 
   // Use real data from Firestore
   const activeCohort = currentCohort;
@@ -436,10 +447,31 @@ const Dashboard: React.FC = () => {
           </Box>
 
           {/* Scientific Updates Notifications */}
-          {unreadUpdatesCount > 0 ? (
-            <Card sx={{ mb: 3, background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)', color: 'white' }}>
+          {unreadUpdatesCount > 0 && !notificationDismissed ? (
+            <Card sx={{ mb: 3, background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)', color: 'white', position: 'relative' }}>
               <CardContent sx={{ p: 3 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                {/* Close Button */}
+                <IconButton
+                  onClick={() => {
+                    setNotificationDismissed(true);
+                    trackEvent.ctaClick('close_notification', '/dashboard');
+                  }}
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    color: 'white',
+                    opacity: 0.8,
+                    '&:hover': {
+                      opacity: 1,
+                      backgroundColor: 'rgba(255,255,255,0.1)',
+                    },
+                  }}
+                >
+                  <Close />
+                </IconButton>
+                
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pr: 6 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Science sx={{ fontSize: 32, opacity: 0.9 }} />
                     <Box sx={{ 
@@ -467,14 +499,22 @@ const Dashboard: React.FC = () => {
                   </Box>
                   <Button
                     variant="contained"
+                    size="small"
                     sx={{
                       backgroundColor: 'white',
                       color: 'primary.main',
+                      px: 2,
+                      py: 0.75,
+                      minWidth: 'auto',
                       '&:hover': {
                         backgroundColor: 'grey.100',
                       },
                     }}
-                    onClick={() => navigate('/evidence')}
+                    onClick={() => {
+                      setNotificationDismissed(true);
+                      trackEvent.ctaClick('read_updates_button', '/dashboard');
+                      navigate('/evidence');
+                    }}
                   >
                     Read Updates
                   </Button>
@@ -1019,14 +1059,10 @@ const Dashboard: React.FC = () => {
                   fullWidth
                   size="large"
                   onClick={() => {
-                    console.log('Dashboard: Available courses:', courses);
                     const course = courses.find(c => c.title === 'The Reverse Aging Challenge');
-                    console.log('Dashboard: Found course:', course);
                     if (course) {
-                      console.log('Dashboard: Navigating to payment with course ID:', course.id);
                       navigate(`/payment/${course.id}`);
                     } else {
-                      console.error('Dashboard: Course not found, using fallback');
                       // Fallback to hardcoded ID if course not found
                       navigate('/payment/reverse-aging-challenge');
                     }

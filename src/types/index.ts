@@ -28,6 +28,8 @@ export interface User {
     scientificUpdates?: boolean;
     communityUpdates?: boolean;
   };
+  // Evidence tracking
+  lastEvidenceCheck?: Timestamp;
 }
 
 // Course types

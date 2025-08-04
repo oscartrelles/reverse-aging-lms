@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -20,6 +20,16 @@ const AuthModal: React.FC = () => {
   const { isOpen, mode, title, description, hideAuthModal } = useAuthModal();
   const { signUp, signIn, signInWithGoogle, signInWithFacebook, loading: authLoading } = useAuth();
   const [isSignUp, setIsSignUp] = useState(mode === 'signup');
+
+  // Update isSignUp when mode changes
+  useEffect(() => {
+    setIsSignUp(mode === 'signup');
+    // Clear form fields when mode changes
+    setEmail('');
+    setPassword('');
+    setName('');
+    setError('');
+  }, [mode]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -242,19 +252,7 @@ const AuthModal: React.FC = () => {
             Continue with Facebook
           </Button>
           
-          {/* Temporary notice for Facebook configuration */}
-          <Typography 
-            variant="caption" 
-            sx={{ 
-              display: 'block', 
-              textAlign: 'center', 
-              color: 'text.secondary',
-              fontStyle: 'italic',
-              mb: 2
-            }}
-          >
-            Facebook login is being configured. If you encounter issues, please use Google sign-in.
-          </Typography>
+
         </Box>
 
         <Box sx={{ textAlign: 'center', mt: 2 }}>

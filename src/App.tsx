@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -9,6 +9,8 @@ import { ContactModalProvider } from './contexts/ContactModalContext';
 import PrivateRoute from './components/auth/PrivateRoute';
 import AdminRoute from './components/auth/AdminRoute';
 import AuthRedirect from './components/auth/AuthRedirect';
+import { initializeGA4 } from './services/analyticsService';
+import { AnalyticsWrapper } from './components/analytics/AnalyticsWrapper';
 import './utils/initializeData'; // Import to make functions available globally
 
 // Pages
@@ -21,6 +23,7 @@ import PaymentPage from './pages/PaymentPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminStudentManagement from './pages/admin/AdminStudentManagement';
 import AdminUserManagement from './pages/admin/AdminUserManagement';
+import { AdvancedAnalyticsDashboard } from './components/analytics/AdvancedAnalyticsDashboard';
 import EvidencePage from './pages/EvidencePage';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
@@ -163,6 +166,13 @@ const theme = createTheme({
 });
 
 function App() {
+  // Initialize GA4 on app load
+  useEffect(() => {
+    if (process.env.REACT_APP_GA_MEASUREMENT_ID) {
+      initializeGA4(process.env.REACT_APP_GA_MEASUREMENT_ID);
+    }
+  }, []);
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -171,92 +181,98 @@ function App() {
           <AuthModalProvider>
             <ContactModalProvider>
                 <Router>
-              <div className="App">
-                <Header />
-                <main style={{ minHeight: 'calc(100vh - 140px)' }}>
-                  <Routes>
-                    {/* Root path - show landing page directly */}
-                    <Route path="/" element={<LandingPage />} />
-                    
-                    {/* Protected routes */}
-                    <Route path="/dashboard" element={
-                      <PrivateRoute>
-                        <Dashboard />
-                      </PrivateRoute>
-                    } />
-                    
-                    <Route path="/course/:courseId" element={
-                      <PrivateRoute>
-                        <CoursePage />
-                      </PrivateRoute>
-                    } />
-                    
-                    <Route path="/course/:courseId/lesson/:lessonId" element={
-                      <PrivateRoute>
-                        <LessonPage />
-                      </PrivateRoute>
-                    } />
-                    
-                    <Route path="/profile" element={
-                      <PrivateRoute>
-                        <ProfilePage />
-                      </PrivateRoute>
-                    } />
-                    
-                    <Route path="/payment/:courseId" element={
-                      <PrivateRoute>
-                        <PaymentPage />
-                      </PrivateRoute>
-                    } />
-                    
-                    <Route path="/evidence" element={
-                      <PrivateRoute allowUnauthenticated={true}>
-                        <EvidencePage />
-                      </PrivateRoute>
-                    } />
-                    
-                    <Route path="/evidence/:updateId" element={
-                      <PrivateRoute allowUnauthenticated={true}>
-                        <EvidencePage />
-                      </PrivateRoute>
-                    } />
-                    
-                    {/* Public pages */}
-                            <Route path="/privacy" element={<PrivacyPage />} />
-        <Route path="/terms" element={<TermsPage />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/programs" element={<ProgramsPage />} />
-                    
-                    {/* Admin routes */}
-                    <Route path="/admin" element={
-                      <AdminRoute>
-                        <AdminDashboard />
-                      </AdminRoute>
-                    } />
-                    
-
-                    
-                    <Route path="/admin/students" element={
-                      <AdminRoute>
-                        <AdminStudentManagement />
-                      </AdminRoute>
-                    } />
-                    
-                    <Route path="/admin/users" element={
-                      <AdminRoute>
-                        <AdminUserManagement />
-                      </AdminRoute>
-                    } />
-                    
-                    {/* Fallback */}
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                  </Routes>
-                </main>
-                <Footer />
-                <AuthModal />
-                <ContactModalWrapper />
-              </div>
-            </Router>
+                  <AnalyticsWrapper>
+                    <div className="App">
+                      <Header />
+                      <main style={{ minHeight: 'calc(100vh - 140px)' }}>
+                        <Routes>
+                          {/* Root path - show landing page directly */}
+                          <Route path="/" element={<LandingPage />} />
+                          
+                          {/* Protected routes */}
+                          <Route path="/dashboard" element={
+                            <PrivateRoute>
+                              <Dashboard />
+                            </PrivateRoute>
+                          } />
+                          
+                          <Route path="/course/:courseId" element={
+                            <PrivateRoute>
+                              <CoursePage />
+                            </PrivateRoute>
+                          } />
+                          
+                          <Route path="/course/:courseId/lesson/:lessonId" element={
+                            <PrivateRoute>
+                              <LessonPage />
+                            </PrivateRoute>
+                          } />
+                          
+                          <Route path="/profile" element={
+                            <PrivateRoute>
+                              <ProfilePage />
+                            </PrivateRoute>
+                          } />
+                          
+                          <Route path="/payment/:courseId" element={
+                            <PrivateRoute>
+                              <PaymentPage />
+                            </PrivateRoute>
+                          } />
+                          
+                          <Route path="/evidence" element={
+                            <PrivateRoute allowUnauthenticated={true}>
+                              <EvidencePage />
+                            </PrivateRoute>
+                          } />
+                          
+                          <Route path="/evidence/:updateId" element={
+                            <PrivateRoute allowUnauthenticated={true}>
+                              <EvidencePage />
+                            </PrivateRoute>
+                          } />
+                          
+                          {/* Public pages */}
+                          <Route path="/privacy" element={<PrivacyPage />} />
+                          <Route path="/terms" element={<TermsPage />} />
+                          <Route path="/about" element={<AboutPage />} />
+                          <Route path="/programs" element={<ProgramsPage />} />
+                          
+                          {/* Admin routes */}
+                          <Route path="/admin" element={
+                            <AdminRoute>
+                              <AdminDashboard />
+                            </AdminRoute>
+                          } />
+                          
+                          <Route path="/admin/students" element={
+                            <AdminRoute>
+                              <AdminStudentManagement />
+                            </AdminRoute>
+                          } />
+                          
+                          <Route path="/admin/users" element={
+                            <AdminRoute>
+                              <AdminUserManagement />
+                            </AdminRoute>
+                          } />
+                          
+                          <Route path="/admin/analytics" element={
+                            <AdminRoute>
+                              <AdvancedAnalyticsDashboard />
+                            </AdminRoute>
+                          } />
+                          
+                          {/* Fallback */}
+                          <Route path="*" element={<Navigate to="/" replace />} />
+                        </Routes>
+                      </main>
+                      <Footer />
+                      <AuthModal />
+                      <ContactModalWrapper />
+                    </div>
+                  </AnalyticsWrapper>
+                </Router>
             </ContactModalProvider>
           </AuthModalProvider>
         </CourseProvider>

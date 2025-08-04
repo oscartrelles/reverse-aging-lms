@@ -4,6 +4,7 @@ import { db } from '../firebaseConfig';
 import { useAuth } from './AuthContext';
 import { Course, Enrollment, Cohort, LessonProgress, Lesson } from '../types';
 import { lessonProgressService, StreakData } from '../services/lessonProgressService';
+import { analyticsEvents } from '../services/analyticsService';
 
 interface CourseContextType {
   courses: Course[];
@@ -54,7 +55,7 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
 
   async function loadCourses() {
     try {
-      console.log('CourseContext: Loading courses...');
+  
       const coursesQuery = query(collection(db, 'courses'), where('status', '==', 'active'));
       const snapshot = await getDocs(coursesQuery);
       const coursesData = snapshot.docs.map(doc => ({
@@ -62,7 +63,7 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
         ...doc.data(),
       })) as Course[];
       
-      console.log('CourseContext: Loaded courses:', coursesData);
+
       setCourses(coursesData);
     } catch (error) {
       console.error('Error loading courses:', error);
@@ -100,7 +101,7 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
         endDate: doc.data().endDate,
       })) as Cohort[];
       
-      console.log('CourseContext: Loaded cohorts:', cohortsData);
+
       setCohorts(cohortsData);
     } catch (error) {
       console.error('Error loading cohorts:', error);
@@ -109,7 +110,7 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
 
   async function loadLessons() {
     try {
-      console.log('CourseContext: Loading lessons...');
+  
       const lessonsQuery = query(collection(db, 'lessons'));
       const snapshot = await getDocs(lessonsQuery);
       const lessonsData = snapshot.docs.map(doc => ({
@@ -117,7 +118,7 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
         ...doc.data(),
       })) as Lesson[];
       
-      console.log('CourseContext: Loaded lessons:', lessonsData);
+
       setLessons(lessonsData);
     } catch (error) {
       console.error('Error loading lessons:', error);
@@ -145,7 +146,7 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
   }
 
   const refreshData = useCallback(async () => {
-    console.log('CourseContext: Starting to refresh data...');
+
     setLoading(true);
     try {
       await Promise.all([
@@ -161,7 +162,7 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
         await loadStreakData();
       }
       
-      console.log('CourseContext: Data refresh completed successfully');
+
     } catch (error) {
       console.error('CourseContext: Error refreshing data:', error);
     } finally {
@@ -232,6 +233,27 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
         currentEnrollment.courseId
       );
       
+      // Track lesson completion analytics
+      const lesson = lessons.find(l => l.id === lessonId);
+      const course = courses.find(c => c.id === currentEnrollment.courseId);
+      
+      if (lesson && course) {
+        analyticsEvents.lessonComplete(
+          lessonId,
+          lesson.title,
+          currentEnrollment.courseId,
+          lesson.weekNumber
+        );
+        
+        // Check if this completes the course
+        const completedLessons = lessonProgress.filter(p => p.isCompleted).length + 1;
+        const totalLessons = lessons.filter(l => l.courseId === currentEnrollment.courseId).length;
+        
+        if (completedLessons >= totalLessons) {
+          analyticsEvents.courseComplete(currentEnrollment.courseId, course.title);
+        }
+      }
+      
       // Refresh streak data after completion
       await loadStreakData();
     } catch (error) {
@@ -241,12 +263,9 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    console.log('CourseContext: currentUser changed:', currentUser ? 'User logged in' : 'User logged out');
     if (currentUser) {
-      console.log('CourseContext: Loading data for user:', currentUser.id);
       refreshData();
     } else {
-      console.log('CourseContext: Clearing data, no user');
       setEnrollments([]);
       setLessonProgress([]);
       setLoading(false);

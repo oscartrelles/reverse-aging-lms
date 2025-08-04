@@ -37,6 +37,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAuthModal } from '../contexts/AuthModalContext';
 import { scientificUpdateService } from '../services/scientificUpdateService';
+import { userProfileService } from '../services/userProfileService';
 import { ScientificUpdate } from '../types';
 import { differenceInDays, format } from 'date-fns';
 
@@ -97,10 +98,18 @@ const EvidencePage: React.FC = () => {
     'meditation'
   ];
 
-  // Load updates on mount
+  // Load updates on mount and update last evidence check
   useEffect(() => {
     loadUpdates();
-  }, []);
+    
+    // Update last evidence check timestamp when user visits the evidence page
+    if (currentUser?.id) {
+      userProfileService.updateLastEvidenceCheck(currentUser.id)
+        .catch(error => {
+          console.error('Failed to update last evidence check:', error);
+        });
+    }
+  }, [currentUser?.id]);
 
   // Handle deep link to specific update
   useEffect(() => {

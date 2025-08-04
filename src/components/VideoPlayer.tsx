@@ -3,6 +3,7 @@ import { Box, Typography, LinearProgress, Alert, Skeleton } from '@mui/material'
 import { CheckCircle, PlayArrow } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { lessonProgressService, VideoProgress } from '../services/lessonProgressService';
+import { useAnalytics } from '../hooks/useAnalytics';
 
 interface VideoPlayerProps {
   videoUrl: string;
@@ -29,6 +30,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   onComplete,
 }) => {
   const { currentUser } = useAuth();
+  const { trackEvent } = useAnalytics();
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isReady, setIsReady] = useState(false);
@@ -55,7 +57,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       const { db } = await import('../firebaseConfig');
       const lessonRef = doc(db, 'lessons', lessonId);
       await updateDoc(lessonRef, { videoDuration: duration });
-      console.log(`✅ Updated lesson ${lessonId} duration to ${duration} seconds`);
+      
     } catch (error) {
       console.error('❌ Error updating lesson duration:', error);
     }
@@ -79,15 +81,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           setIsCompleted(progress.isCompleted || false);
           isCompletedRef.current = progress.isCompleted || false; // Update ref immediately
           
-          console.log('✅ Loaded existing progress:', {
-            watchedPercentage: progress.watchedPercentage,
-            isCompleted: progress.isCompleted
-          });
+
           
-          // If lesson is completed, log a warning about any future updates
-          if (progress.isCompleted) {
-            console.log('🛡️ Lesson is already completed - no further updates will be made');
-          }
+
         }
       } catch (error) {
         console.error('❌ Error loading existing progress:', error);
@@ -261,7 +257,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             const duration = player.getDuration();
             const percentage = (currentTime / duration) * 100;
             
-            console.log('📊 Updating Firebase progress:', { percentage: percentage.toFixed(1) + '%' });
+    
             
             lessonProgressService.updateVideoProgress(currentUser.id, lessonId, courseId, {
               currentTime,
@@ -285,13 +281,16 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   const handleVideoComplete = useCallback(async () => {
     if (isCompletedRef.current) {
-      console.log('✅ Lesson already completed, skipping completion logic');
+      
       return;
     }
 
     setIsCompleted(true);
     isCompletedRef.current = true; // Update ref immediately
     onComplete?.();
+
+    // Track video completion analytics
+    trackEvent.lessonComplete(lessonId, 'Video Lesson', courseId, 1);
 
     if (currentUser) {
       try {
@@ -302,7 +301,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           currentUser,
           undefined // course parameter - we don't have course data here
         );
-        console.log('✅ Video completed and lesson marked as complete');
+  
       } catch (error) {
         console.error('❌ Error marking lesson as complete:', error);
       }

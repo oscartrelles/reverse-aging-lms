@@ -130,5 +130,58 @@ service cloud.firestore {
       allow read, write: if request.auth != null && 
         resource.data.userId == request.auth.uid;
     }
+    
+    // Analytics Events - authenticated users can read/write
+    // This allows tracking of user interactions and events
+    match /analyticsEvents/{eventId} {
+      allow read, write: if request.auth != null;
+      // Allow queries for analytics dashboard
+      allow list: if request.auth != null;
+    }
+    
+    // User Sessions - authenticated users can read/write their own sessions
+    // This tracks user activity and session data
+    match /userSessions/{sessionId} {
+      allow read, write: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+      // Allow queries for real-time analytics
+      allow list: if request.auth != null;
+    }
+    
+    // User Cohorts - authenticated users can read/write their own cohort data
+    // This tracks user cohort assignments and activity
+    match /userCohorts/{userCohortId} {
+      allow read, write: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+      // Allow queries for cohort analysis
+      allow list: if request.auth != null;
+    }
+    
+    // Experiments - authenticated users can read, admins can write
+    // This stores A/B testing experiment configurations
+    match /experiments/{experimentId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+      // Allow queries for experiment management
+      allow list: if request.auth != null;
+    }
+    
+    // Experiment Assignments - authenticated users can read/write their own assignments
+    // This tracks which users are assigned to which experiment variants
+    match /experimentAssignments/{assignmentId} {
+      allow read, write: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+      // Allow queries for experiment analysis
+      allow list: if request.auth != null;
+    }
+    
+    // Analytics Dashboard Data - authenticated users can read, admins can write
+    // This stores aggregated analytics data for dashboard display
+    match /analyticsDashboard/{dashboardId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
   }
 } 
