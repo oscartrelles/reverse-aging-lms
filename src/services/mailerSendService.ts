@@ -1,3 +1,6 @@
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import app from '../firebaseConfig';
+
 // Configuration interface
 export interface MailerSendConfig {
   apiKey: string;
@@ -75,7 +78,9 @@ export interface EmailQueueItem {
 class MailerSendService {
   private config: MailerSendConfig;
   private emailQueue: EmailQueueItem[] = [];
-  private baseUrl = 'https://api.mailersend.com/v1';
+  private functions = getFunctions(app);
+  private sendEmailFunction = httpsCallable(this.functions, 'sendEmail');
+  private testMailerSendFunction = httpsCallable(this.functions, 'testMailerSend');
 
   constructor() {
     this.config = {
@@ -86,90 +91,40 @@ class MailerSendService {
     };
   }
 
-  // Send transactional email using MailerSend REST API
+  // Send transactional email using Cloud Function
   async sendTransactional(templateId: string, to: string, variables: EmailVariables): Promise<boolean> {
     try {
-      const payload = {
-        from: {
-          email: this.config.fromEmail,
-          name: this.config.fromName,
-        },
-        to: [
-          {
-            email: to,
-            name: variables.fullName || `${variables.firstName} ${variables.lastName}`.trim(),
-          },
-        ],
-        template_id: templateId,
-        variables: [
-          {
-            email: to,
-            substitutions: this.convertVariablesToSubstitutions(variables),
-          },
-        ],
-      };
-
-      const response = await fetch(`${this.baseUrl}/email`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.apiKey}`,
-        },
-        body: JSON.stringify(payload),
+      const result = await this.sendEmailFunction({
+        templateId,
+        to,
+        variables,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('MailerSend API error:', errorData);
-        return false;
-      }
-
-      console.log('Email sent successfully');
+      console.log('Email sent successfully via Cloud Function');
       return true;
     } catch (error) {
-      console.error('Error sending email:', error);
+      console.error('Error sending email via Cloud Function:', error);
       return false;
     }
   }
 
-  // Send bulk emails (for digests)
+  // Send bulk emails (for digests) - using Cloud Function
   async sendBulk(templateId: string, recipients: Array<{email: string, variables: EmailVariables}>): Promise<boolean> {
     try {
-      const payload = {
-        from: {
-          email: this.config.fromEmail,
-          name: this.config.fromName,
-        },
-        to: recipients.map(r => ({
-          email: r.email,
-          name: r.variables.fullName || `${r.variables.firstName} ${r.variables.lastName}`.trim(),
-        })),
-        template_id: templateId,
-        variables: recipients.map(recipient => ({
-          email: recipient.email,
-          substitutions: this.convertVariablesToSubstitutions(recipient.variables),
-        })),
-      };
+      // For bulk emails, we'll send them individually via Cloud Function
+      const promises = recipients.map(recipient => 
+        this.sendEmailFunction({
+          templateId,
+          to: recipient.email,
+          variables: recipient.variables,
+        })
+      );
 
-      const response = await fetch(`${this.baseUrl}/email`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.apiKey}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('MailerSend bulk API error:', errorData);
-        return false;
-      }
-
-      console.log('Bulk email sent successfully');
+      await Promise.all(promises);
+      console.log('Bulk email sent successfully via Cloud Function');
       return true;
     } catch (error) {
-      console.error('Error sending bulk email:', error);
+      console.error('Error sending bulk email via Cloud Function:', error);
       return false;
     }
   }
@@ -200,44 +155,6 @@ class MailerSendService {
     );
     
     this.saveQueueToStorage();
-  }
-
-  // Convert variables to MailerSend substitutions format
-  private convertVariablesToSubstitutions(variables: EmailVariables): Array<{var: string, value: string}> {
-    const substitutions: Array<{var: string, value: string}> = [];
-
-    // Add all string variables
-    Object.entries(variables).forEach(([key, value]) => {
-      if (typeof value === 'string' && value !== undefined) {
-        substitutions.push({ var: key, value });
-      }
-    });
-
-    // Handle special cases
-    if (variables.progressPercentage !== undefined) {
-      substitutions.push({ var: 'progressPercentage', value: variables.progressPercentage.toString() });
-    }
-
-    if (variables.amount !== undefined) {
-      substitutions.push({ var: 'amount', value: variables.amount.toString() });
-    }
-
-    // Handle arrays (scientific updates, achievements)
-    if (variables.scientificUpdates && variables.scientificUpdates.length > 0) {
-      const updatesHtml = variables.scientificUpdates
-        .map(update => `<li><strong>${update.title}</strong>: ${update.summary}</li>`)
-        .join('');
-      substitutions.push({ var: 'scientificUpdates', value: `<ul>${updatesHtml}</ul>` });
-    }
-
-    if (variables.achievements && variables.achievements.length > 0) {
-      const achievementsHtml = variables.achievements
-        .map(achievement => `<li>${achievement.title}: ${achievement.description}</li>`)
-        .join('');
-      substitutions.push({ var: 'achievements', value: `<ul>${achievementsHtml}</ul>` });
-    }
-
-    return substitutions;
   }
 
   // Save queue to localStorage (simple persistence)
@@ -283,20 +200,12 @@ class MailerSendService {
     };
   }
 
-  // Test email sending
+  // Test email sending via Cloud Function
   async testConnection(): Promise<boolean> {
     try {
-      // Send a test email to verify configuration
-      const testVariables: EmailVariables = {
-        email: 'test@example.com',
-        firstName: 'Test',
-        lastName: 'User',
-        fullName: 'Test User',
-      };
-
-      // This is a test - in production you'd use a real template ID
-      const result = await this.sendTransactional('test-template', 'test@example.com', testVariables);
-      return result;
+      const result = await this.testMailerSendFunction({});
+      console.log('MailerSend connection test result:', result);
+      return true;
     } catch (error) {
       console.error('MailerSend connection test failed:', error);
       return false;
