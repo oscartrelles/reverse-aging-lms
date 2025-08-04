@@ -59,7 +59,7 @@ const Footer: React.FC = () => {
     {
       name: 'WhatsApp',
       icon: WhatsApp,
-      url: 'https://wa.me/34611006408',
+      url: 'https://chat.whatsapp.com/ENDOITwgM22Js1C3N1iO2T',
       color: '#25D366',
       followers: 'Direct'
     }

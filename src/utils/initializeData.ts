@@ -1,6 +1,7 @@
 import { collection, doc, setDoc, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { Course, Cohort, Lesson, Enrollment } from '../types';
+import { scientificUpdateService } from '../services/scientificUpdateService';
 
 // Initialize test data in Firestore
 export const initializeTestData = async () => {
@@ -216,6 +217,59 @@ export const initializeTestData = async () => {
     for (const lesson of lessonsData) {
       await setDoc(doc(db, 'lessons', lesson.id), lesson);
     }
+
+    // 8. Create sample scientific updates
+    console.log('📊 Creating sample scientific updates...');
+    
+    const sampleUpdates = [
+      {
+        title: 'Telomere Lengthening Through Exercise: New Findings',
+        summary: 'Recent research shows that regular high-intensity interval training can significantly increase telomere length, potentially reversing cellular aging markers.',
+        keyFindings: [
+          'HIIT training increased telomere length by 3.3%',
+          'Participants showed improved mitochondrial function',
+          'Effects were maintained for 6 months post-intervention'
+        ],
+        fullReview: 'This groundbreaking study followed 124 participants over 12 months, demonstrating that specific exercise protocols can activate telomerase activity and promote cellular regeneration. The findings suggest that targeted physical activity may be more effective than general exercise for anti-aging benefits.',
+        implications: 'Incorporating HIIT sessions 2-3 times per week may provide significant anti-aging benefits at the cellular level.',
+        category: 'Movement' as const,
+        tags: ['telomere', 'exercise', 'cellular regeneration', 'HIIT'],
+        publishedDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 1 week ago
+      },
+      {
+        title: 'Intermittent Fasting and Autophagy: Cellular Cleanup Mechanisms',
+        summary: 'New evidence supports the role of intermittent fasting in activating autophagy, the body\'s natural cellular cleanup process.',
+        keyFindings: [
+          '16:8 fasting protocol increased autophagy markers by 40%',
+          'Reduced inflammation markers in participants',
+          'Improved insulin sensitivity observed'
+        ],
+        fullReview: 'This comprehensive study examined the effects of time-restricted feeding on cellular health markers. The 16:8 protocol (16 hours fasting, 8 hours eating) showed significant improvements in autophagy activation, suggesting a powerful mechanism for cellular rejuvenation.',
+        implications: 'Time-restricted feeding may be an effective strategy for promoting cellular health and longevity.',
+        category: 'Nourishment' as const,
+        tags: ['fasting', 'autophagy', 'nutrition', 'cellular health'],
+        publishedDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000), // 2 weeks ago
+      },
+      {
+        title: 'Cold Exposure Therapy: Metabolic Benefits and Longevity',
+        summary: 'Cold water immersion shows promising results for metabolic health and potential longevity benefits through brown fat activation.',
+        keyFindings: [
+          'Cold exposure increased brown fat activity by 300%',
+          'Improved glucose metabolism in participants',
+          'Enhanced immune function markers'
+        ],
+        fullReview: 'This study investigated the effects of regular cold water immersion on metabolic health. Participants who engaged in cold exposure therapy showed significant improvements in brown fat activation, which is associated with improved metabolism and potential longevity benefits.',
+        implications: 'Regular cold exposure may be a simple yet effective strategy for metabolic optimization and longevity.',
+        category: 'Cold' as const,
+        tags: ['cold therapy', 'metabolism', 'brown fat', 'longevity'],
+        publishedDate: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000), // 3 weeks ago
+      }
+    ];
+
+    for (const update of sampleUpdates) {
+      await scientificUpdateService.createUpdate(update);
+    }
+
     console.log('✅ Test data initialization complete!');
 
   } catch (error) {
