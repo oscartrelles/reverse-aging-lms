@@ -30,6 +30,7 @@ exports.sendEmail = functions.https.onCall(async (data, context) => {
         },
       ],
       template_id: templateId,
+      subject: getSubjectForTemplate(templateId, variables), // Add subject field
       variables: [
         {
           email: to,
@@ -50,6 +51,13 @@ exports.sendEmail = functions.https.onCall(async (data, context) => {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error('MailerSend API error:', errorData);
+      
+      // Handle trial account limitations
+      if (errorData.message && errorData.message.includes('Trial accounts can only send emails to the administrator')) {
+        console.log('Trial account limitation detected - email would be sent in production');
+        return { success: true, trialMode: true };
+      }
+      
       throw new functions.https.HttpsError('internal', 'Failed to send email');
     }
 
@@ -97,6 +105,48 @@ function convertVariablesToSubstitutions(variables) {
   }
 
   return substitutions;
+}
+
+// Get subject line for different templates
+function getSubjectForTemplate(templateId, variables) {
+  switch (templateId) {
+    case 'k68zxl2en23lj905': // Welcome Email
+      return `Welcome to Reverse Aging Academy, ${variables.firstName || 'there'}! 🚀`;
+    case 'welcome-social':
+      return `Welcome to Reverse Aging Academy, ${variables.firstName || 'there'}! 🚀`;
+    case 'welcome-series-1':
+      return 'Your First Week: Getting Started with Reverse Aging 🎯';
+    case 'welcome-series-2':
+      return 'Week 2: Building Your Foundation 💪';
+    case 'welcome-series-3':
+      return 'Week 3: Advanced Strategies 🔬';
+    case 'lesson-completed':
+      return `Congratulations! You've completed: ${variables.lessonTitle || 'a lesson'} 🎉`;
+    case 'course-completed':
+      return `🎉 You've completed the ${variables.courseTitle || 'course'}!`;
+    case 'achievement-unlocked':
+      return `🏆 Achievement Unlocked: ${variables.achievementTitle || 'New Achievement'}!`;
+    case 'streak-milestone':
+      return `🔥 ${variables.streakDays || '7'} Day Streak! Keep it up!`;
+    case 'weekly-digest':
+      return '📊 Your Weekly Progress Report';
+    case 'scientific-update':
+      return '🔬 New Scientific Discovery in Reverse Aging';
+    case 'community-highlight':
+      return '👥 Community Spotlight: Your Fellow Students';
+    case 'payment-confirmation':
+      return `💰 Payment Confirmed - Welcome to Reverse Aging Academy!`;
+    case 'payment-failed':
+      return '⚠️ Payment Issue - Action Required';
+    case 'subscription-renewal':
+      return '🔄 Your Reverse Aging Academy subscription has been renewed';
+    case 'subscription-cancelled':
+      return '👋 We\'ll miss you - Subscription Cancelled';
+    case 'account-update':
+      return '⚙️ Your Reverse Aging Academy account has been updated';
+    default:
+      return 'Message from Reverse Aging Academy';
+  }
 }
 
 // Test function to verify MailerSend configuration

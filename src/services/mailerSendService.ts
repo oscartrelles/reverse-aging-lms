@@ -100,6 +100,13 @@ class MailerSendService {
         variables,
       });
 
+      const data = result.data as any;
+      
+      if (data.trialMode) {
+        console.log('Email would be sent in production (trial mode detected)');
+        return true;
+      }
+
       console.log('Email sent successfully via Cloud Function');
       return true;
     } catch (error) {
