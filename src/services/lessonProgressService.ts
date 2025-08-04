@@ -246,4 +246,15 @@ export const lessonProgressService = {
       throw error;
     }
   },
+
+  // Get all user progress (admin only)
+  async getAllUserProgress(): Promise<LessonProgress[]> {
+    try {
+      const progressSnapshot = await getDocs(collection(db, 'lessonProgress'));
+      return progressSnapshot.docs.map(doc => doc.data() as LessonProgress);
+    } catch (error) {
+      console.error('❌ Error getting all user progress:', error);
+      throw error;
+    }
+  },
 }; 

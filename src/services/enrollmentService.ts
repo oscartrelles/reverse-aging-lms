@@ -170,4 +170,20 @@ export const getActiveEnrollment = async (userId: string, courseId: string) => {
     console.error('Error getting active enrollment:', error);
     return null;
   }
+};
+
+// Get all enrollments (admin only)
+export const getAllEnrollments = async () => {
+  try {
+    const enrollmentsSnapshot = await getDocs(collection(db, 'enrollments'));
+    const enrollments = enrollmentsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    return enrollments;
+  } catch (error) {
+    console.error('Error getting all enrollments:', error);
+    throw error;
+  }
 }; 

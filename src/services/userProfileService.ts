@@ -394,4 +394,20 @@ export const userProfileService = {
       throw error;
     }
   },
+
+  // Get all users (admin only)
+  async getAllUsers(): Promise<User[]> {
+    try {
+      const usersSnapshot = await getDocs(collection(db, 'users'));
+      const users = usersSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as User[];
+      
+      return users;
+    } catch (error) {
+      console.error('❌ Error getting all users:', error);
+      throw error;
+    }
+  },
 }; 
