@@ -1,5 +1,3 @@
-import { MailerSend, EmailParams, Sender, Recipient, Attachment } from 'mailersend';
-
 // Configuration interface
 export interface MailerSendConfig {
   apiKey: string;
@@ -75,10 +73,9 @@ export interface EmailQueueItem {
 }
 
 class MailerSendService {
-  private mailerSend: MailerSend;
   private config: MailerSendConfig;
-  private sender: Sender;
   private emailQueue: EmailQueueItem[] = [];
+  private baseUrl = 'https://api.mailersend.com/v1';
 
   constructor() {
     this.config = {
@@ -87,33 +84,47 @@ class MailerSendService {
       fromEmail: process.env.REACT_APP_MAILERSEND_FROM_EMAIL || 'noreply@yourdomain.com',
       fromName: process.env.REACT_APP_MAILERSEND_FROM_NAME || 'Reverse Aging Academy',
     };
-
-    this.mailerSend = new MailerSend({
-      apiKey: this.config.apiKey,
-    });
-
-    this.sender = new Sender(this.config.fromEmail, this.config.fromName);
   }
 
-  // Send transactional email
+  // Send transactional email using MailerSend REST API
   async sendTransactional(templateId: string, to: string, variables: EmailVariables): Promise<boolean> {
     try {
-      const recipients = [new Recipient(to, variables.fullName || `${variables.firstName} ${variables.lastName}`.trim())];
-
-      const emailParams = new EmailParams()
-        .setFrom(this.sender)
-        .setTo(recipients)
-        .setTemplateId(templateId)
-        .setPersonalization([
+      const payload = {
+        from: {
+          email: this.config.fromEmail,
+          name: this.config.fromName,
+        },
+        to: [
           {
             email: to,
-            data: this.convertVariablesToSubstitutions(variables),
+            name: variables.fullName || `${variables.firstName} ${variables.lastName}`.trim(),
           },
-        ]);
+        ],
+        template_id: templateId,
+        variables: [
+          {
+            email: to,
+            substitutions: this.convertVariablesToSubstitutions(variables),
+          },
+        ],
+      };
 
-      const response = await this.mailerSend.email.send(emailParams);
-      
-      console.log('Email sent successfully:', response);
+      const response = await fetch(`${this.baseUrl}/email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.config.apiKey}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('MailerSend API error:', errorData);
+        return false;
+      }
+
+      console.log('Email sent successfully');
       return true;
     } catch (error) {
       console.error('Error sending email:', error);
@@ -124,20 +135,38 @@ class MailerSendService {
   // Send bulk emails (for digests)
   async sendBulk(templateId: string, recipients: Array<{email: string, variables: EmailVariables}>): Promise<boolean> {
     try {
-      const emailParams = new EmailParams()
-        .setFrom(this.sender)
-        .setTo(recipients.map(r => new Recipient(r.email, r.variables.fullName || `${r.variables.firstName} ${r.variables.lastName}`.trim())))
-        .setTemplateId(templateId)
-        .setPersonalization(
-          recipients.map(recipient => ({
-            email: recipient.email,
-            data: this.convertVariablesToSubstitutions(recipient.variables),
-          }))
-        );
+      const payload = {
+        from: {
+          email: this.config.fromEmail,
+          name: this.config.fromName,
+        },
+        to: recipients.map(r => ({
+          email: r.email,
+          name: r.variables.fullName || `${r.variables.firstName} ${r.variables.lastName}`.trim(),
+        })),
+        template_id: templateId,
+        variables: recipients.map(recipient => ({
+          email: recipient.email,
+          substitutions: this.convertVariablesToSubstitutions(recipient.variables),
+        })),
+      };
 
-      const response = await this.mailerSend.email.send(emailParams);
-      
-      console.log('Bulk email sent successfully:', response);
+      const response = await fetch(`${this.baseUrl}/email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.config.apiKey}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('MailerSend bulk API error:', errorData);
+        return false;
+      }
+
+      console.log('Bulk email sent successfully');
       return true;
     } catch (error) {
       console.error('Error sending bulk email:', error);

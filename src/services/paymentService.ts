@@ -1,7 +1,8 @@
-import { collection, addDoc, updateDoc, doc, getDoc } from 'firebase/firestore';
+import { addDoc, collection, updateDoc, doc, Timestamp, getDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
-import { Timestamp } from 'firebase/firestore';
 import { createEnrollment } from './enrollmentService';
+import { emailIntegrationService } from './emailIntegrationService';
+import { User, Course } from '../types';
 
 export interface PaymentRecord {
   id?: string;
@@ -20,7 +21,11 @@ export interface PaymentRecord {
 }
 
 // Record payment in Firestore
-export const recordPayment = async (paymentData: Omit<PaymentRecord, 'id' | 'createdAt' | 'updatedAt'>) => {
+export const recordPayment = async (
+  paymentData: Omit<PaymentRecord, 'id' | 'createdAt' | 'updatedAt'>,
+  user?: User,
+  course?: Course
+) => {
   try {
     console.log('Recording payment:', paymentData);
     
@@ -44,6 +49,21 @@ export const recordPayment = async (paymentData: Omit<PaymentRecord, 'id' | 'cre
         enrollmentStatus: 'active',
         stripeCustomerId: paymentData.stripeCustomerId,
       });
+
+      // Send payment confirmation email if user and course data are provided
+      if (user && course) {
+        try {
+          await emailIntegrationService.sendPaymentConfirmation(
+            user, 
+            course, 
+            paymentData.amount, 
+            paymentData.currency || 'EUR'
+          );
+        } catch (emailError) {
+          console.warn('Failed to send payment confirmation email:', emailError);
+          // Don't fail the payment if email fails
+        }
+      }
     }
 
     return paymentRef.id;

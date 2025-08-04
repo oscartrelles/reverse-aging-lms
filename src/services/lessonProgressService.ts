@@ -1,6 +1,7 @@
-import { doc, setDoc, updateDoc, getDoc, collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
-import { LessonProgress } from '../types';
+import { LessonProgress, Lesson, Course, User } from '../types';
+import { emailIntegrationService } from './emailIntegrationService';
 import { userCacheService } from './userCacheService';
 
 export interface VideoProgress {
@@ -42,22 +43,51 @@ export const lessonProgressService = {
     }
   },
 
-  // Mark lesson as completed
+  // Complete a lesson and check if course is completed
   async completeLesson(
-    userId: string,
-    lessonId: string,
+    userId: string, 
+    lessonId: string, 
     courseId: string,
-    watchedPercentage: number = 100
+    user?: User,
+    course?: Course
   ): Promise<void> {
     try {
+      // Update lesson progress
       await this.updateLessonProgress(userId, lessonId, courseId, {
         isCompleted: true,
-        watchedPercentage,
         completedAt: Timestamp.now(),
         lastWatchedAt: Timestamp.now(),
       });
-      
-      // Invalidate cache since progress changed
+
+      // Check if all lessons in the course are completed
+      const lessonsQuery = query(
+        collection(db, 'lessons'),
+        where('courseId', '==', courseId),
+        where('isPublished', '==', true)
+      );
+      const lessonsSnapshot = await getDocs(lessonsQuery);
+      const totalLessons = lessonsSnapshot.docs.length;
+
+      const progressQuery = query(
+        collection(db, 'lessonProgress'),
+        where('userId', '==', userId),
+        where('courseId', '==', courseId),
+        where('isCompleted', '==', true)
+      );
+      const progressSnapshot = await getDocs(progressQuery);
+      const completedLessons = progressSnapshot.docs.length;
+
+      // If all lessons are completed, send course completion email
+      if (completedLessons === totalLessons && user && course) {
+        try {
+          await emailIntegrationService.sendCourseCompletion(user, course);
+        } catch (emailError) {
+          console.warn('Failed to send course completion email:', emailError);
+          // Don't fail the lesson completion if email fails
+        }
+      }
+
+      // Invalidate user cache
       await userCacheService.updateProgressOnLessonComplete(userId, lessonId);
       
       console.log(`✅ Marked lesson ${lessonId} as completed`);

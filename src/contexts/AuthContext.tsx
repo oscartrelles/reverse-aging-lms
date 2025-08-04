@@ -1,17 +1,17 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import {
+import { createContext, useContext, useState, useEffect } from 'react';
+import { 
   User as FirebaseUser,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signInWithRedirect,
-  signOut,
-  onAuthStateChanged,
-  updateProfile,
-  getRedirectResult,
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged, 
+  updateProfile, 
+  getRedirectResult
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, Timestamp } from 'firebase/firestore';
-import { auth, db, googleProvider, facebookProvider, handleRedirectResult, signInWithGoogle as firebaseSignInWithGoogle, signInWithFacebook as firebaseSignInWithFacebook } from '../firebaseConfig';
+import { auth, db, googleProvider, facebookProvider, signInWithGoogle as firebaseSignInWithGoogle, signInWithFacebook as firebaseSignInWithFacebook } from '../firebaseConfig';
 import { User } from '../types';
+import { emailIntegrationService } from '../services/emailIntegrationService';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -73,6 +73,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       await setDoc(doc(db, 'users', result.user.uid), userData);
       setCurrentUser(userData);
+
+      // Send welcome email and schedule welcome series
+      try {
+        await emailIntegrationService.sendWelcomeEmail(userData, false);
+        await emailIntegrationService.scheduleWelcomeSeries(userData);
+      } catch (emailError) {
+        console.warn('Failed to send welcome email:', emailError);
+        // Don't fail the signup if email fails
+      }
     } catch (error) {
       console.error('Error signing up:', error);
       throw error;
@@ -187,6 +196,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         await setDoc(doc(db, 'users', firebaseUser.uid), userData);
         setCurrentUser(userData);
+        
+        // Send welcome email for new social users
+        try {
+          await emailIntegrationService.sendWelcomeEmail(userData, true);
+          await emailIntegrationService.scheduleWelcomeSeries(userData);
+        } catch (emailError) {
+          console.warn('Failed to send welcome email:', emailError);
+          // Don't fail the sign-in if email fails
+        }
         
         // Redirect new social users to profile page
         if (authProvider !== 'email') {

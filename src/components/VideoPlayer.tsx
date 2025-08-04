@@ -299,7 +299,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           currentUser.id,
           lessonId,
           courseId,
-          progress
+          currentUser,
+          undefined // course parameter - we don't have course data here
         );
         console.log('✅ Video completed and lesson marked as complete');
       } catch (error) {
