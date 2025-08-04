@@ -145,9 +145,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function handleSocialSignIn(firebaseUser: FirebaseUser) {
     try {
-      // Test Firestore connectivity first
-      const testDoc = await getDoc(doc(db, 'users', 'test'));
-      
       const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
       
       if (!userDoc.exists()) {

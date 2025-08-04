@@ -59,7 +59,6 @@ export const userProfileService = {
       
       if (profileDoc.exists()) {
         const profileData = profileDoc.data();
-        console.log('🔍 Raw profile data from Firestore:', profileData);
         
         // Convert profile data to ExtendedProfile format
         const extendedProfile: ExtendedProfile = {
@@ -80,14 +79,12 @@ export const userProfileService = {
           updatedAt: profileData.updatedAt || Timestamp.now(),
         };
         
-        console.log('✅ Processed extended profile:', extendedProfile);
         return extendedProfile;
       }
       
-      console.log('❌ Profile document does not exist for ID:', userId);
       return null;
     } catch (error) {
-      console.error('❌ Error fetching extended profile:', error);
+      console.error('Error fetching extended profile:', error);
       throw error;
     }
   },

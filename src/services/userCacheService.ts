@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, updateDoc, Timestamp, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, Timestamp, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { CachedUserProgress, UserProfileCache } from '../types';
 
@@ -27,13 +27,11 @@ class UserCacheService {
     
     // Use cache if it's less than 1 hour old and not forcing refresh
     if (cached && cacheAge < 60 * 60 * 1000 && !options.forceRefresh) {
-      console.log('📦 Using cached progress data for user:', userId);
       return cached.progress;
     }
 
     // Check if there's already an update in progress
     if (this.updatePromises.has(cacheKey)) {
-      console.log('⏳ Progress update already in progress for user:', userId);
       await this.updatePromises.get(cacheKey);
       return this.cache.get(cacheKey)?.progress!;
     }
@@ -52,32 +50,52 @@ class UserCacheService {
 
   // Calculate progress and store in cache
   private async calculateAndCacheProgress(userId: string): Promise<void> {
-    console.log('🔄 Calculating fresh progress data for user:', userId);
-    
     try {
-      // Get all necessary data in parallel
-      const [progressDocs, enrollmentDocs, lessonsDocs, cohortDocs] = await Promise.all([
-        getDocs(query(collection(db, 'lessonProgress'), where('userId', '==', userId))),
-        getDocs(query(collection(db, 'enrollments'), where('userId', '==', userId))),
-        getDocs(query(collection(db, 'lessons'))),
-        getDocs(collection(db, 'cohorts'))
-      ]);
+      // Get user's enrollments
+      const enrollmentsQuery = query(
+        collection(db, 'enrollments'),
+        where('userId', '==', userId),
+        where('status', '==', 'active')
+      );
+      const enrollmentDocs = await getDocs(enrollmentsQuery);
+      const activeEnrollment = enrollmentDocs.docs[0];
+
+      // Get all cohorts for context
+      const cohortsQuery = query(collection(db, 'cohorts'));
+      const cohortDocs = await getDocs(cohortsQuery);
+
+      // Get user's lesson progress
+      const progressQuery = query(
+        collection(db, 'lessonProgress'),
+        where('userId', '==', userId)
+      );
+      const progressDocs = await getDocs(progressQuery);
+
+      // Get all lessons for context
+      const lessonsQuery = query(collection(db, 'lessons'));
+      const lessonsDocs = await getDocs(lessonsQuery);
 
       // Calculate metrics
       const completedLessons = progressDocs.docs.filter(doc => doc.data().isCompleted);
       const completedCourses = enrollmentDocs.docs.filter(doc => doc.data().status === 'completed');
-      const activeEnrollment = enrollmentDocs.docs.find(doc => doc.data().status === 'active');
       
       let totalLessons = 0;
       let availableLessons = 0;
-      let cohortComparison;
-
+      let cohortComparison: CachedUserProgress['cohortComparison'] = undefined;
+      
       if (activeEnrollment) {
-        const courseId = activeEnrollment.data().courseId;
-        const cohortId = activeEnrollment.data().cohortId;
+        const enrollmentDoc = activeEnrollment;
+        const courseId = enrollmentDoc.data().courseId;
+        const cohortId = enrollmentDoc.data().cohortId;
         
-        const courseLessons = lessonsDocs.docs.filter(doc => doc.data().courseId === courseId);
-        totalLessons = courseLessons.length;
+        // Get course lessons
+        const lessonsQuery = query(
+          collection(db, 'lessons'),
+          where('courseId', '==', courseId),
+          orderBy('order')
+        );
+        const courseLessons = await getDocs(lessonsQuery);
+        totalLessons = courseLessons.docs.length;
         
         const cohortDoc = cohortDocs.docs.find(doc => doc.id === cohortId);
         if (cohortDoc) {
@@ -157,10 +175,8 @@ class UserCacheService {
 
       // Store in Firestore for persistence
       await this.persistCacheToFirestore(userId, cachedProgress);
-      
-      console.log('✅ Progress data cached for user:', userId);
     } catch (error) {
-      console.error('❌ Error calculating progress cache:', error);
+      console.error('Error calculating progress cache:', error);
       throw error;
     }
   }
@@ -168,9 +184,14 @@ class UserCacheService {
   // Persist cache to Firestore
   private async persistCacheToFirestore(userId: string, progress: CachedUserProgress): Promise<void> {
     try {
+      // Filter out undefined values to prevent Firestore errors
+      const cleanProgress = Object.fromEntries(
+        Object.entries(progress).filter(([_, value]) => value !== undefined)
+      ) as CachedUserProgress;
+      
       const userProfileRef = doc(db, 'userProfiles', userId);
       await updateDoc(userProfileRef, {
-        cachedProgress: progress,
+        cachedProgress: cleanProgress,
         lastCacheUpdate: Timestamp.now(),
       });
     } catch (error) {
@@ -181,18 +202,15 @@ class UserCacheService {
 
   // Invalidate cache when data changes
   async invalidateCache(userId: string, reason: string): Promise<void> {
-    console.log(`🗑️ Invalidating cache for user ${userId}: ${reason}`);
     this.cache.delete(`progress_${userId}`);
   }
 
   // Update specific parts of the cache
   async updateProgressOnLessonComplete(userId: string, lessonId: string): Promise<void> {
-    console.log('🔄 Updating progress cache after lesson completion:', lessonId);
     await this.invalidateCache(userId, 'lesson completed');
   }
 
   async updateProgressOnEnrollmentChange(userId: string): Promise<void> {
-    console.log('🔄 Updating progress cache after enrollment change');
     await this.invalidateCache(userId, 'enrollment changed');
   }
 

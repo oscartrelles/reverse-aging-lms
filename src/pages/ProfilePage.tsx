@@ -85,12 +85,16 @@ const ProfilePage: React.FC = () => {
                          (!currentUser.age || !currentUser.location || !currentUser.bio);
 
   // State to track if welcome message should be shown
-  const [showWelcomeMessage, setShowWelcomeMessage] = useState(() => {
-    // Check localStorage for persistent state
-    if (!currentUser?.id) return true;
-    const key = `welcomeMessage_${currentUser.id}`;
-    return localStorage.getItem(key) !== 'dismissed';
-  });
+  const [showWelcomeMessage, setShowWelcomeMessage] = useState(true);
+
+  // Check localStorage for persistent state when currentUser is available
+  useEffect(() => {
+    if (currentUser?.id) {
+      const key = `welcomeMessage_${currentUser.id}`;
+      const isDismissed = localStorage.getItem(key) === 'dismissed';
+      setShowWelcomeMessage(!isDismissed);
+    }
+  }, [currentUser?.id]);
 
   // Function to handle closing the welcome message
   const handleCloseWelcomeMessage = () => {
