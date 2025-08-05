@@ -186,6 +186,34 @@ export const questionService = {
     }
   },
 
+  // Get all questions (for admin dashboard)
+  async getAllQuestions(): Promise<Question[]> {
+    try {
+      const questionsQuery = query(
+        collection(db, 'questions'),
+        orderBy('createdAt', 'desc')
+      );
+      
+      const snapshot = await getDocs(questionsQuery);
+      const questions = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Question[];
+      
+      return questions;
+    } catch (error: any) {
+      console.error('❌ Error getting all questions:', error);
+      
+      // If it's an index error, return empty array for now
+      if (error.code === 'failed-precondition' || error.message?.includes('index')) {
+        console.log('⚠️ Index not ready yet, returning empty questions array');
+        return [];
+      }
+      
+      throw error;
+    }
+  },
+
   // Answer a question (admin function)
   async answerQuestion(questionId: string, answer: string, adminUserId?: string): Promise<void> {
     try {

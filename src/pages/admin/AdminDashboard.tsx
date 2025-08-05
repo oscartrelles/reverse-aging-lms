@@ -43,8 +43,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useCourse } from '../../contexts/CourseContext';
 import { questionService } from '../../services/questionService';
 import { scientificUpdateService } from '../../services/scientificUpdateService';
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import { db } from '../../firebaseConfig';
+import { courseManagementService } from '../../services/courseManagementService';
+import { userManagementService } from '../../services/userManagementService';
+import { enrollmentService } from '../../services/enrollmentService';
 import CourseEditor from '../../components/admin/CourseEditor';
 import LessonEditor from '../../components/admin/LessonEditor';
 import CohortEditor from '../../components/admin/CohortEditor';
@@ -106,14 +107,8 @@ const AdminDashboard: React.FC = () => {
   const loadLessons = async () => {
     setLessonsLoading(true);
     try {
-      const lessonsSnapshot = await getDocs(collection(db, 'lessons'));
-      const lessonsData = lessonsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as any[];
-      // Sort lessons by order property in ascending order
-      const sortedLessons = lessonsData.sort((a, b) => (a.order || 0) - (b.order || 0));
-      setLessons(sortedLessons);
+      const lessonsData = await courseManagementService.getLessons();
+      setLessons(lessonsData);
     } catch (error) {
       console.error('Error loading lessons:', error);
     } finally {
@@ -131,16 +126,8 @@ const AdminDashboard: React.FC = () => {
   const loadQuestions = async () => {
     setQuestionsLoading(true);
     try {
-      const questionsSnapshot = await getDocs(collection(db, 'questions'));
-      const questionsData = questionsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as any[];
-      // Sort by creation date (newest first)
-      const sortedQuestions = questionsData.sort((a, b) => 
-        b.createdAt.toDate() - a.createdAt.toDate()
-      );
-      setQuestions(sortedQuestions);
+      const questionsData = await questionService.getAllQuestions();
+      setQuestions(questionsData);
     } catch (error) {
       console.error('Error loading questions:', error);
     } finally {
@@ -151,18 +138,10 @@ const AdminDashboard: React.FC = () => {
   const loadUsers = async () => {
     setUsersLoading(true);
     try {
-      const usersSnapshot = await getDocs(collection(db, 'users'));
-      const usersData = usersSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as any[];
+      const usersData = await userManagementService.getUsers();
       setUsers(usersData);
 
-      const enrollmentsSnapshot = await getDocs(collection(db, 'enrollments'));
-      const enrollmentsData = enrollmentsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as any[];
+      const enrollmentsData = await enrollmentService.getAllEnrollments();
       setEnrollments(enrollmentsData);
     } catch (error) {
       console.error('Error loading users:', error);
