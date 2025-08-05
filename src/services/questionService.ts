@@ -273,4 +273,17 @@ export const questionService = {
       throw error;
     }
   },
+
+  // Delete a question (admin only)
+  async deleteQuestion(questionId: string): Promise<void> {
+    try {
+      const questionRef = doc(db, 'questions', questionId);
+      await setDoc(questionRef, { deletedAt: Timestamp.now() }, { merge: true });
+      
+      console.log(`✅ Deleted question ${questionId}`);
+    } catch (error) {
+      console.error('❌ Error deleting question:', error);
+      throw error;
+    }
+  },
 }; 
