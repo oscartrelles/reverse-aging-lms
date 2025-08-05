@@ -40,6 +40,7 @@ import { collection, getDocs, doc, updateDoc, addDoc, deleteDoc, query, where } 
 import { db } from '../../firebaseConfig';
 import { User, Course, Cohort, Enrollment } from '../../types';
 import { Timestamp } from 'firebase/firestore';
+import { enrollmentService } from '../../services/enrollmentService';
 
 const AdminUserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -182,17 +183,13 @@ const AdminUserManagement: React.FC = () => {
       }
 
       // Create enrollment
-      const enrollmentData: Enrollment = {
-        id: `enrollment-${selectedUser.id}-${enrollmentForm.courseId}`,
+      const enrollmentId = await enrollmentService.createEnrollment({
         userId: selectedUser.id,
         courseId: enrollmentForm.courseId,
         cohortId: enrollmentForm.cohortId,
-        enrollmentStatus: 'active',
+        status: 'active',
         paymentStatus: enrollmentForm.paymentStatus,
-        enrolledAt: Timestamp.now(),
-      };
-
-      await addDoc(collection(db, 'enrollments'), enrollmentData);
+      });
 
       // Update cohort student count
       const cohort = cohorts.find(c => c.id === enrollmentForm.cohortId);
@@ -435,7 +432,7 @@ const AdminUserManagement: React.FC = () => {
                                   key={enrollment.id}
                                   label={`${getCourseName(enrollment.courseId)} - ${getCohortName(enrollment.cohortId)}`}
                                   size="small"
-                                  color={enrollment.enrollmentStatus === 'active' ? 'success' : 'default'}
+                                  color={enrollment.status === 'active' ? 'success' : 'default'}
                                   variant="outlined"
                                 />
                               ))

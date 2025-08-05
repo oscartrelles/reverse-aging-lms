@@ -81,7 +81,7 @@ export interface Enrollment {
   userId: string;
   courseId: string;
   cohortId: string;
-  enrollmentStatus: 'pending' | 'active' | 'completed' | 'cancelled';
+  status: 'pending' | 'active' | 'completed' | 'cancelled'; // Changed from enrollmentStatus to status
   paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
   enrolledAt: Timestamp;
   completedAt?: Timestamp;

@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 import { CheckCircle, Home } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
-import { createEnrollment, getActiveEnrollment } from '../services/enrollmentService';
+import { enrollmentService } from '../services/enrollmentService';
 import { getDoc, doc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 
@@ -55,13 +55,13 @@ const PaymentSuccess: React.FC = () => {
         const cohortId = checkoutSessionDoc.exists() ? checkoutSessionDoc.data().cohortId : 'default-cohort-id';
         
         // Create enrollment using the proper service (with built-in duplicate prevention)
-        const enrollmentId = await createEnrollment({
+        const enrollmentId = await enrollmentService.createEnrollment({
           userId: currentUser.id,
           courseId: 'hTLj9Lx1MAkBks0INzxS', // Default course ID
           cohortId: cohortId,
           paymentId: sessionId,
           paymentStatus: 'paid',
-          enrollmentStatus: 'active',
+          status: 'active',
           stripeCustomerId: sessionId // Using session ID as placeholder
         });
 

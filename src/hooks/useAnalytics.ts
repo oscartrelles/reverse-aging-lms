@@ -35,7 +35,7 @@ export const useAnalytics = () => {
         user_type: currentUser.isAdmin ? 'admin' : 'student',
         signup_source: currentUser.authProvider || 'email',
         course_enrolled: currentEnrollment?.courseId,
-        enrollment_status: currentEnrollment?.enrollmentStatus === 'cancelled' ? 'completed' : currentEnrollment?.enrollmentStatus,
+        enrollment_status: currentEnrollment?.status === 'cancelled' ? 'completed' : currentEnrollment?.status,
         cohort_id: currentCohort?.id,
       });
     }

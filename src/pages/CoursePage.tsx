@@ -174,7 +174,7 @@ const CoursePage: React.FC = () => {
   const progressPercentage = (completedLessons / totalLessons) * 100;
 
   // Check if user is enrolled and cohort has started
-  const isEnrolled = currentEnrollment && currentEnrollment.enrollmentStatus === 'active';
+  const isEnrolled = currentEnrollment && currentEnrollment.status === 'active';
   const cohortHasStarted = currentCohort && new Date() >= currentCohort.startDate.toDate();
   const canAccessContent = isEnrolled && cohortHasStarted;
 

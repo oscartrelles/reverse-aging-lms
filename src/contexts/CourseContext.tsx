@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { collection, getDocs, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { useAuth } from './AuthContext';
 import { Course, Enrollment, Cohort, LessonProgress, Lesson } from '../types';
 import { lessonProgressService, StreakData } from '../services/lessonProgressService';
+import { enrollmentService } from '../services/enrollmentService';
 import { analyticsEvents } from '../services/analyticsService';
 
 interface CourseContextType {
@@ -48,7 +49,10 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   // Get current enrollment and cohort
-  const currentEnrollment = enrollments.find(e => e.enrollmentStatus === 'active') || null;
+  const currentEnrollment = enrollments.find(e => 
+    e.status === 'active' || e.status === 'pending' || e.status === 'completed'
+  ) || null;
+  
   const currentCohort = currentEnrollment 
     ? cohorts.find(c => c.id === currentEnrollment.cohortId) || null
     : null;
@@ -74,17 +78,22 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
     if (!currentUser) return;
 
     try {
-      const enrollmentsQuery = query(
-        collection(db, 'enrollments'),
-        where('userId', '==', currentUser.id)
-      );
-      const snapshot = await getDocs(enrollmentsQuery);
-      const enrollmentsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
+      const enrollmentsData = await enrollmentService.getUserEnrollments(currentUser.id);
+      // Convert EnrollmentData to Enrollment type
+      const enrollments = enrollmentsData.map(data => ({
+        id: data.id || '',
+        userId: data.userId,
+        courseId: data.courseId,
+        cohortId: data.cohortId,
+        paymentId: data.paymentId,
+        paymentStatus: data.paymentStatus,
+        status: data.status,
+        enrolledAt: data.enrolledAt,
+        completedAt: data.completedAt,
+        stripeCustomerId: data.stripeCustomerId,
+        stripeSubscriptionId: data.stripeSubscriptionId,
       })) as Enrollment[];
-      
-      setEnrollments(enrollmentsData);
+      setEnrollments(enrollments);
     } catch (error) {
       console.error('Error loading enrollments:', error);
     }
@@ -272,7 +281,7 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
     }
   }, [currentUser]);
 
-  // Set up real-time listeners for progress updates and enrollments
+  // Set up real-time listeners for progress updates, enrollments, and cohorts
   useEffect(() => {
     if (!currentUser) return;
 
@@ -288,21 +297,48 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
       }
     );
 
-    const enrollmentsUnsubscribe = onSnapshot(
-      query(collection(db, 'enrollments'), where('userId', '==', currentUser.id)),
-      (snapshot) => {
-        const enrollmentsData = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
+    // Use enrollment service subscription for real-time enrollment updates
+    const enrollmentsUnsubscribe = enrollmentService.subscribeToUserEnrollments(
+      currentUser.id,
+      (enrollmentsData) => {
+        // Convert EnrollmentData to Enrollment type
+        const enrollments = enrollmentsData.map(data => ({
+          id: data.id || '',
+          userId: data.userId,
+          courseId: data.courseId,
+          cohortId: data.cohortId,
+          paymentId: data.paymentId,
+          paymentStatus: data.paymentStatus,
+          status: data.status,
+          enrolledAt: data.enrolledAt,
+          completedAt: data.completedAt,
+          stripeCustomerId: data.stripeCustomerId,
+          stripeSubscriptionId: data.stripeSubscriptionId,
         })) as Enrollment[];
         
-        setEnrollments(enrollmentsData);
+        setEnrollments(enrollments);
+      }
+    );
+
+    // Add real-time listener for cohorts to ensure currentCohort is always available
+    const cohortsUnsubscribe = onSnapshot(
+      query(collection(db, 'cohorts')),
+      (snapshot) => {
+        const cohortsData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          startDate: doc.data().startDate,
+          endDate: doc.data().endDate,
+        })) as Cohort[];
+        
+        setCohorts(cohortsData);
       }
     );
 
     return () => {
       progressUnsubscribe();
       enrollmentsUnsubscribe();
+      cohortsUnsubscribe();
     };
   }, [currentUser]);
 

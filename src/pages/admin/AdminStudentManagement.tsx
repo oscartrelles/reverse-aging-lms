@@ -87,7 +87,6 @@ interface StudentFilters {
   search: string;
   status: string;
   cohort: string;
-  enrollmentStatus: string;
   dateRange: string;
 }
 
@@ -167,7 +166,6 @@ const AdminStudentManagement: React.FC = () => {
     search: '',
     status: 'all',
     cohort: 'all',
-    enrollmentStatus: 'all',
     dateRange: 'all',
   });
 
@@ -268,13 +266,6 @@ const AdminStudentManagement: React.FC = () => {
     // Cohort filter
     if (filters.cohort !== 'all') {
       filtered = filtered.filter(student => student.cohortId === filters.cohort);
-    }
-
-    // Enrollment status filter
-    if (filters.enrollmentStatus !== 'all') {
-      filtered = filtered.filter(student => 
-        student.enrollment?.status === filters.enrollmentStatus
-      );
     }
 
     // Date range filter
@@ -1122,20 +1113,6 @@ const AdminStudentManagement: React.FC = () => {
                         {cohort.name}
                       </MenuItem>
                     ))}
-                  </Select>
-                </FormControl>
-                <FormControl size="small" sx={{ minWidth: 150 }}>
-                  <InputLabel>Enrollment Status</InputLabel>
-                  <Select
-                    value={filters.enrollmentStatus}
-                    onChange={(e) => setFilters({ ...filters, enrollmentStatus: e.target.value })}
-                    label="Enrollment Status"
-                  >
-                    <MenuItem value="all">All</MenuItem>
-                    <MenuItem value="active">Active</MenuItem>
-                    <MenuItem value="completed">Completed</MenuItem>
-                    <MenuItem value="paused">Paused</MenuItem>
-                    <MenuItem value="cancelled">Cancelled</MenuItem>
                   </Select>
                 </FormControl>
                 <FormControl size="small" sx={{ minWidth: 150 }}>

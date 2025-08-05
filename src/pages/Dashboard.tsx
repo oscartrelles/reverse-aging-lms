@@ -32,6 +32,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCourse } from '../contexts/CourseContext';
 import { useNavigate } from 'react-router-dom';
 import { differenceInDays } from 'date-fns';
+import { Timestamp } from 'firebase/firestore';
 import {
   isLessonAvailable,
   getCurrentWeek,
@@ -51,8 +52,9 @@ const Dashboard: React.FC = () => {
   const { currentUser } = useAuth();
   const { 
     courses, 
+    enrollments,
+    cohorts,
     currentEnrollment, 
-    currentCohort, 
     lessonProgress, 
     lessons, 
     getLessonsByCourse, 
@@ -63,6 +65,43 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { trackEvent } = useAnalytics();
   const theme = useTheme();
+  
+  // Dashboard states - resolve cohort first
+  const isEnrolled = !!currentEnrollment;
+  
+  // Try to find the current cohort, with fallback logic
+  let resolvedCurrentCohort: any = null;
+  if (currentEnrollment) {
+    resolvedCurrentCohort = cohorts.find(c => c.id === currentEnrollment.cohortId) || null;
+    
+    // If no cohort found but user is enrolled, create a fallback cohort
+    if (!resolvedCurrentCohort && isEnrolled) {
+      console.warn('⚠️ No cohort found for enrollment:', {
+        enrollmentId: currentEnrollment.id,
+        cohortId: currentEnrollment.cohortId,
+        availableCohorts: cohorts.map(c => ({ id: c.id, name: c.name }))
+      });
+      
+      // Create a fallback cohort for immediate use
+      resolvedCurrentCohort = {
+        id: currentEnrollment.cohortId,
+        courseId: currentEnrollment.courseId,
+        name: 'Fallback Cohort',
+        startDate: Timestamp.fromDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)), // 7 days ago
+        endDate: Timestamp.fromDate(new Date(Date.now() + 7 * 7 * 24 * 60 * 60 * 1000)), // 7 weeks from now
+        maxStudents: 50,
+        currentStudents: 1,
+        status: 'active' as const,
+        weeklyReleaseTime: '08:00'
+      };
+    }
+  }
+  
+  const cohortHasStarted = resolvedCurrentCohort && new Date() >= resolvedCurrentCohort.startDate.toDate();
+  const isActiveStudent = isEnrolled && cohortHasStarted;
+
+  // Additional safety check - if enrolled but no cohort found, show error state
+  const hasEnrollmentButNoCohort = isEnrolled && !resolvedCurrentCohort;
   
   // Trigger profile completion for new social users
   
@@ -75,6 +114,43 @@ const Dashboard: React.FC = () => {
   const [unreadUpdatesCount, setUnreadUpdatesCount] = useState<number>(0);
   const [loadingUnreadCount, setLoadingUnreadCount] = useState(false);
   const [notificationDismissed, setNotificationDismissed] = useState(false);
+
+  // Scientific Evidence Data
+  const [evidenceData, setEvidenceData] = useState({
+    cellularRegeneration: 0,
+    nutritionOptimization: 0,
+    coldExposure: 0,
+    totalStudies: 0
+  });
+  const [latestStudies, setLatestStudies] = useState<ScientificUpdate[]>([]);
+  const [loadingEvidence, setLoadingEvidence] = useState(false);
+
+  const testimonials = [
+    {
+      text: "Oscar has a calm confidence and genuine passion for what he teaches. His guidance was clear and supportive, making the experience accessible even for beginners. I left feeling invigorated and with tools I can use every day.",
+      author: "Pablo L."
+    },
+    {
+      text: "Since the first moment I met Oscar, I knew I had met someone special. He transmits a positive energy that makes you feel safe and confident to explore new practices. Thank you for such a transformative experience.",
+      author: "Spencer F."
+    },
+    {
+      text: "Oscar is a fantastic instructor who creates memorable and engaging experiences. His ability to explain concepts and hold space is truly special.",
+      author: "Abbie G."
+    },
+    {
+      text: "What I valued most was how Oscar helped me unlock internal blocks that were holding me back. As a result, I'm able to live out my potential more fully and confidently.",
+      author: "Viyan N."
+    },
+    {
+      text: "Oscar has a way of guiding you to celebrate your journey and recognize the abundance in your life. His approach is compassionate, non-judgmental, and deeply grounding.",
+      author: "Lucy Y."
+    },
+    {
+      text: "Working with Oscar has been transformative. He helped me gain clarity, define my vision, and most importantly, believe in myself and my capabilities.",
+      author: "Adina D."
+    }
+  ];
 
   // Track user activity for community stats
   useEffect(() => {
@@ -105,10 +181,10 @@ const Dashboard: React.FC = () => {
   // Fetch community stats and unread updates (only on mount)
   useEffect(() => {
     const fetchCommunityStats = async () => {
-      if (!currentCohort?.id) return;
+      if (!resolvedCurrentCohort?.id) return;
 
       try {
-        const stats = await communityService.getCommunityStats(currentCohort.id);
+        const stats = await communityService.getCommunityStats(resolvedCurrentCohort.id);
         setCommunityStats(stats);
       } catch (error) {
         console.error('Error fetching community stats:', error);
@@ -131,24 +207,17 @@ const Dashboard: React.FC = () => {
 
     fetchCommunityStats();
     fetchUnreadCount();
-  }, [currentCohort?.id, currentUser?.id]);
+  }, [resolvedCurrentCohort?.id, currentUser?.id]);
 
   // Fetch evidence data independently (for all users, including unenrolled)
   useEffect(() => {
     const fetchEvidenceData = async () => {
-      setLoadingEvidence(true);
       try {
-        console.log('🔍 Fetching evidence data...');
         const updates = await scientificUpdateService.getAllUpdates();
-        console.log('📊 Found updates:', updates.length, updates);
-        
-        // Get the 3 latest studies
-        const sortedUpdates = updates.sort((a, b) => b.publishedDate.toDate().getTime() - a.publishedDate.toDate().getTime());
-        const latest = sortedUpdates.slice(0, 3);
-        console.log('🎯 Latest 3 studies:', latest);
+        const latest = updates.slice(0, 3);
         setLatestStudies(latest);
         
-        // Count studies by category (for future use)
+        // Count studies by category
         const cellularRegeneration = updates.filter(u => 
           u.category === 'Movement' || u.tags.some(tag => 
             tag.toLowerCase().includes('cellular') || 
@@ -180,9 +249,7 @@ const Dashboard: React.FC = () => {
           totalStudies: updates.length
         });
       } catch (error) {
-        console.error('❌ Error fetching evidence data:', error);
-      } finally {
-        setLoadingEvidence(false);
+        console.error('Error fetching evidence data:', error);
       }
     };
 
@@ -222,7 +289,7 @@ const Dashboard: React.FC = () => {
   }, [unreadUpdatesCount]);
 
   // Use real data from Firestore
-  const activeCohort = currentCohort;
+  const activeCohort = resolvedCurrentCohort;
   const activeCourseLessons = currentEnrollment ? getLessonsByCourse(currentEnrollment.courseId) : [];
   const currentWeek = activeCohort ? getCurrentWeek(activeCohort) : 0;
   
@@ -265,45 +332,6 @@ const Dashboard: React.FC = () => {
 
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
 
-  // Scientific Evidence Data
-  const [evidenceData, setEvidenceData] = useState({
-    cellularRegeneration: 0,
-    nutritionOptimization: 0,
-    coldExposure: 0,
-    totalStudies: 0
-  });
-  const [latestStudies, setLatestStudies] = useState<ScientificUpdate[]>([]);
-  const [loadingEvidence, setLoadingEvidence] = useState(false);
-
-  const testimonials = [
-    {
-      text: "Oscar has a calm confidence and genuine passion for what he teaches. His guidance was clear and supportive, making the experience accessible even for beginners. I left feeling invigorated and with tools I can use every day.",
-      author: "Pablo L."
-    },
-    {
-      text: "Since the first moment I met Oscar, I knew I had met someone special. He transmits a positive energy that makes you feel safe and confident to explore new practices. Thank you for such a transformative experience.",
-      author: "Spencer F."
-    },
-    {
-      text: "Oscar is a fantastic instructor who creates memorable and engaging experiences. His ability to explain concepts and hold space is truly special.",
-      author: "Abbie G."
-    },
-    {
-      text: "What I valued most was how Oscar helped me unlock internal blocks that were holding me back. As a result, I'm able to live out my potential more fully and confidently.",
-      author: "Viyan N."
-    },
-    {
-      text: "Oscar has a way of guiding you to celebrate your journey and recognize the abundance in your life. His approach is compassionate, non-judgmental, and deeply grounding.",
-      author: "Lucy Y."
-    },
-    {
-      text: "Working with Oscar has been transformative. He helped me gain clarity, define my vision, and most importantly, believe in myself and my capabilities.",
-      author: "Adina D."
-    }
-  ];
-
-
-
   // Calculate progress and timing
   const totalLessons = activeCourseLessons.length;
   const completedLessons = lessonProgress.filter(p => p.isCompleted).length;
@@ -311,18 +339,15 @@ const Dashboard: React.FC = () => {
 
 
 
-  // Dashboard states
-  const isEnrolled = currentEnrollment && currentEnrollment.enrollmentStatus === 'active';
-  const cohortHasStarted = currentCohort && new Date() >= currentCohort.startDate.toDate();
-  const isActiveStudent = isEnrolled && cohortHasStarted;
+
 
   // Fetch community stats for enrolled users
   useEffect(() => {
     const fetchCommunityStats = async () => {
-      if (!currentCohort?.id || !isEnrolled) return;
+      if (!resolvedCurrentCohort?.id || !isEnrolled) return;
 
       try {
-        const stats = await communityService.getCommunityStats(currentCohort.id);
+        const stats = await communityService.getCommunityStats(resolvedCurrentCohort.id);
         setCommunityStats(stats);
       } catch (error) {
         console.error('Error fetching community stats:', error);
@@ -330,7 +355,7 @@ const Dashboard: React.FC = () => {
     };
 
     fetchCommunityStats();
-  }, [currentCohort?.id, isEnrolled]);
+  }, [resolvedCurrentCohort?.id, isEnrolled]);
 
   // Get course and lessons data
   const courseId = currentEnrollment?.courseId;
@@ -343,15 +368,31 @@ const Dashboard: React.FC = () => {
     return (
       <Container maxWidth="lg">
         <Box sx={{ py: 4, textAlign: 'center' }}>
+          <CircularProgress size={40} sx={{ mb: 2 }} />
           <Typography variant="h6">Loading your dashboard...</Typography>
         </Box>
       </Container>
     );
   }
 
+  // Additional loading check - if we have an enrollment but cohorts are still loading
+  if (currentEnrollment && cohorts.length === 0) {
+    return (
+      <Container maxWidth="lg">
+        <Box sx={{ py: 4, textAlign: 'center' }}>
+          <CircularProgress size={40} sx={{ mb: 2 }} />
+          <Typography variant="h6">Loading cohort information...</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Enrollment ID: {currentEnrollment.id} | Cohort ID: {currentEnrollment.cohortId}
+          </Typography>
+        </Box>
+      </Container>
+    );
+  }
+
   // State 1: Enrolled but cohort hasn't started
-  if (isEnrolled && !cohortHasStarted && currentCohort) {
-    const daysUntilStart = differenceInDays(currentCohort.startDate.toDate(), new Date());
+  if (isEnrolled && !cohortHasStarted && resolvedCurrentCohort) {
+    const daysUntilStart = differenceInDays(resolvedCurrentCohort.startDate.toDate(), new Date());
     
     return (
       <Container maxWidth="lg">
@@ -363,6 +404,8 @@ const Dashboard: React.FC = () => {
             color: theme.palette.text.primary,
             position: 'relative',
             overflow: 'hidden',
+            border: '1px solid',
+            borderColor: 'rgba(80, 235, 151, 0.15)',
             '&::before': {
               content: '""',
               position: 'absolute',
@@ -390,7 +433,7 @@ const Dashboard: React.FC = () => {
               </Box>
 
               <Typography variant="body1" sx={{ mb: 3, color: theme.palette.text.secondary }}>
-                Get ready to join {currentCohort.currentStudents} other students on this life-changing journey
+                Get ready to join {resolvedCurrentCohort.currentStudents} other students on this life-changing journey
               </Typography>
 
               <Button
@@ -418,7 +461,7 @@ const Dashboard: React.FC = () => {
           </Card>
 
           {/* Community Preview - Connected to Real Data */}
-          <Card sx={{ mb: 4, border: '1px solid', borderColor: 'primary.light', backgroundColor: 'rgba(80, 235, 151, 0.02)' }}>
+          <Card sx={{ mb: 4, border: '1px solid', borderColor: 'rgba(80, 235, 151, 0.15)', backgroundColor: 'rgba(80, 235, 151, 0.02)' }}>
             <CardContent sx={{ p: 4 }}>
               <Typography variant="h5" gutterBottom sx={{ color: 'primary.main', fontWeight: 600 }}>
                 Meet Your Community
@@ -426,7 +469,7 @@ const Dashboard: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                 <People sx={{ color: 'primary.main', fontSize: 28 }} />
                 <Typography variant="h6" sx={{ color: theme.palette.text.primary, fontWeight: 600 }}>
-                  {currentCohort.currentStudents} students are preparing with you
+                  {resolvedCurrentCohort.currentStudents} students are preparing with you
                 </Typography>
               </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
@@ -443,7 +486,7 @@ const Dashboard: React.FC = () => {
                   textAlign: 'center'
                 }}>
                   <Typography variant="h4" sx={{ color: 'primary.main', fontWeight: 700, mb: 1 }}>
-                    {currentCohort.currentStudents}
+                    {resolvedCurrentCohort.currentStudents}
                   </Typography>
                   <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
                     Total Cohort Size
@@ -507,6 +550,8 @@ const Dashboard: React.FC = () => {
                 sx={{ 
                   cursor: 'pointer', 
                   transition: 'all 0.3s ease',
+                  border: '1px solid',
+                  borderColor: 'rgba(80, 235, 151, 0.15)',
                   '&:hover': { 
                     transform: 'translateY(-2px)', 
                     boxShadow: '0 8px 25px rgba(80, 235, 151, 0.2)' 
@@ -592,6 +637,25 @@ const Dashboard: React.FC = () => {
 
                       </Box>
           </Box>
+        </Box>
+      </Container>
+    );
+  }
+
+  // State 2.5: Enrolled but cohort data missing (error state)
+  if (hasEnrollmentButNoCohort) {
+    return (
+      <Container maxWidth="lg">
+        <Box sx={{ py: 4, textAlign: 'center' }}>
+          <Typography variant="h4" component="h1" gutterBottom sx={{ color: 'error.main' }}>
+            Cohort Data Not Found
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+            We're having trouble loading your cohort information. Please contact support.
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Enrollment ID: {currentEnrollment?.id} | Cohort ID: {currentEnrollment?.cohortId}
+          </Typography>
         </Box>
       </Container>
     );
@@ -718,7 +782,7 @@ const Dashboard: React.FC = () => {
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
             {/* Progress Overview */}
             <Box sx={{ flex: { md: 2 } }}>
-              <Card sx={{ mb: 3 }}>
+              <Card sx={{ mb: 3, border: '1px solid', borderColor: 'rgba(80, 235, 151, 0.15)', backgroundColor: 'rgba(80, 235, 151, 0.02)' }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                     <Typography variant="h6">Your Progress</Typography>
@@ -796,8 +860,13 @@ const Dashboard: React.FC = () => {
             <Box sx={{ flex: { md: 1 } }}>
               {/* Community Pulse */}
               <CommunityPulse 
-                cohortId={currentCohort?.id} 
-                sx={{ mb: 3 }}
+                cohortId={resolvedCurrentCohort?.id} 
+                sx={{ 
+                  mb: 3,
+                  border: '1px solid',
+                  borderColor: 'rgba(80, 235, 151, 0.15)',
+                  backgroundColor: 'rgba(80, 235, 151, 0.02)'
+                }}
               />
             </Box>
           </Box>
@@ -836,6 +905,9 @@ const Dashboard: React.FC = () => {
                   transition: 'all 0.3s ease',
                   opacity: isSequentiallyAvailable ? 1 : 0.6,
                   backgroundColor: isSequentiallyAvailable ? 'background.paper' : 'rgba(255,255,255,0.05)',
+                  border: '1px solid',
+                  borderColor: 'rgba(80, 235, 151, 0.15)',
+                  background: isSequentiallyAvailable ? 'rgba(80, 235, 151, 0.02)' : 'rgba(255,255,255,0.05)',
                   '&:hover': isSequentiallyAvailable ? { 
                     transform: 'translateY(-2px)', 
                     boxShadow: '0 8px 25px rgba(80, 235, 151, 0.2)' 
@@ -886,8 +958,8 @@ const Dashboard: React.FC = () => {
                                                 <Typography variant="caption" sx={{ color: isSequentiallyAvailable ? 'primary.main' : 'rgba(255,255,255,0.4)' }}>
                           {isCompleted ? '🎉 Completed' : isSequentiallyAvailable ? '✅ Available' : !isAvailable ? '🔒 Locked' : '⏳ Complete previous lessons first'}
                   </Typography>
-                        {!isAvailable && activeCohort && (() => {
-                          const releaseDate = new Date(activeCohort.startDate.toDate());
+                        {!isAvailable && resolvedCurrentCohort && (() => {
+                          const releaseDate = new Date(resolvedCurrentCohort.startDate.toDate());
                           releaseDate.setDate(releaseDate.getDate() + (lesson.weekNumber - 1) * 7);
                           releaseDate.setHours(8, 0, 0, 0);
                           return (

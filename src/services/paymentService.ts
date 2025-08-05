@@ -1,6 +1,6 @@
 import { addDoc, collection, updateDoc, doc, Timestamp, getDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
-import { createEnrollment } from './enrollmentService';
+import { enrollmentService } from './enrollmentService';
 import { emailIntegrationService } from './emailIntegrationService';
 import { User, Course } from '../types';
 
@@ -40,13 +40,13 @@ export const recordPayment = async (
 
     // If payment is successful, create enrollment
     if (paymentData.paymentStatus === 'paid') {
-      await createEnrollment({
+      await enrollmentService.createEnrollment({
         userId: paymentData.userId,
         courseId: paymentData.courseId,
         cohortId: paymentData.cohortId,
         paymentId: paymentRef.id,
         paymentStatus: 'paid',
-        enrollmentStatus: 'active',
+        status: 'active',
         stripeCustomerId: paymentData.stripeCustomerId,
       });
 
