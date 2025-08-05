@@ -60,6 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         lastName: name.split(' ').slice(1).join(' '),
         createdAt: Timestamp.now(),
         isAdmin: false,
+        isModerator: false,
         bio: '',
         age: 0,
         location: '',
@@ -209,6 +210,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           socialProviderId: firebaseUser.providerData[0]?.uid,
           createdAt: Timestamp.now(),
           isAdmin: false,
+          isModerator: false,
           bio: '',
           age: 0,
           location: '',
@@ -352,6 +354,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               photoURL: user.photoURL || undefined,
               createdAt: Timestamp.now(),
               isAdmin: false,
+              isModerator: false,
               notificationPreferences: {
                 email: true,
                 push: true,

@@ -311,7 +311,7 @@ export const communityService = {
       });
       
       // Count users who completed all current week lessons
-      const usersWithAllCompletions = Object.keys(userCompletions).filter(
+      const usersWithAllCompletions = Object.keys(userCompletions || {}).filter(
         userId => userCompletions[userId].size === currentWeekLessonIds.length
       ).length;
       

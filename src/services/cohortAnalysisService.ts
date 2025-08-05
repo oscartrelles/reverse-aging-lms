@@ -323,7 +323,7 @@ export const cohortAnalysisService = {
             break;
         }
         
-        if (Object.keys(metricsUpdate).length > 0) {
+        if (Object.keys(metricsUpdate || {}).length > 0) {
           await updateDoc(doc(db, 'userCohorts', snapshot.docs[0].id), {
             ...metricsUpdate,
             lastActivity: Timestamp.now(),

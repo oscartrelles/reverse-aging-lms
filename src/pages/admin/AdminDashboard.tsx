@@ -50,6 +50,22 @@ import LessonEditor from '../../components/admin/LessonEditor';
 import CohortEditor from '../../components/admin/CohortEditor';
 import ScientificUpdateEditor from '../../components/admin/ScientificUpdateEditor';
 
+// Helper function to check user permissions
+const hasPermission = (user: any, permission: 'admin' | 'moderator' | 'full') => {
+  if (!user) return false;
+  
+  switch (permission) {
+    case 'admin':
+      return user.isAdmin;
+    case 'moderator':
+      return user.isAdmin || user.isModerator;
+    case 'full':
+      return user.isAdmin; // Only admins have full access
+    default:
+      return false;
+  }
+};
+
 const AdminDashboard: React.FC = () => {
   const { currentUser } = useAuth();
   const { courses, cohorts, loading: courseLoading } = useCourse();
@@ -234,7 +250,7 @@ const AdminDashboard: React.FC = () => {
     <Container maxWidth="lg">
       <Box sx={{ py: 3 }}>
         <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 3 }}>
-          Admin Dashboard
+          {currentUser?.isAdmin ? 'Admin' : 'Moderator'} Dashboard
         </Typography>
 
         {error && (
@@ -256,30 +272,34 @@ const AdminDashboard: React.FC = () => {
               Admin Tools
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-              <Button
-                variant="outlined"
-                startIcon={<Analytics />}
-                onClick={() => navigate('/admin/analytics')}
-                size="small"
-              >
-                Analytics Dashboard
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<People />}
-                onClick={() => navigate('/admin/students')}
-                size="small"
-              >
-                Student Management
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<Person />}
-                onClick={() => navigate('/admin/users')}
-                size="small"
-              >
-                User Management
-              </Button>
+              {hasPermission(currentUser, 'full') && (
+                <>
+                  <Button
+                    variant="outlined"
+                    startIcon={<Analytics />}
+                    onClick={() => navigate('/admin/analytics')}
+                    size="small"
+                  >
+                    Analytics Dashboard
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    startIcon={<People />}
+                    onClick={() => navigate('/admin/students')}
+                    size="small"
+                  >
+                    Student Management
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    startIcon={<Person />}
+                    onClick={() => navigate('/admin/users')}
+                    size="small"
+                  >
+                    User Management
+                  </Button>
+                </>
+              )}
             </Box>
           </CardContent>
         </Card>
@@ -395,144 +415,155 @@ const AdminDashboard: React.FC = () => {
           </Box>
 
           {/* User Management - Quick Access */}
-          <Box sx={{ mb: 3 }}>
-            <Card>
-              <CardContent sx={{ py: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    User Management
-                </Typography>
-                  <Button
-                    variant="contained"
-                    startIcon={<Person />}
-                    onClick={() => navigate('/admin/users')}
-                    size="small"
-                  >
-                    Manage Users
-                  </Button>
-                </Box>
+          {hasPermission(currentUser, 'full') && (
+            <Box sx={{ mb: 3 }}>
+              <Card>
+                <CardContent sx={{ py: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      User Management
+                  </Typography>
+                    <Button
+                      variant="contained"
+                      startIcon={<Person />}
+                      onClick={() => navigate('/admin/users')}
+                      size="small"
+                    >
+                      Manage Users
+                    </Button>
+                  </Box>
 
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5 }}>
-                  {/* Users Summary */}
-                  <Box sx={{ p: 1.5, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                      Users ({users.length})
-                    </Typography>
-                    {usersLoading ? (
-                      <CircularProgress size={16} />
-                    ) : (
-                      <Box>
-                        {users.slice(0, 3).map((user) => (
-                          <Box key={user.id} sx={{ mb: 1, p: 1, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 0.5 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                              <Box>
-                                <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
-                                  {user.name || user.email}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary" display="block">
-                                  {user.email}
-                                </Typography>
-                                {user.isAdmin && (
-                                  <Chip 
-                                    label="Admin" 
-                                    size="small" 
-                                    color="primary"
-                                    sx={{ fontSize: '0.7rem', mt: 0.5 }}
-                                  />
-                                )}
+                  <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5 }}>
+                    {/* Users Summary */}
+                    <Box sx={{ p: 1.5, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                        Users ({users.length})
+                      </Typography>
+                      {usersLoading ? (
+                        <CircularProgress size={16} />
+                      ) : (
+                        <Box>
+                          {users.slice(0, 3).map((user) => (
+                            <Box key={user.id} sx={{ mb: 1, p: 1, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 0.5 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <Box>
+                                  <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
+                                    {user.name || user.email}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary" display="block">
+                                    {user.email}
+                                  </Typography>
+                                  {user.isAdmin && (
+                                    <Chip 
+                                      label="Admin" 
+                                      size="small" 
+                                      color="primary"
+                                      sx={{ fontSize: '0.7rem', mt: 0.5 }}
+                                    />
+                                  )}
+                                  {user.isModerator && (
+                                    <Chip 
+                                      label="Moderator" 
+                                      size="small" 
+                                      color="secondary"
+                                      sx={{ fontSize: '0.7rem', mt: 0.5 }}
+                                    />
+                                  )}
+                                </Box>
                               </Box>
                             </Box>
+                          ))}
+                          {users.length > 3 && (
+                            <Typography variant="caption" color="text.secondary">
+                              +{users.length - 3} more users
+                            </Typography>
+                          )}
+                        </Box>
+                      )}
+                    </Box>
+
+                    {/* Enrollments Summary */}
+                    <Box sx={{ p: 1.5, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                        Enrollments ({enrollments.length})
+                      </Typography>
+                      <Box>
+                        {enrollments.slice(0, 3).map((enrollment) => (
+                          <Box key={enrollment.id} sx={{ mb: 1, p: 1, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 0.5 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
+                              {enrollment.userId?.substring(0, 8)}...
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" display="block">
+                              {enrollment.status}
+                            </Typography>
+                            <Chip 
+                              label={enrollment.paymentStatus || 'unknown'} 
+                              size="small" 
+                              color={enrollment.paymentStatus === 'paid' ? 'success' : 'default'}
+                              sx={{ fontSize: '0.7rem', mt: 0.5 }}
+                            />
                           </Box>
                         ))}
-                        {users.length > 3 && (
+                        {enrollments.length > 3 && (
                           <Typography variant="caption" color="text.secondary">
-                            +{users.length - 3} more users
+                            +{enrollments.length - 3} more enrollments
                           </Typography>
                         )}
                       </Box>
-                    )}
-                  </Box>
-
-                  {/* Enrollments Summary */}
-                  <Box sx={{ p: 1.5, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                      Enrollments ({enrollments.length})
-                    </Typography>
-                    <Box>
-                      {enrollments.slice(0, 3).map((enrollment) => (
-                        <Box key={enrollment.id} sx={{ mb: 1, p: 1, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 0.5 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
-                            {enrollment.userId?.substring(0, 8)}...
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary" display="block">
-                            {enrollment.status}
-                          </Typography>
-                          <Chip 
-                            label={enrollment.paymentStatus || 'unknown'} 
-                            size="small" 
-                            color={enrollment.paymentStatus === 'paid' ? 'success' : 'default'}
-                            sx={{ fontSize: '0.7rem', mt: 0.5 }}
-                          />
-                        </Box>
-                      ))}
-                      {enrollments.length > 3 && (
-                        <Typography variant="caption" color="text.secondary">
-                          +{enrollments.length - 3} more enrollments
-                        </Typography>
-                      )}
                     </Box>
-                  </Box>
 
-                  {/* Quick Stats */}
-                  <Box sx={{ p: 1.5, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                      Quick Stats
-                    </Typography>
-                    <Box>
-                      <Typography variant="body2" sx={{ fontSize: '0.875rem', mb: 0.5 }}>
-                        Active Users: {users.filter(u => !u.isAdmin).length}
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontSize: '0.875rem', mb: 0.5 }}>
-                        Paid Enrollments: {enrollments.filter(e => e.paymentStatus === 'paid').length}
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                        Pending Payments: {enrollments.filter(e => e.paymentStatus === 'pending').length}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Box>
-
-          {/* Content Overview - Streamlined */}
-          <Box sx={{ mb: 3 }}>
-            <Card>
-              <CardContent sx={{ py: 2 }}>
-                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                  Content Overview
-                </Typography>
-                
-                {courseLoading ? (
-                  <CircularProgress size={20} />
-                ) : (
-                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 2 }}>
-                    {/* Courses Summary */}
+                    {/* Quick Stats */}
                     <Box sx={{ p: 1.5, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1 }}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                        Courses ({courses.length})
+                        Quick Stats
                       </Typography>
-                      {courses.map((course) => (
-                        <Box key={course.id} sx={{ mb: 1, p: 1, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 0.5 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <Box>
-                              <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
+                      <Box>
+                        <Typography variant="body2" sx={{ fontSize: '0.875rem', mb: 0.5 }}>
+                          Active Users: {users.filter(u => !u.isAdmin).length}
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontSize: '0.875rem', mb: 0.5 }}>
+                          Paid Enrollments: {enrollments.filter(e => e.paymentStatus === 'paid').length}
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                          Pending Payments: {enrollments.filter(e => e.paymentStatus === 'pending').length}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Box>
+          )}
+
+          {/* Content Overview - Streamlined */}
+          {hasPermission(currentUser, 'full') && (
+            <Box sx={{ mb: 3 }}>
+              <Card>
+                <CardContent sx={{ py: 2 }}>
+                  <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                    Content Overview
+                  </Typography>
+                  
+                  {courseLoading ? (
+                    <CircularProgress size={20} />
+                  ) : (
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 2 }}>
+                      {/* Courses Summary */}
+                      <Box sx={{ p: 1.5, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                          Courses ({courses.length})
+                        </Typography>
+                        {courses.map((course) => (
+                          <Box key={course.id} sx={{ mb: 1, p: 1, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 0.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <Box>
+                                <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
                             {course.title}
                           </Typography>
-                              <Typography variant="caption" color="text.secondary" display="block">
-                                €{course.price} • {course.duration} weeks
+                                <Typography variant="caption" color="text.secondary" display="block">
+                                  €{course.price} • {course.duration} weeks
                           </Typography>
-                            </Box>
+                              </Box>
                           <Button
                             size="small"
                             startIcon={<Edit />}
@@ -683,6 +714,7 @@ const AdminDashboard: React.FC = () => {
               </CardContent>
             </Card>
           </Box>
+          )}
 
           {/* Scientific Updates Management */}
           <Box sx={{ mb: 3 }}>
@@ -779,64 +811,69 @@ const AdminDashboard: React.FC = () => {
           </Box>
 
           {/* Editors */}
-          {showCourseEditor && (
-            <Box sx={{ mt: 3 }}>
-              <CourseEditor
-                courseId={editingCourse?.id}
-                courseData={editingCourse}
-                onSave={(courseData) => {
-                  setShowCourseEditor(false);
-                  setEditingCourse(null);
-                  setSuccess('Course saved successfully!');
-                }}
-                onCancel={() => {
-                  setShowCourseEditor(false);
-                  setEditingCourse(null);
-                }}
-              />
-            </Box>
+          {hasPermission(currentUser, 'full') && (
+            <>
+              {showCourseEditor && (
+                <Box sx={{ mt: 3 }}>
+                  <CourseEditor
+                    courseId={editingCourse?.id}
+                    courseData={editingCourse}
+                    onSave={(courseData) => {
+                      setShowCourseEditor(false);
+                      setEditingCourse(null);
+                      setSuccess('Course saved successfully!');
+                    }}
+                    onCancel={() => {
+                      setShowCourseEditor(false);
+                      setEditingCourse(null);
+                    }}
+                  />
+                </Box>
+              )}
+
+              {showLessonEditor && (
+                <Box sx={{ mt: 3 }}>
+                  <LessonEditor
+                    courseId={courses[0]?.id || ''}
+                    lessonId={editingLesson?.id}
+                    lessonData={editingLesson}
+                    onSave={async (lessonData) => {
+                      setShowLessonEditor(false);
+                      setEditingLesson(null);
+                      setSuccess('Lesson saved successfully!');
+                      // Reload lessons to show the updated list
+                      await loadLessons();
+                    }}
+                    onCancel={() => {
+                      setShowLessonEditor(false);
+                      setEditingLesson(null);
+                    }}
+                  />
+                </Box>
+              )}
+
+              {showCohortEditor && (
+                <Box sx={{ mt: 3 }}>
+                  <CohortEditor
+                    courseId={courses[0]?.id || ''}
+                    cohortId={editingCohort?.id}
+                    cohortData={editingCohort}
+                    onSave={(cohortData) => {
+                      setShowCohortEditor(false);
+                      setEditingCohort(null);
+                      setSuccess('Cohort saved successfully!');
+                    }}
+                    onCancel={() => {
+                      setShowCohortEditor(false);
+                      setEditingCohort(null);
+                    }}
+                  />
+                </Box>
+              )}
+            </>
           )}
 
-          {showLessonEditor && (
-            <Box sx={{ mt: 3 }}>
-              <LessonEditor
-                courseId={courses[0]?.id || ''}
-                lessonId={editingLesson?.id}
-                lessonData={editingLesson}
-                onSave={async (lessonData) => {
-                  setShowLessonEditor(false);
-                  setEditingLesson(null);
-                  setSuccess('Lesson saved successfully!');
-                  // Reload lessons to show the updated list
-                  await loadLessons();
-                }}
-                onCancel={() => {
-                  setShowLessonEditor(false);
-                  setEditingLesson(null);
-                }}
-              />
-            </Box>
-          )}
-
-          {showCohortEditor && (
-            <Box sx={{ mt: 3 }}>
-              <CohortEditor
-                courseId={courses[0]?.id || ''}
-                cohortId={editingCohort?.id}
-                cohortData={editingCohort}
-                onSave={(cohortData) => {
-                  setShowCohortEditor(false);
-                  setEditingCohort(null);
-                  setSuccess('Cohort saved successfully!');
-                }}
-                onCancel={() => {
-                  setShowCohortEditor(false);
-                  setEditingCohort(null);
-                }}
-              />
-            </Box>
-          )}
-
+          {/* Scientific Update Editor - Available for both admins and moderators */}
           {showScientificUpdateEditor && (
             <Box sx={{ mt: 3 }}>
               <ScientificUpdateEditor

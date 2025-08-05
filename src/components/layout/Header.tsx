@@ -123,7 +123,7 @@ const Header: React.FC = () => {
         <Science sx={{ mr: 1, fontSize: 20 }} />
         Evidence
       </MenuItem>
-      {currentUser?.isAdmin && (
+      {(currentUser?.isAdmin || currentUser?.isModerator) && (
         <MenuItem 
           onClick={() => { handleMenuClose(); navigate('/admin'); }}
           sx={{
@@ -135,7 +135,7 @@ const Header: React.FC = () => {
           }}
         >
           <School sx={{ mr: 1, fontSize: 20 }} />
-          Admin Dashboard
+          {currentUser?.isAdmin ? 'Admin' : 'Moderator'} Dashboard
         </MenuItem>
       )}
       {currentUser?.isAdmin && (
@@ -226,7 +226,7 @@ const Header: React.FC = () => {
         <Science sx={{ mr: 1, fontSize: 20 }} />
         Evidence
       </MenuItem>
-      {currentUser?.isAdmin && (
+      {(currentUser?.isAdmin || currentUser?.isModerator) && (
         <MenuItem 
           onClick={() => { handleMenuClose(); navigate('/admin'); }}
           sx={{
@@ -238,7 +238,7 @@ const Header: React.FC = () => {
           }}
         >
           <School sx={{ mr: 1, fontSize: 20 }} />
-          Admin Dashboard
+          {currentUser?.isAdmin ? 'Admin' : 'Moderator'} Dashboard
         </MenuItem>
       )}
       {currentUser?.isAdmin && (
