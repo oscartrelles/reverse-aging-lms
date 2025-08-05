@@ -7,7 +7,14 @@ export interface User {
   name: string;
   photoURL?: string;
   createdAt: Timestamp;
+  updatedAt?: Timestamp;
   isAdmin: boolean;
+  isModerator?: boolean;
+  isDisabled?: boolean;
+  isSuspended?: boolean;
+  suspensionReason?: string;
+  emailVerified?: boolean;
+  phoneNumber?: string;
   timezone?: string;
   // Social provider tracking
   authProvider?: 'email' | 'google' | 'facebook';
@@ -30,6 +37,8 @@ export interface User {
   };
   // Evidence tracking
   lastEvidenceCheck?: Timestamp;
+  // Metadata for extensibility
+  metadata?: Record<string, any>;
 }
 
 // Course types
