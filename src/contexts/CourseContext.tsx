@@ -48,7 +48,7 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   // Get current enrollment and cohort
-  const currentEnrollment = enrollments.find(e => e.status === 'active') || null;
+  const currentEnrollment = enrollments.find(e => e.enrollmentStatus === 'active') || null;
   const currentCohort = currentEnrollment 
     ? cohorts.find(c => c.id === currentEnrollment.cohortId) || null
     : null;
@@ -272,11 +272,11 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
     }
   }, [currentUser]);
 
-  // Set up real-time listeners for progress updates
+  // Set up real-time listeners for progress updates and enrollments
   useEffect(() => {
     if (!currentUser) return;
 
-    const unsubscribe = onSnapshot(
+    const progressUnsubscribe = onSnapshot(
       query(collection(db, 'lessonProgress'), where('userId', '==', currentUser.id)),
       (snapshot) => {
         const progressData = snapshot.docs.map(doc => ({
@@ -288,7 +288,22 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
       }
     );
 
-    return unsubscribe;
+    const enrollmentsUnsubscribe = onSnapshot(
+      query(collection(db, 'enrollments'), where('userId', '==', currentUser.id)),
+      (snapshot) => {
+        const enrollmentsData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Enrollment[];
+        
+        setEnrollments(enrollmentsData);
+      }
+    );
+
+    return () => {
+      progressUnsubscribe();
+      enrollmentsUnsubscribe();
+    };
   }, [currentUser]);
 
   const value: CourseContextType = {

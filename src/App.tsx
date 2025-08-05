@@ -11,7 +11,7 @@ import AdminRoute from './components/auth/AdminRoute';
 import AuthRedirect from './components/auth/AuthRedirect';
 import { initializeGA4 } from './services/analyticsService';
 import { AnalyticsWrapper } from './components/analytics/AnalyticsWrapper';
-import './utils/initializeData'; // Import to make functions available globally
+
 
 // Pages
 import LandingPage from './pages/LandingPage';
@@ -29,6 +29,8 @@ import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
 import AboutPage from './pages/AboutPage';
 import ProgramsPage from './pages/ProgramsPage';
+import PaymentSuccess from './pages/PaymentSuccess';
+import PaymentCancelled from './pages/PaymentCancelled';
 
 // Components
 import Header from './components/layout/Header';
@@ -217,6 +219,18 @@ function App() {
                           <Route path="/payment/:courseId" element={
                             <PrivateRoute>
                               <PaymentPage />
+                            </PrivateRoute>
+                          } />
+                          
+                          <Route path="/payment-success" element={
+                            <PrivateRoute>
+                              <PaymentSuccess />
+                            </PrivateRoute>
+                          } />
+                          
+                          <Route path="/payment-cancelled" element={
+                            <PrivateRoute>
+                              <PaymentCancelled />
                             </PrivateRoute>
                           } />
                           

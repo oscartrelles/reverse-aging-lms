@@ -106,7 +106,7 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const fetchCommunityStats = async () => {
       if (!currentCohort?.id) return;
-      
+
       try {
         const stats = await communityService.getCommunityStats(currentCohort.id);
         setCommunityStats(stats);
@@ -264,7 +264,7 @@ const Dashboard: React.FC = () => {
 
 
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
-  
+
   // Scientific Evidence Data
   const [evidenceData, setEvidenceData] = useState({
     cellularRegeneration: 0,
@@ -312,9 +312,25 @@ const Dashboard: React.FC = () => {
 
 
   // Dashboard states
-  const isEnrolled = currentEnrollment && currentEnrollment.status === 'active';
+  const isEnrolled = currentEnrollment && currentEnrollment.enrollmentStatus === 'active';
   const cohortHasStarted = currentCohort && new Date() >= currentCohort.startDate.toDate();
   const isActiveStudent = isEnrolled && cohortHasStarted;
+
+  // Fetch community stats for enrolled users
+  useEffect(() => {
+    const fetchCommunityStats = async () => {
+      if (!currentCohort?.id || !isEnrolled) return;
+
+      try {
+        const stats = await communityService.getCommunityStats(currentCohort.id);
+        setCommunityStats(stats);
+      } catch (error) {
+        console.error('Error fetching community stats:', error);
+      }
+    };
+
+    fetchCommunityStats();
+  }, [currentCohort?.id, isEnrolled]);
 
   // Get course and lessons data
   const courseId = currentEnrollment?.courseId;
@@ -340,24 +356,40 @@ const Dashboard: React.FC = () => {
     return (
       <Container maxWidth="lg">
         <Box sx={{ py: 4 }}>
-          {/* Hero Section */}
-          <Card sx={{ mb: 4, background: 'linear-gradient(135deg, #4A7B63 0%, #9AB5A7 100%)', color: 'white' }}>
-            <CardContent sx={{ p: 4, textAlign: 'center' }}>
-              <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 700 }}>
+          {/* Hero Section - Matching Landing Page Style */}
+          <Card sx={{ 
+            mb: 4, 
+            background: `linear-gradient(135deg, ${theme.palette.background.default} 0%, ${theme.palette.background.paper} 50%, ${theme.palette.background.default} 100%)`,
+            color: theme.palette.text.primary,
+            position: 'relative',
+            overflow: 'hidden',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: `radial-gradient(circle at 20% 80%, ${theme.palette.primary.main}15 0%, transparent 50%), radial-gradient(circle at 80% 20%, ${theme.palette.primary.main}10 0%, transparent 50%)`,
+              pointerEvents: 'none',
+            }
+          }}>
+            <CardContent sx={{ p: 4, textAlign: 'center', position: 'relative', zIndex: 1 }}>
+              <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 700, color: theme.palette.text.primary }}>
                 Welcome to The Reverse Aging Challenge!
               </Typography>
-              <Typography variant="h5" sx={{ mb: 3, opacity: 0.9 }}>
+              <Typography variant="h5" sx={{ mb: 3, color: theme.palette.text.secondary }}>
                 Your transformation journey begins in {daysUntilStart} days
               </Typography>
               
               <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2, mb: 3 }}>
-                <Schedule sx={{ fontSize: 40 }} />
-                <Typography variant="h4" sx={{ fontWeight: 600 }}>
+                <Schedule sx={{ fontSize: 40, color: theme.palette.primary.main }} />
+                <Typography variant="h4" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
                   {daysUntilStart} days until your cohort starts
                 </Typography>
               </Box>
 
-              <Typography variant="body1" sx={{ mb: 3, opacity: 0.8 }}>
+              <Typography variant="body1" sx={{ mb: 3, color: theme.palette.text.secondary }}>
                 Get ready to join {currentCohort.currentStudents} other students on this life-changing journey
               </Typography>
 
@@ -365,12 +397,18 @@ const Dashboard: React.FC = () => {
                 variant="contained"
                 size="large"
                 sx={{
-                  backgroundColor: 'white',
-                  color: 'primary.main',
+                  backgroundColor: theme.palette.primary.main,
+                  color: '#000',
                   px: 4,
                   py: 1.5,
+                  fontWeight: 600,
+                  fontSize: '1.1rem',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: `0 4px 14px ${theme.palette.primary.main}40`,
                   '&:hover': {
-                    backgroundColor: 'grey.100',
+                    backgroundColor: theme.palette.primary.dark,
+                    transform: 'translateY(-2px)',
+                    boxShadow: `0 6px 20px ${theme.palette.primary.main}60`,
                   },
                 }}
               >
@@ -379,21 +417,80 @@ const Dashboard: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* Community Preview */}
-          <Card sx={{ mb: 4 }}>
-            <CardContent>
-              <Typography variant="h5" gutterBottom>
+          {/* Community Preview - Connected to Real Data */}
+          <Card sx={{ mb: 4, border: '1px solid', borderColor: 'primary.light', backgroundColor: 'rgba(80, 235, 151, 0.02)' }}>
+            <CardContent sx={{ p: 4 }}>
+              <Typography variant="h5" gutterBottom sx={{ color: 'primary.main', fontWeight: 600 }}>
                 Meet Your Community
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                <People sx={{ color: 'primary.main' }} />
-                <Typography variant="h6">
-                  47 students are preparing with you
+                <People sx={{ color: 'primary.main', fontSize: 28 }} />
+                <Typography variant="h6" sx={{ color: theme.palette.text.primary, fontWeight: 600 }}>
+                  {currentCohort.currentStudents} students are preparing with you
                 </Typography>
               </Box>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                 You'll be learning alongside a supportive community of health enthusiasts
               </Typography>
+              
+              {/* Community Stats */}
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 3, mt: 3 }}>
+                <Box sx={{ 
+                  p: 3, 
+                  backgroundColor: 'rgba(76, 175, 80, 0.1)', 
+                  borderRadius: 2, 
+                  border: '1px solid rgba(76, 175, 80, 0.3)',
+                  textAlign: 'center'
+                }}>
+                  <Typography variant="h4" sx={{ color: 'primary.main', fontWeight: 700, mb: 1 }}>
+                    {currentCohort.currentStudents}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                    Total Cohort Size
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ 
+                  p: 3, 
+                  backgroundColor: 'rgba(76, 175, 80, 0.1)', 
+                  borderRadius: 2, 
+                  border: '1px solid rgba(76, 175, 80, 0.3)',
+                  textAlign: 'center'
+                }}>
+                  <Typography variant="h4" sx={{ color: 'primary.main', fontWeight: 700, mb: 1 }}>
+                    {daysUntilStart}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                    Days Until Start
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ 
+                  p: 3, 
+                  backgroundColor: 'rgba(76, 175, 80, 0.1)', 
+                  borderRadius: 2, 
+                  border: '1px solid rgba(76, 175, 80, 0.3)',
+                  textAlign: 'center'
+                }}>
+                  <Typography variant="h4" sx={{ color: 'primary.main', fontWeight: 700, mb: 1 }}>
+                    {communityStats?.academyUsersOnline || 0}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                    Academy Online Now
+                  </Typography>
+                </Box>
+              </Box>
+              
+              {/* Additional Community Info */}
+              {communityStats && (
+                <Box sx={{ mt: 3, p: 3, backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 2 }}>
+                  <Typography variant="body2" sx={{ color: theme.palette.text.secondary, textAlign: 'center' }}>
+                    <strong>Community Engagement:</strong> {communityStats.engagementScore} • 
+                    <strong> Questions This Week:</strong> {communityStats.questionsLastWeek} • 
+                    <strong> Active Streaks:</strong> {communityStats.hotStreak}
+                  </Typography>
+                </Box>
+              )}
             </CardContent>
           </Card>
 
@@ -975,22 +1072,22 @@ const Dashboard: React.FC = () => {
               </Box>
               <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary', mb: 1 }}>
                 Evidence-Based
-              </Typography>
+            </Typography>
               <Typography variant="body2" color="text.secondary">
                 Backed by latest longevity research
               </Typography>
             </Box>
-
+            
             {/* Community-Driven Badge */}
             <Box sx={{ textAlign: 'center' }}>
-              <Box sx={{ 
+                <Box sx={{ 
                 width: 48, 
                 height: 48, 
-                borderRadius: '50%', 
-                backgroundColor: 'primary.main', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
+                  borderRadius: '50%', 
+                  backgroundColor: 'primary.main', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
                 mx: 'auto',
                 mb: 2
               }}>
@@ -1001,8 +1098,8 @@ const Dashboard: React.FC = () => {
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Learn alongside like-minded individuals
-              </Typography>
-            </Box>
+                  </Typography>
+                </Box>
           </Box>
         </Box>
 
@@ -1011,13 +1108,13 @@ const Dashboard: React.FC = () => {
           <CardContent sx={{ p: 4 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
               <Science sx={{ fontSize: 32, color: 'primary.main' }} />
-              <Box>
+                <Box>
                 <Typography variant="h4" sx={{ fontWeight: 600, color: 'primary.main', mb: 1 }}>
                   Latest Scientific Evidence
-                </Typography>
+                  </Typography>
                 <Typography variant="body1" color="text.secondary">
                   Stay ahead with cutting-edge research on healthspan and longevity
-                </Typography>
+                  </Typography>
               </Box>
             </Box>
             
@@ -1026,8 +1123,8 @@ const Dashboard: React.FC = () => {
                 <CircularProgress size={40} color="primary" />
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
                   Loading latest research...
-                </Typography>
-              </Box>
+                  </Typography>
+                </Box>
             ) : latestStudies.length > 0 ? (
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 3 }}>
                 {latestStudies.map((study, index) => (
@@ -1071,8 +1168,8 @@ const Dashboard: React.FC = () => {
                           }
                         }}
                       />
-                    </Box>
-                    
+              </Box>
+              
                     <Typography variant="body1" sx={{ 
                       mb: 3, 
                       lineHeight: 1.7,
@@ -1161,23 +1258,23 @@ const Dashboard: React.FC = () => {
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 3 }}>
                 <Card sx={{ p: 3, border: '1px solid', borderColor: 'grey.200', backgroundColor: 'white', height: '100%' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                    <Box sx={{ 
+                <Box sx={{ 
                       width: 48, 
                       height: 48, 
-                      borderRadius: '50%', 
-                      backgroundColor: 'primary.main', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center',
+                  borderRadius: '50%', 
+                  backgroundColor: 'primary.main', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
                       flexShrink: 0
-                    }}>
+                }}>
                       <Typography variant="h6" sx={{ color: '#000', fontWeight: 'bold' }}>
                         1
-                      </Typography>
-                    </Box>
+                  </Typography>
+                </Box>
                     <Typography variant="h6" sx={{ fontWeight: 600, color: '#1a1a1a' }}>
                       Foundation & Mindset
-                    </Typography>
+                  </Typography>
                   </Box>
                   <Typography variant="body1" sx={{ color: '#333333', lineHeight: 1.6, mb: 2 }}>
                     Build your transformation foundation with proven mindset techniques, goal setting strategies, and understanding the science behind reverse aging.
@@ -1203,12 +1300,12 @@ const Dashboard: React.FC = () => {
                     }}>
                       <Typography variant="h6" sx={{ color: '#000', fontWeight: 'bold' }}>
                         2
-                      </Typography>
-                    </Box>
+                  </Typography>
+                </Box>
                     <Typography variant="h6" sx={{ fontWeight: 600, color: '#1a1a1a' }}>
                       Health Mastery
                     </Typography>
-                  </Box>
+              </Box>
                   <Typography variant="body1" sx={{ color: '#333333', lineHeight: 1.6, mb: 2 }}>
                     Dive deep into nutrition optimization, movement patterns, breathwork techniques, and cold exposure protocols.
                   </Typography>
@@ -1221,23 +1318,23 @@ const Dashboard: React.FC = () => {
 
                 <Card sx={{ p: 3, border: '1px solid', borderColor: 'grey.200', backgroundColor: 'white', height: '100%' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                    <Box sx={{ 
+                <Box sx={{ 
                       width: 48, 
                       height: 48, 
-                      borderRadius: '50%', 
-                      backgroundColor: 'primary.main', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center',
+                  borderRadius: '50%', 
+                  backgroundColor: 'primary.main', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
                       flexShrink: 0
-                    }}>
+                }}>
                                               <Typography variant="h6" sx={{ color: '#000', fontWeight: 'bold' }}>
                           ∞
-                        </Typography>
-                    </Box>
+                  </Typography>
+                </Box>
                     <Typography variant="h6" sx={{ fontWeight: 600, color: '#1a1a1a' }}>
                       Lifestyle Integration
-                    </Typography>
+                  </Typography>
                   </Box>
                   <Typography variant="body1" sx={{ color: '#333333', lineHeight: 1.6, mb: 2 }}>
                     Develop a comprehensive daily routine and integrate these practices seamlessly into your lifestyle for lasting transformation.
@@ -1248,9 +1345,9 @@ const Dashboard: React.FC = () => {
                     ))}
                   </Box>
                 </Card>
+                </Box>
               </Box>
             </Box>
-          </Box>
 
         {/* Why Our Approach Works & Next Cohort - Two Columns */}
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 4, mb: 6, alignItems: 'stretch' }}>
@@ -1288,7 +1385,7 @@ const Dashboard: React.FC = () => {
                   </Box>
                   <Typography variant="h6" sx={{ fontWeight: 700, color: '#ffffff' }}>
                     Evidence-Based Science
-                  </Typography>
+                </Typography>
                 </Box>
                 <Typography variant="body1" sx={{ color: '#e0e0e0', lineHeight: 1.7, fontSize: '1rem' }}>
                   All protocols are backed by the latest research in longevity, cellular biology, and anti-aging science.
@@ -1319,10 +1416,10 @@ const Dashboard: React.FC = () => {
                     boxShadow: '0 2px 8px rgba(76, 175, 80, 0.3)'
                   }}>
                     <People sx={{ fontSize: 24, color: '#ffffff' }} />
-                  </Box>
+              </Box>
                   <Typography variant="h6" sx={{ fontWeight: 700, color: '#ffffff' }}>
                     Community Support
-                  </Typography>
+                </Typography>
                 </Box>
                 <Typography variant="body1" sx={{ color: '#e0e0e0', lineHeight: 1.7, fontSize: '1rem' }}>
                   Join a community of like-minded individuals on the same transformation journey.
@@ -1353,10 +1450,10 @@ const Dashboard: React.FC = () => {
                     boxShadow: '0 2px 8px rgba(76, 175, 80, 0.3)'
                   }}>
                     <Schedule sx={{ fontSize: 24, color: '#ffffff' }} />
-                  </Box>
+              </Box>
                   <Typography variant="h6" sx={{ fontWeight: 700, color: '#ffffff' }}>
                     Sustainable Integration
-                  </Typography>
+                </Typography>
                 </Box>
                 <Typography variant="body1" sx={{ color: '#e0e0e0', lineHeight: 1.7, fontSize: '1rem' }}>
                   Designed to fit seamlessly into your daily life with sustainable habits that become part of your lifestyle.
@@ -1387,10 +1484,10 @@ const Dashboard: React.FC = () => {
                     boxShadow: '0 2px 8px rgba(76, 175, 80, 0.3)'
                   }}>
                     <VerifiedUser sx={{ fontSize: 24, color: '#ffffff' }} />
-                  </Box>
+              </Box>
                   <Typography variant="h6" sx={{ fontWeight: 700, color: '#ffffff' }}>
                     Proven Results
-                  </Typography>
+                </Typography>
                 </Box>
                 <Typography variant="body1" sx={{ color: '#e0e0e0', lineHeight: 1.7, fontSize: '1rem' }}>
                   Join hundreds of students who have already transformed their health and vitality.
@@ -1409,7 +1506,7 @@ const Dashboard: React.FC = () => {
                 <Typography variant="h4" color="primary.main" sx={{ mb: 3, fontWeight: 700 }}>
                   November 2025
                 </Typography>
-                
+                  
                 {/* Pricing */}
                 <Box sx={{ mb: 4 }}>
                   <Box sx={{ opacity: 0.7, mb: 2 }}>
@@ -1460,55 +1557,55 @@ const Dashboard: React.FC = () => {
 
                 {/* Trust Badges */}
                 <Box sx={{ textAlign: 'center', mb: 3 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mb: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       <Security sx={{ fontSize: 16, color: '#4CAF50' }} />
                       <Typography variant="caption" color="#e0e0e0">
-                        Secure
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <VerifiedUser sx={{ fontSize: 16, color: '#4CAF50' }} />
-                      <Typography variant="caption" color="#e0e0e0">
-                        Verified
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <Support sx={{ fontSize: 16, color: '#4CAF50' }} />
-                      <Typography variant="caption" color="#e0e0e0">
-                        Support
-                      </Typography>
-                    </Box>
-                  </Box>
-                  <Typography variant="body2" color="#4CAF50" sx={{ fontWeight: 600 }}>
-                    ✓ 30-Day Money-Back Guarantee
+                    Secure
                   </Typography>
                 </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <VerifiedUser sx={{ fontSize: 16, color: '#4CAF50' }} />
+                      <Typography variant="caption" color="#e0e0e0">
+                    Verified
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Support sx={{ fontSize: 16, color: '#4CAF50' }} />
+                      <Typography variant="caption" color="#e0e0e0">
+                    Support
+                  </Typography>
+                </Box>
+              </Box>
+                  <Typography variant="body2" color="#4CAF50" sx={{ fontWeight: 600 }}>
+                ✓ 30-Day Money-Back Guarantee
+              </Typography>
+            </Box>
 
                 {/* In-Person CTA */}
                 <Box sx={{ textAlign: 'center', mt: 'auto' }}>
                   <Typography variant="body1" sx={{ mb: 2, color: '#e0e0e0', fontStyle: 'italic' }}>
-                    Can't wait until November?
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    size="medium"
-                    href="https://7weekreverseagingchallenge.com/#apply"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    sx={{
+                Can't wait until November?
+              </Typography>
+              <Button
+                variant="outlined"
+                size="medium"
+                href="https://7weekreverseagingchallenge.com/#apply"
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{
                       borderColor: '#2E7D32',
                       color: '#2E7D32',
-                      fontWeight: 600,
-                      '&:hover': {
+                  fontWeight: 600,
+                  '&:hover': {
                         borderColor: '#1B5E20',
                         backgroundColor: 'rgba(46, 125, 50, 0.1)',
-                      }
-                    }}
-                  >
+                  }
+                }}
+              >
                     Apply for In-Person Cohort in Spain
-                  </Button>
-                </Box>
+              </Button>
+            </Box>
               </CardContent>
             </Card>
           </Box>
@@ -1529,12 +1626,12 @@ const Dashboard: React.FC = () => {
           }}>
             <CardContent sx={{ p: 4, textAlign: 'center', position: 'relative' }}>
               <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 600, mb: 3, fontStyle: 'italic' }}>
-                "{testimonials[currentTestimonial].text}"
-              </Typography>
+                  "{testimonials[currentTestimonial].text}"
+                </Typography>
               <Typography variant="body1" sx={{ color: '#4CAF50', fontWeight: 600 }}>
-                — {testimonials[currentTestimonial].author}
-              </Typography>
-              
+                  — {testimonials[currentTestimonial].author}
+                </Typography>
+
               {/* Navigation Dots */}
               <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mt: 3 }}>
                 {testimonials.map((_, index) => (

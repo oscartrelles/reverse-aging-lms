@@ -101,7 +101,7 @@ const LessonPage: React.FC = () => {
   const progress = lessonProgress.find(p => p.lessonId === lesson.id);
 
   // Check access
-  const isEnrolled = currentEnrollment && currentEnrollment.status === 'active';
+  const isEnrolled = currentEnrollment && currentEnrollment.enrollmentStatus === 'active';
   const cohortHasStarted = currentCohort && new Date() >= currentCohort.startDate.toDate();
   const canAccessContent = isEnrolled && cohortHasStarted;
 

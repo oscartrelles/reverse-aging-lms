@@ -991,8 +991,8 @@ const AdminStudentManagement: React.FC = () => {
         {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h4" component="h1">
-            Student Management
-          </Typography>
+          Student Management
+        </Typography>
           <Box>
             <Button
               variant="contained"
@@ -1024,9 +1024,9 @@ const AdminStudentManagement: React.FC = () => {
                 <Box>
                   <Typography variant="h6">
                     {students.filter(s => s.enrollment?.status === 'active').length}
-                  </Typography>
+        </Typography>
                   <Typography variant="body2" color="text.secondary">Active Students</Typography>
-                </Box>
+      </Box>
               </Box>
             </CardContent>
           </Card>

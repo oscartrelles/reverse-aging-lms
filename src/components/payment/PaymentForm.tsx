@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -20,10 +20,11 @@ import {
   Discount,
   CheckCircle,
 } from '@mui/icons-material';
-import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
 import { useAuth } from '../../contexts/AuthContext';
-import { processSuccessfulPayment, processFailedPayment } from '../../services/paymentService';
 import { getActiveEnrollment } from '../../services/enrollmentService';
+import { createCheckoutSession } from '../../services/stripeService';
+import { getAvailableCohorts } from '../../services/cohortService';
+import { Cohort } from '../../types';
 
 interface PaymentFormProps {
   courseId: string;
@@ -47,27 +48,37 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   onSuccess,
   onError,
 }) => {
-  const stripe = useStripe();
-  const elements = useElements();
   const { currentUser } = useAuth();
 
-  const [paymentMethod, setPaymentMethod] = useState<'full' | 'installments'>('full');
   const [discountCode, setDiscountCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState<DiscountCode | null>(null);
   const [loading, setLoading] = useState(false);
-  const [cardholderName, setCardholderName] = useState('');
-  const [showTestCards, setShowTestCards] = useState(false);
-  const [isEnrolled, setIsEnrolled] = useState(false);
 
-  // Check if user is already enrolled
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
+  const [availableCohorts, setAvailableCohorts] = useState<Cohort[]>([]);
+  const [selectedCohortId, setSelectedCohortId] = useState<string>('');
+  const hasSetInitialCohort = useRef(false);
+
+  // Check if user is already enrolled and get available cohorts
   useEffect(() => {
-    const checkEnrollment = async () => {
+    const checkEnrollmentAndCohorts = async () => {
       if (currentUser) {
         const enrollment = await getActiveEnrollment(currentUser.id, courseId);
         setIsEnrolled(!!enrollment);
+        
+        // Get available cohorts for enrollment
+        const cohorts = await getAvailableCohorts(courseId);
+        setAvailableCohorts(cohorts);
+        
+        // Auto-select the first available cohort (only once)
+        if (cohorts.length > 0 && !hasSetInitialCohort.current) {
+          setSelectedCohortId(cohorts[0].id);
+          hasSetInitialCohort.current = true;
+        }
       }
     };
-    checkEnrollment();
+    checkEnrollmentAndCohorts();
   }, [currentUser, courseId]);
 
   // Mock discount codes - replace with real validation
@@ -77,13 +88,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
     { code: 'FRIEND20', type: 'percentage', value: 20, isValid: true },
   ];
 
-  // Stripe test card numbers
-  const testCards = [
-    { name: 'Visa (Success)', number: '4242424242424242', cvv: '123', expiry: '12/25' },
-    { name: 'Visa (Declined)', number: '4000000000000002', cvv: '123', expiry: '12/25' },
-    { name: 'Mastercard (Success)', number: '5555555555554444', cvv: '123', expiry: '12/25' },
-    { name: '3D Secure (Success)', number: '4000002500003155', cvv: '123', expiry: '12/25' },
-  ];
+
 
   const calculatePrice = () => {
     let finalPrice = price;
@@ -143,68 +148,36 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!stripe || !elements || !currentUser) {
-      onError('Payment system not ready. Please try again.');
+    if (!currentUser) {
+      onError('User is not authenticated.');
       return;
     }
 
     setLoading(true);
 
     try {
-      console.log('Processing payment with Stripe...');
+      console.log('Creating Stripe Checkout session...');
       console.log('Course ID:', courseId);
       console.log('Amount:', calculatePrice());
       console.log('User ID:', currentUser.id);
 
-      // Get the card element
-      const cardElement = elements.getElement(CardElement);
-      if (!cardElement) {
-        throw new Error('Card information is required.');
-      }
-
-      // Create payment intent (simulated for now - in production this would call your backend)
+      // Create a Stripe Checkout session
       const amount = Math.round(calculatePrice() * 100); // Convert to cents
-      const paymentIntentId = `pi_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-      // Confirm the payment with Stripe
-      const { error, paymentIntent } = await stripe.confirmCardPayment(
-        paymentIntentId, // In production, this would be a real client secret from your backend
-        {
-          payment_method: {
-            card: cardElement,
-            billing_details: {
-              name: cardholderName,
-            },
-          },
-        }
-      );
-
-      if (error) {
-        console.error('Payment failed:', error);
-        throw new Error(error.message || 'Payment failed. Please try again.');
+      
+      // Validate cohort selection
+      if (!selectedCohortId) {
+        throw new Error('Please select a cohort to join.');
       }
 
-      if (paymentIntent && paymentIntent.status === 'succeeded') {
-        console.log('Payment successful! Payment Intent ID:', paymentIntent.id);
-        
-        // Process the successful payment
-        const paymentId = await processSuccessfulPayment(
-          currentUser.id,
-          courseId,
-          'default-cohort-id', // You'll need to get the actual cohort ID
-          calculatePrice(),
-          paymentIntent.id
-        );
-
-        onSuccess(paymentId);
-        
-        // Force a page refresh to update the dashboard state after 2 seconds
-        setTimeout(() => {
-          window.location.reload();
-        }, 2000);
-      } else {
-        throw new Error('Payment was not successful.');
-      }
+      // Create checkout session
+      const checkoutUrl = await createCheckoutSession(amount, courseId, courseTitle, selectedCohortId);
+      console.log('Received checkout URL:', checkoutUrl);
+      
+      setCheckoutUrl(checkoutUrl);
+      
+      // Redirect to Stripe Checkout
+      window.location.href = checkoutUrl;
+      
     } catch (error) {
       console.error('Payment failed:', error);
       onError(error instanceof Error ? error.message : 'Payment failed. Please try again.');
@@ -226,37 +199,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         Join The Reverse Aging Challenge and transform your health
       </Typography>
 
-      {/* Test Mode Alert */}
-      <Alert severity="info" sx={{ mb: 3 }}>
-        <strong>Test Mode:</strong> Use these test card numbers to simulate payments:
-        <Button 
-          size="small" 
-          onClick={() => setShowTestCards(!showTestCards)}
-          sx={{ ml: 1 }}
-        >
-          {showTestCards ? 'Hide' : 'Show'} Test Cards
-        </Button>
-      </Alert>
 
-      {showTestCards && (
-        <Card sx={{ mb: 3, backgroundColor: 'rgba(25, 118, 210, 0.1)' }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Test Card Numbers
-            </Typography>
-            {testCards.map((card, index) => (
-              <Box key={index} sx={{ mb: 1, p: 1, backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: 1 }}>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {card.name}
-                </Typography>
-                <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
-                  {card.number} | CVV: {card.cvv} | Exp: {card.expiry}
-                </Typography>
-              </Box>
-            ))}
-          </CardContent>
-        </Card>
-      )}
 
       <Card sx={{ mb: 3 }}>
         <CardContent>
@@ -294,6 +237,47 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
           </Box>
         </CardContent>
       </Card>
+
+      {/* Cohort Selection */}
+      {availableCohorts.length > 0 && (
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Select Your Cohort
+            </Typography>
+            
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Choose which cohort you'd like to join:
+            </Typography>
+            
+            <FormControl component="fieldset" fullWidth>
+              <RadioGroup
+                value={selectedCohortId}
+                onChange={(e) => setSelectedCohortId(e.target.value)}
+              >
+                {availableCohorts.map((cohort) => (
+                  <FormControlLabel
+                    key={cohort.id}
+                    value={cohort.id}
+                    control={<Radio />}
+                    label={
+                      <Box>
+                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                          {cohort.name}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Starts: {cohort.startDate.toDate().toLocaleDateString()} • 
+                          {cohort.currentStudents}/{cohort.maxStudents} students enrolled
+                        </Typography>
+                      </Box>
+                    }
+                  />
+                ))}
+              </RadioGroup>
+            </FormControl>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Discount Code */}
       <Card sx={{ mb: 3 }}>
@@ -339,111 +323,47 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         </CardContent>
       </Card>
 
-      {/* Payment Method */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Payment Method
-          </Typography>
-          
-          <FormControl component="fieldset">
-            <RadioGroup
-              value={paymentMethod}
-              onChange={(e) => setPaymentMethod(e.target.value as 'full' | 'installments')}
-            >
-              <FormControlLabel
-                value="full"
-                control={<Radio />}
-                label={
-                  <Box>
-                    <Typography variant="body1">Pay in Full</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      €{finalPrice} (one-time payment)
-                    </Typography>
-                  </Box>
-                }
-              />
-              <FormControlLabel
-                value="installments"
-                control={<Radio />}
-                label={
-                  <Box>
-                    <Typography variant="body1">Pay in Installments</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      2 payments of €{installmentAmount} each
-                    </Typography>
-                  </Box>
-                }
-              />
-            </RadioGroup>
-          </FormControl>
-        </CardContent>
-      </Card>
-
-      {/* Payment Form */}
+      {/* Checkout Button */}
       <Card>
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            Payment Details
+            Complete Your Purchase
           </Typography>
           
-          <form onSubmit={handleSubmit}>
-            <TextField
-              fullWidth
-              label="Cardholder Name"
-              value={cardholderName}
-              onChange={(e) => setCardholderName(e.target.value)}
-              sx={{ mb: 2 }}
-              required
-            />
-            
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Card Information
-              </Typography>
-              <CardElement
-                options={{
-                  style: {
-                    base: {
-                      fontSize: '16px',
-                      color: '#424770',
-                      '::placeholder': {
-                        color: '#aab7c4',
-                      },
-                    },
-                    invalid: {
-                      color: '#9e2146',
-                    },
-                  },
-                }}
-              />
-            </Box>
-            
-            <Button
-              type="submit"
-              variant="contained"
-              fullWidth
-              size="large"
-              disabled={loading || !cardholderName}
-              sx={{
-                backgroundColor: 'primary.main',
-                color: '#000',
-                fontWeight: 700,
-                '&:hover': {
-                  backgroundColor: 'primary.light',
-                }
-              }}
-            >
-              {loading ? (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <CircularProgress size={20} color="inherit" />
-                  Processing Payment...
-                </Box>
-              ) : (
-                `Pay €${finalPrice}`
-              )}
-            </Button>
-          </form>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Click the button below to securely complete your payment using Stripe Checkout.
+          </Typography>
+          
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
+            fullWidth
+            size="large"
+            disabled={loading || !selectedCohortId}
+            sx={{
+              backgroundColor: 'primary.main',
+              color: '#000',
+              fontWeight: 700,
+              '&:hover': {
+                backgroundColor: 'primary.light',
+              }
+            }}
+          >
+            {loading ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CircularProgress size={20} color="inherit" />
+                Opening Checkout...
+              </Box>
+            ) : (
+              `Pay €${finalPrice} with Stripe Checkout`
+            )}
+          </Button>
+          
+          {checkoutUrl && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: 'center' }}>
+              Checkout window opened. Please complete your payment there.
+            </Typography>
+          )}
         </CardContent>
       </Card>
     </Box>

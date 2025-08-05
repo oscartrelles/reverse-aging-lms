@@ -845,7 +845,7 @@ const ProfilePage: React.FC = () => {
 
           {/* Progress & Achievements or Cohort Invitation */}
           <Box sx={{ flex: { xs: 1, md: 4 } }}>
-            {currentEnrollment && currentEnrollment.status === 'active' ? (
+            {currentEnrollment && currentEnrollment.enrollmentStatus === 'active' ? (
               // Show progress for enrolled users
               <>
                 <Paper

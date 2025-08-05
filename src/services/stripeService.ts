@@ -1,4 +1,6 @@
 import { loadStripe, Stripe } from '@stripe/stripe-js';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { getApp } from 'firebase/app';
 
 // Initialize Stripe
 let stripePromise: Promise<Stripe | null>;
@@ -10,85 +12,65 @@ export const getStripe = () => {
   return stripePromise;
 };
 
-// Payment Intent creation
-export const createPaymentIntent = async (amount: number, courseId: string, userId: string) => {
+// Initialize Firebase Functions
+const functions = getFunctions(getApp());
+
+// Checkout Session creation using Firebase Functions
+export const createCheckoutSession = async (amount: number, courseId: string, courseTitle: string, cohortId: string) => {
   try {
-    const response = await fetch('/api/create-payment-intent', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        amount: Math.round(amount * 100), // Convert to cents
-        courseId,
-        userId,
-        currency: 'eur',
-      }),
+    const createCheckoutSessionFunction = httpsCallable(functions, 'createCheckoutSession');
+    
+    const result = await createCheckoutSessionFunction({
+      amount: amount,
+      courseId: courseId,
+      courseTitle: courseTitle,
+      cohortId: cohortId,
+      currency: 'eur',
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to create payment intent');
-    }
-
-    const data = await response.json();
-    return data.clientSecret;
-  } catch (error) {
-    console.error('Error creating payment intent:', error);
-    throw error;
+    const data = result.data as any;
+    return data.checkoutUrl;
+  } catch (error: any) {
+    console.error('Error creating checkout session:', error);
+    throw new Error(error.message || 'Failed to create checkout session');
   }
 };
 
-// Payment confirmation
-export const confirmPayment = async (paymentIntentId: string) => {
+// Payment confirmation using Firebase Functions
+export const confirmPayment = async (paymentIntentId: string, tokenId: string) => {
   try {
-    const response = await fetch('/api/confirm-payment', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        paymentIntentId,
-      }),
+    const confirmPaymentFunction = httpsCallable(functions, 'confirmPayment');
+    
+    const result = await confirmPaymentFunction({
+      paymentIntentId: paymentIntentId,
+      tokenId: tokenId,
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to confirm payment');
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
+    return result.data;
+  } catch (error: any) {
     console.error('Error confirming payment:', error);
-    throw error;
+    throw new Error(error.message || 'Failed to confirm payment');
   }
 };
 
-// Payment status check
+// Payment status check using Firebase Functions
 export const getPaymentStatus = async (paymentIntentId: string) => {
   try {
-    const response = await fetch(`/api/payment-status/${paymentIntentId}`);
+    const getPaymentStatusFunction = httpsCallable(functions, 'getPaymentStatus');
     
-    if (!response.ok) {
-      throw new Error('Failed to get payment status');
-    }
+    const result = await getPaymentStatusFunction({
+      paymentIntentId: paymentIntentId,
+    });
 
-    const data = await response.json();
+    const data = result.data as any;
     return data.status;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error getting payment status:', error);
-    throw error;
+    throw new Error(error.message || 'Failed to get payment status');
   }
 };
 
-// For now, we'll use a simplified approach without backend
-// This will be replaced with real backend integration
+// Legacy function for backward compatibility - now uses real Firebase Functions
 export const createPaymentIntentClient = async (amount: number, courseId: string, userId: string) => {
-  // Simulate payment intent creation for now
-  // In production, this would call your backend
-  return new Promise<string>((resolve) => {
-    setTimeout(() => {
-      const clientSecret = `pi_${Date.now()}_secret_${Math.random().toString(36).substr(2, 9)}`;
-      resolve(clientSecret);
-    }, 1000);
-  });
+  return await createCheckoutSession(amount, courseId, 'The Reverse Aging Challenge', 'default-cohort-id');
 }; 

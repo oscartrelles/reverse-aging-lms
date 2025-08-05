@@ -187,7 +187,7 @@ const AdminUserManagement: React.FC = () => {
         userId: selectedUser.id,
         courseId: enrollmentForm.courseId,
         cohortId: enrollmentForm.cohortId,
-        status: 'active',
+        enrollmentStatus: 'active',
         paymentStatus: enrollmentForm.paymentStatus,
         enrolledAt: Timestamp.now(),
       };
@@ -435,7 +435,7 @@ const AdminUserManagement: React.FC = () => {
                                   key={enrollment.id}
                                   label={`${getCourseName(enrollment.courseId)} - ${getCohortName(enrollment.cohortId)}`}
                                   size="small"
-                                  color={enrollment.status === 'active' ? 'success' : 'default'}
+                                  color={enrollment.enrollmentStatus === 'active' ? 'success' : 'default'}
                                   variant="outlined"
                                 />
                               ))

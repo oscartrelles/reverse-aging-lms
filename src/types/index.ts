@@ -81,12 +81,13 @@ export interface Enrollment {
   userId: string;
   courseId: string;
   cohortId: string;
-  status: 'pending' | 'active' | 'completed' | 'cancelled';
+  enrollmentStatus: 'pending' | 'active' | 'completed' | 'cancelled';
   paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
   enrolledAt: Timestamp;
   completedAt?: Timestamp;
   stripeCustomerId?: string;
   stripeSubscriptionId?: string;
+  paymentId?: string;
 }
 
 // Cohort types
