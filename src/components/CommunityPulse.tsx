@@ -93,11 +93,24 @@ const CommunityPulse: React.FC<CommunityPulseProps> = ({ cohortId, className, sx
 
         {/* Real-time Metrics */}
         <Box sx={{ mb: 2 }}>
-          {/* Academy Users Online */}
+          {/* Total Users Online */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
             <People sx={{ color: 'primary.main', fontSize: 20 }} />
             <Box sx={{ flex: 1 }}>
               <Typography variant="h5" color="primary.main" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+                {stats.totalUsersOnline}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                users online globally
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* Academy Users Online */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
+            <People sx={{ color: 'secondary.main', fontSize: 20 }} />
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="h6" color="secondary.main" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
                 {stats.academyUsersOnline}
               </Typography>
               <Typography variant="caption" color="text.secondary">
@@ -109,9 +122,9 @@ const CommunityPulse: React.FC<CommunityPulseProps> = ({ cohortId, className, sx
           {/* Cohort Active Users */}
           {cohortId && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
-              <People sx={{ color: 'secondary.main', fontSize: 20 }} />
+              <People sx={{ color: 'info.main', fontSize: 20 }} />
               <Box sx={{ flex: 1 }}>
-                <Typography variant="h6" color="secondary.main" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+                <Typography variant="h6" color="info.main" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
                   {stats.cohortActiveUsers}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
@@ -123,9 +136,9 @@ const CommunityPulse: React.FC<CommunityPulseProps> = ({ cohortId, className, sx
 
           {/* Questions Last Week */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
-            <ChatBubble sx={{ color: 'info.main', fontSize: 20 }} />
+            <ChatBubble sx={{ color: 'warning.main', fontSize: 20 }} />
             <Box sx={{ flex: 1 }}>
-              <Typography variant="h6" color="info.main" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+              <Typography variant="h6" color="warning.main" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
                 {stats.questionsLastWeek}
               </Typography>
               <Typography variant="caption" color="text.secondary">
@@ -162,6 +175,21 @@ const CommunityPulse: React.FC<CommunityPulseProps> = ({ cohortId, className, sx
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
                   new questions in last 24h
+                </Typography>
+              </Box>
+            </Box>
+          )}
+
+          {/* Upvoted Content */}
+          {stats.upvotedContent > 0 && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+              <Star sx={{ color: 'warning.main', fontSize: 18 }} />
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="body1" color="warning.main" sx={{ fontWeight: 600 }}>
+                  {stats.upvotedContent}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  items upvoted in last 24h
                 </Typography>
               </Box>
             </Box>

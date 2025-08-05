@@ -6,6 +6,7 @@ export interface CommunityStats {
   // Real-time metrics
   academyUsersOnline: number;
   cohortActiveUsers: number;
+  totalUsersOnline: number; // All users (not just students) currently online
   questionsLastWeek: number;
   
   // Gamification metrics
@@ -14,6 +15,9 @@ export interface CommunityStats {
   cohortProgress: number; // average completion percentage
   engagementScore: 'High' | 'Medium' | 'Low';
   weeklyGoals: number; // % of cohort who completed this week's lessons
+  
+  // Content engagement metrics
+  upvotedContent: number; // questions and scientific evidence items upvoted in last 24h
 }
 
 export interface UserActivity {
@@ -45,7 +49,7 @@ export const communityService = {
     }
   },
 
-  // Get real-time academy users online
+  // Get real-time academy users online (students only)
   async getAcademyUsersOnline(): Promise<number> {
     try {
       const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
@@ -59,6 +63,25 @@ export const communityService = {
       return snapshot.size;
     } catch (error) {
       console.error('Error getting academy users online:', error);
+      // Return 0 if index is still building
+      return 0;
+    }
+  },
+
+  // Get total users online (including admins, moderators, etc.)
+  async getTotalUsersOnline(): Promise<number> {
+    try {
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      const onlineQuery = query(
+        collection(db, 'userActivity'),
+        where('lastSeen', '>', Timestamp.fromDate(fiveMinutesAgo)),
+        where('isOnline', '==', true)
+      );
+      
+      const snapshot = await getDocs(onlineQuery);
+      return snapshot.size;
+    } catch (error) {
+      console.error('Error getting total users online:', error);
       // Return 0 if index is still building
       return 0;
     }
@@ -224,12 +247,50 @@ export const communityService = {
     }
   },
 
+  // Get upvoted content (questions and scientific evidence) in last 24h
+  async getUpvotedContent(): Promise<number> {
+    try {
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      
+      // Get upvoted questions
+      const questionsQuery = query(
+        collection(db, 'questions'),
+        where('createdAt', '>', Timestamp.fromDate(oneDayAgo)),
+        where('votes', '>', 0)
+      );
+      
+      const questionsSnapshot = await getDocs(questionsQuery);
+      const upvotedQuestions = questionsSnapshot.docs.filter(doc => {
+        const data = doc.data();
+        return data.votes && data.votes > 0;
+      }).length;
+      
+      // Get upvoted scientific updates
+      const updatesQuery = query(
+        collection(db, 'scientificUpdates'),
+        where('createdAt', '>', Timestamp.fromDate(oneDayAgo)),
+        where('votes', '>', 0)
+      );
+      
+      const updatesSnapshot = await getDocs(updatesQuery);
+      const upvotedUpdates = updatesSnapshot.docs.filter(doc => {
+        const data = doc.data();
+        return data.votes && data.votes > 0;
+      }).length;
+      
+      return upvotedQuestions + upvotedUpdates;
+    } catch (error) {
+      console.error('Error getting upvoted content:', error);
+      return 0;
+    }
+  },
+
   // Calculate engagement score
-  calculateEngagementScore(questionsLastWeek: number, hotStreak: number, communityBuzz: number): 'High' | 'Medium' | 'Low' {
-    const score = questionsLastWeek + hotStreak + communityBuzz;
+  calculateEngagementScore(questionsLastWeek: number, hotStreak: number, communityBuzz: number, upvotedContent: number): 'High' | 'Medium' | 'Low' {
+    const score = questionsLastWeek + hotStreak + communityBuzz + upvotedContent;
     
     if (score >= 50) return 'High';
-    if (score >= 20) return 'Medium';
+    if (score >= 10) return 'Medium'; // Lowered threshold from 20 to 10
     return 'Low';
   },
 
@@ -330,44 +391,52 @@ export const communityService = {
       const [
         academyUsersOnline,
         cohortActiveUsers,
+        totalUsersOnline,
         questionsLastWeek,
         hotStreak,
         communityBuzz,
         cohortProgress,
-        weeklyGoals
+        weeklyGoals,
+        upvotedContent
       ] = await Promise.all([
         this.getAcademyUsersOnline(),
         cohortId ? this.getCohortActiveUsers(cohortId) : Promise.resolve(0),
+        this.getTotalUsersOnline(),
         this.getQuestionsLastWeek(),
         this.getHotStreak(),
         this.getCommunityBuzz(),
         cohortId ? this.getCohortProgress(cohortId) : Promise.resolve(0),
-        cohortId ? this.getWeeklyGoals(cohortId) : Promise.resolve(0)
+        cohortId ? this.getWeeklyGoals(cohortId) : Promise.resolve(0),
+        this.getUpvotedContent()
       ]);
 
-      const engagementScore = this.calculateEngagementScore(questionsLastWeek, hotStreak, communityBuzz);
+      const engagementScore = this.calculateEngagementScore(questionsLastWeek, hotStreak, communityBuzz, upvotedContent);
 
       return {
         academyUsersOnline,
         cohortActiveUsers,
+        totalUsersOnline,
         questionsLastWeek,
         hotStreak,
         communityBuzz,
         cohortProgress,
         engagementScore,
-        weeklyGoals
+        weeklyGoals,
+        upvotedContent
       };
     } catch (error) {
       console.error('Error getting community stats:', error);
       return {
         academyUsersOnline: 0,
         cohortActiveUsers: 0,
+        totalUsersOnline: 0,
         questionsLastWeek: 0,
         hotStreak: 0,
         communityBuzz: 0,
         cohortProgress: 0,
         engagementScore: 'Low',
-        weeklyGoals: 0
+        weeklyGoals: 0,
+        upvotedContent: 0
       };
     }
   },
