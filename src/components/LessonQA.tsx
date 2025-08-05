@@ -295,7 +295,7 @@ const LessonQA: React.FC<LessonQAProps> = ({ lessonId, courseId, lessonTitle, is
                     </Box>
                   }
                   secondary={
-                    <Box>
+                    <>
                       <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Schedule sx={{ fontSize: 16 }} />
                         {format(question.createdAt.toDate(), 'MMM d, yyyy h:mm a')}
@@ -319,7 +319,7 @@ const LessonQA: React.FC<LessonQAProps> = ({ lessonId, courseId, lessonTitle, is
                           </Typography>
                         </Box>
                       )}
-                    </Box>
+                    </>
                   }
                 />
               </ListItem>

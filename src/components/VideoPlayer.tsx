@@ -29,6 +29,22 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   onProgressUpdate,
   onComplete,
 }) => {
+  // Suppress YouTube postMessage errors in development
+  useEffect(() => {
+    const originalError = console.error;
+    console.error = (...args) => {
+      const message = args[0];
+      if (typeof message === 'string' && message.includes('postMessage') && message.includes('youtube')) {
+        // Suppress YouTube postMessage errors in development
+        return;
+      }
+      originalError.apply(console, args);
+    };
+
+    return () => {
+      console.error = originalError;
+    };
+  }, []);
   const { currentUser } = useAuth();
   const { trackEvent } = useAnalytics();
   const playerRef = useRef<any>(null);
@@ -144,6 +160,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           // Custom controls for e-learning
           controls: 0, // Hide default YouTube controls (we'll add our own)
           showinfo: 0, // Hide video title and uploader info
+          // Fix for development postMessage errors
+          widget_referrer: window.location.origin,
         },
       events: {
         onReady: onPlayerReady,
