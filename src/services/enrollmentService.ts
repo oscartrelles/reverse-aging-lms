@@ -33,6 +33,7 @@ export interface CreateEnrollmentOptions {
 export interface UpdateEnrollmentOptions {
   status?: 'pending' | 'active' | 'completed' | 'cancelled';
   paymentStatus?: 'pending' | 'paid' | 'failed' | 'refunded';
+  cohortId?: string;
   completedAt?: Timestamp;
   stripeCustomerId?: string;
   stripeSubscriptionId?: string;
