@@ -61,31 +61,31 @@ export const enrollmentService = {
         ? `payment_${options.paymentId}`
         : `enrollment_${options.userId}_${options.courseId}_${Date.now()}`;
       
-      const enrollmentRef = doc(db, 'enrollments', uniqueId);
-      
-      // Use a transaction to ensure atomic check and creation
-      const result = await runTransaction(db, async (transaction) => {
+    const enrollmentRef = doc(db, 'enrollments', uniqueId);
+    
+    // Use a transaction to ensure atomic check and creation
+    const result = await runTransaction(db, async (transaction) => {
         // Check if enrollment with this payment ID already exists
-        const existingDoc = await transaction.get(enrollmentRef);
-        if (existingDoc.exists()) {
+      const existingDoc = await transaction.get(enrollmentRef);
+      if (existingDoc.exists()) {
           console.log('Enrollment with this ID already exists, skipping creation');
-          return { id: existingDoc.id, created: false };
-        }
-        
-        // Check for active enrollment for this user/course combination
-        const activeEnrollmentQuery = query(
-          collection(db, 'enrollments'),
+        return { id: existingDoc.id, created: false };
+      }
+      
+      // Check for active enrollment for this user/course combination
+      const activeEnrollmentQuery = query(
+        collection(db, 'enrollments'),
           where('userId', '==', options.userId),
           where('courseId', '==', options.courseId),
           where('status', '==', 'active')
-        );
-        
-        const activeSnapshot = await getDocs(activeEnrollmentQuery);
-        if (!activeSnapshot.empty) {
-          console.log('User already has an active enrollment for this course, skipping creation');
-          return { id: activeSnapshot.docs[0].id, created: false };
-        }
-        
+      );
+      
+      const activeSnapshot = await getDocs(activeEnrollmentQuery);
+      if (!activeSnapshot.empty) {
+        console.log('User already has an active enrollment for this course, skipping creation');
+        return { id: activeSnapshot.docs[0].id, created: false };
+      }
+      
         // Create enrollment data with consistent structure
         const enrollmentData: EnrollmentData = {
           userId: options.userId,
@@ -94,39 +94,39 @@ export const enrollmentService = {
           paymentId: options.paymentId,
           paymentStatus: options.paymentStatus,
           status: status,
-          enrolledAt: Timestamp.now(),
+        enrolledAt: Timestamp.now(),
           stripeCustomerId: options.stripeCustomerId,
           stripeSubscriptionId: options.stripeSubscriptionId,
-        };
+      };
 
         transaction.set(enrollmentRef, enrollmentData);
-        
+      
         // Update cohort student count if status is active
         if (status === 'active') {
           const cohortRef = doc(db, 'cohorts', options.cohortId);
           const cohortDoc = await transaction.get(cohortRef);
-          if (cohortDoc.exists()) {
-            const currentCount = cohortDoc.data().currentStudents || 0;
-            const newCount = Math.max(0, currentCount + 1);
-            transaction.update(cohortRef, { currentStudents: newCount });
-            console.log('Cohort student count updated:', newCount);
+      if (cohortDoc.exists()) {
+        const currentCount = cohortDoc.data().currentStudents || 0;
+        const newCount = Math.max(0, currentCount + 1);
+        transaction.update(cohortRef, { currentStudents: newCount });
+        console.log('Cohort student count updated:', newCount);
           }
-        }
-        
-        return { id: enrollmentRef.id, created: true };
-      });
-      
-      if (result.created) {
-        console.log('✅ Enrollment created with ID:', result.id);
-      } else {
-        console.log('ℹ️ Enrollment already existed, returning ID:', result.id);
       }
-
-      return result.id;
-    } catch (error) {
-      console.error('❌ Error creating enrollment:', error);
-      throw error;
+      
+      return { id: enrollmentRef.id, created: true };
+    });
+    
+    if (result.created) {
+        console.log('✅ Enrollment created with ID:', result.id);
+    } else {
+        console.log('ℹ️ Enrollment already existed, returning ID:', result.id);
     }
+
+    return result.id;
+  } catch (error) {
+      console.error('❌ Error creating enrollment:', error);
+    throw error;
+  }
   },
 
   /**
@@ -136,7 +136,7 @@ export const enrollmentService = {
     try {
       console.log('Updating enrollment:', enrollmentId, updates);
       
-      const enrollmentRef = doc(db, 'enrollments', enrollmentId);
+    const enrollmentRef = doc(db, 'enrollments', enrollmentId);
       const enrollmentDoc = await getDoc(enrollmentRef);
       
       if (!enrollmentDoc.exists()) {
@@ -174,31 +174,31 @@ export const enrollmentService = {
       }
       
       return null;
-    } catch (error) {
+  } catch (error) {
       console.error('❌ Error getting enrollment:', error);
-      throw error;
-    }
+    throw error;
+  }
   },
 
   /**
    * Get all enrollments for a user
    */
   async getUserEnrollments(userId: string): Promise<EnrollmentData[]> {
-    try {
-      const enrollmentsQuery = query(
-        collection(db, 'enrollments'),
-        where('userId', '==', userId)
-      );
-      
-      const snapshot = await getDocs(enrollmentsQuery);
+  try {
+    const enrollmentsQuery = query(
+      collection(db, 'enrollments'),
+      where('userId', '==', userId)
+    );
+    
+    const snapshot = await getDocs(enrollmentsQuery);
       return snapshot.docs.map(doc => ({
-        id: doc.id,
+      id: doc.id,
         ...doc.data()
       })) as unknown as EnrollmentData[];
-    } catch (error) {
+  } catch (error) {
       console.error('❌ Error getting user enrollments:', error);
-      throw error;
-    }
+    throw error;
+  }
   },
 
   /**
@@ -217,14 +217,14 @@ export const enrollmentService = {
       
       if (!snapshot.empty) {
         const doc = snapshot.docs[0];
-        return {
+      return {
           id: doc.id,
           ...doc.data()
         } as unknown as EnrollmentData;
-      }
-      
-      return null;
-    } catch (error) {
+    }
+    
+    return null;
+  } catch (error) {
       console.error('❌ Error getting active enrollment:', error);
       throw error;
     }
@@ -255,8 +255,8 @@ export const enrollmentService = {
       })) as unknown as EnrollmentData[];
     } catch (error) {
       console.error('❌ Error getting all enrollments:', error);
-      throw error;
-    }
+    throw error;
+  }
   },
 
   /**
@@ -356,28 +356,28 @@ export const enrollmentService = {
         id: doc.id,
         ...doc.data()
       })) as unknown as EnrollmentData[];
-    } catch (error) {
+  } catch (error) {
       console.error('❌ Error getting enrollments by cohort:', error);
-      throw error;
-    }
+    throw error;
+  }
   },
 
   /**
    * Get enrollments by course
    */
   async getEnrollmentsByCourse(courseId: string): Promise<EnrollmentData[]> {
-    try {
-      const enrollmentsQuery = query(
-        collection(db, 'enrollments'),
+  try {
+    const enrollmentsQuery = query(
+      collection(db, 'enrollments'),
         where('courseId', '==', courseId)
-      );
-      
-      const snapshot = await getDocs(enrollmentsQuery);
+    );
+    
+    const snapshot = await getDocs(enrollmentsQuery);
       return snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as unknown as EnrollmentData[];
-    } catch (error) {
+  } catch (error) {
       console.error('❌ Error getting enrollments by course:', error);
       throw error;
     }

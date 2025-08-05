@@ -115,6 +115,12 @@ export const studentManagementService = {
       // Get user data for each enrollment
       const studentDataPromises = enrollments.map(async (enrollment) => {
         try {
+          // Skip enrollments without cohortId
+          if (!enrollment.cohortId) {
+            console.warn(`Skipping enrollment ${enrollment.id} - missing cohortId`);
+            return null;
+          }
+          
           const [user, cohort, progress] = await Promise.all([
             this.getUser(enrollment.userId),
             this.getCohort(enrollment.cohortId),
@@ -190,6 +196,12 @@ export const studentManagementService = {
       const activeEnrollment = enrollments.find(e => e.status === 'active' || e.status === 'pending');
       if (!activeEnrollment) return null;
       
+      // Skip enrollments without cohortId
+      if (!activeEnrollment.cohortId) {
+        console.warn(`Skipping enrollment ${activeEnrollment.id} - missing cohortId`);
+        return null;
+      }
+      
       const [user, cohort, progress] = await Promise.all([
         this.getUser(userId),
         this.getCohort(activeEnrollment.cohortId),
@@ -209,8 +221,8 @@ export const studentManagementService = {
         academic
       } as StudentData;
     } catch (error) {
-      console.error('❌ Error getting student:', error);
-      throw error;
+      console.error('Error getting student:', error);
+      return null;
     }
   },
 
@@ -245,6 +257,11 @@ export const studentManagementService = {
     try {
       const students = await this.getStudents();
       return students.filter(student => {
+        // Only consider students in active cohorts
+        if (student.cohort.status !== 'active') {
+          return false;
+        }
+        
         const isBehind = student.progress.isBehind;
         const lowEngagement = student.progress.lastActivity && 
           student.progress.lastActivity.toDate() < new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // 7 days ago
@@ -263,6 +280,7 @@ export const studentManagementService = {
     try {
       const students = await this.getStudents();
       return students
+        .filter(student => student.cohort.status === 'active') // Only consider students in active cohorts
         .sort((a, b) => b.progress.completionPercentage - a.progress.completionPercentage)
         .slice(0, limit);
     } catch (error) {
@@ -510,7 +528,7 @@ export const studentManagementService = {
         averageProgress: this.calculateAverageProgress(students),
         topPerformers: await this.getTopPerformers(5),
         strugglingStudents: await this.getStrugglingStudents(),
-        recentGraduates: students.filter(s => s.enrollment.status === 'completed').slice(0, 5),
+        recentGraduates: students.filter(s => s.enrollment.status === 'completed' && s.cohort.status === 'active').slice(0, 5),
         engagementMetrics: this.calculateEngagementMetrics(students)
       };
       
@@ -586,13 +604,19 @@ export const studentManagementService = {
 
   async getCohort(cohortId: string): Promise<Cohort | null> {
     try {
+      if (!cohortId) {
+        console.warn('getCohort called with undefined or null cohortId');
+        return null;
+      }
+      
       const cohortRef = doc(db, 'cohorts', cohortId);
       const cohortDoc = await getDoc(cohortRef);
       
       if (cohortDoc.exists()) {
+        const data = cohortDoc.data();
         return {
-          id: cohortDoc.id,
-          ...cohortDoc.data()
+          id: cohortDoc.id, // Use the document ID as the cohort ID
+          ...data
         } as Cohort;
       }
       

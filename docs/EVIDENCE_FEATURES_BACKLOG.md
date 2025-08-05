@@ -128,6 +128,24 @@ const [evidenceData, setEvidenceData] = useState({
 - **Features**: Email notifications, in-app alerts
 - **Settings**: User preference controls
 
+### 6. Student Performance Analysis Enhancement
+- **Priority**: Medium
+- **Description**: Review and improve definitions for "struggling students" and "top performers"
+- **Location**: `src/services/studentManagementService.ts`
+- **Current Implementation**:
+  - **Struggling Students**: Students who are behind schedule OR have low engagement (no activity in 7 days)
+  - **Top Performers**: Students with highest completion percentage
+- **Areas for Review**:
+  - **Struggling Definition**: Consider additional factors like lesson watch time, question frequency, community participation
+  - **Top Performers Definition**: Consider engagement quality, not just completion percentage
+  - **Metrics**: Add more sophisticated algorithms for identifying at-risk students
+  - **Thresholds**: Make thresholds configurable (currently hardcoded 7 days for engagement)
+- **Potential Improvements**:
+  - Weighted scoring system combining multiple factors
+  - Machine learning-based risk assessment
+  - Personalized thresholds based on cohort performance
+  - Early warning system for potential dropouts
+
 ## Implementation Notes
 
 ### Current State
