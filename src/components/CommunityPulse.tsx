@@ -85,135 +85,190 @@ const CommunityPulse: React.FC<CommunityPulseProps> = ({ cohortId, className, sx
   };
 
   return (
-    <Card className={className} sx={sx}>
-      <CardContent>
+    <Card className={className} sx={{ height: '100%', display: 'flex', flexDirection: 'column', ...sx }}>
+      <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Typography variant="h6" gutterBottom>
           Community Pulse
         </Typography>
 
-        {/* Real-time Metrics */}
-        <Box sx={{ mb: 2 }}>
+        {/* Key Metrics Grid */}
+        <Box sx={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(2, 1fr)', 
+          gap: 1, 
+          mb: 1.5 
+        }}>
           {/* Total Users Online */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
-            <People sx={{ color: 'primary.main', fontSize: 20 }} />
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="h5" color="primary.main" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+          <Box sx={{ 
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 1,
+            p: 0.75, 
+            backgroundColor: 'rgba(25, 118, 210, 0.1)', 
+            borderRadius: 1,
+            border: '1px solid rgba(25, 118, 210, 0.2)'
+          }}>
+            <People sx={{ color: 'primary.main', fontSize: 18 }} />
+            <Box sx={{ textAlign: 'left' }}>
+              <Typography variant="h6" color="primary.main" sx={{ fontWeight: 700, lineHeight: 1 }}>
                 {stats.totalUsersOnline}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
-                users online globally
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                Online Globally
               </Typography>
             </Box>
           </Box>
 
           {/* Academy Users Online */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
-            <People sx={{ color: 'secondary.main', fontSize: 20 }} />
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="h6" color="secondary.main" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+          <Box sx={{ 
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 1,
+            p: 0.75, 
+            backgroundColor: 'rgba(156, 39, 176, 0.1)', 
+            borderRadius: 1,
+            border: '1px solid rgba(156, 39, 176, 0.2)'
+          }}>
+            <People sx={{ color: 'secondary.main', fontSize: 18 }} />
+            <Box sx={{ textAlign: 'left' }}>
+              <Typography variant="h6" color="secondary.main" sx={{ fontWeight: 700, lineHeight: 1 }}>
                 {stats.academyUsersOnline}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
-                students online globally
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                Students Online
               </Typography>
             </Box>
           </Box>
 
           {/* Cohort Active Users */}
           {cohortId && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
-              <People sx={{ color: 'info.main', fontSize: 20 }} />
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="h6" color="info.main" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+            <Box sx={{ 
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 1,
+              p: 0.75, 
+              backgroundColor: 'rgba(3, 169, 244, 0.1)', 
+              borderRadius: 1,
+              border: '1px solid rgba(3, 169, 244, 0.2)'
+            }}>
+              <People sx={{ color: 'info.main', fontSize: 18 }} />
+              <Box sx={{ textAlign: 'left' }}>
+                <Typography variant="h6" color="info.main" sx={{ fontWeight: 700, lineHeight: 1 }}>
                   {stats.cohortActiveUsers}
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  from your cohort online
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                  Your Cohort
                 </Typography>
               </Box>
             </Box>
           )}
 
           {/* Questions Last Week */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
-            <ChatBubble sx={{ color: 'warning.main', fontSize: 20 }} />
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="h6" color="warning.main" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+          <Box sx={{ 
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 1,
+            p: 0.75, 
+            backgroundColor: 'rgba(76, 175, 80, 0.1)', 
+            borderRadius: 1,
+            border: '1px solid rgba(76, 175, 80, 0.2)'
+          }}>
+            <ChatBubble sx={{ color: 'success.main', fontSize: 18 }} />
+            <Box sx={{ textAlign: 'left' }}>
+              <Typography variant="h6" color="success.main" sx={{ fontWeight: 700, lineHeight: 1 }}>
                 {stats.questionsLastWeek}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
-                questions asked this week
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                Questions This Week
               </Typography>
             </Box>
           </Box>
-        </Box>
-
-        {/* Gamification Metrics */}
-        <Box sx={{ mb: 2 }}>
-          {/* Hot Streak */}
-          {stats.hotStreak > 0 && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-              <LocalFireDepartment sx={{ color: 'error.main', fontSize: 18 }} />
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="body1" color="error.main" sx={{ fontWeight: 600 }}>
-                  {stats.hotStreak}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  students completed lessons today
-                </Typography>
-              </Box>
-            </Box>
-          )}
-
-          {/* Community Buzz */}
-          {stats.communityBuzz > 0 && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-              <TrendingUp sx={{ color: 'success.main', fontSize: 18 }} />
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="body1" color="success.main" sx={{ fontWeight: 600 }}>
-                  {stats.communityBuzz}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  new questions in last 24h
-                </Typography>
-              </Box>
-            </Box>
-          )}
-
-          {/* Upvoted Content */}
-          {stats.upvotedContent > 0 && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-              <Star sx={{ color: 'warning.main', fontSize: 18 }} />
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="body1" color="warning.main" sx={{ fontWeight: 600 }}>
-                  {stats.upvotedContent}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  items upvoted in last 24h
-                </Typography>
-              </Box>
-            </Box>
-          )}
         </Box>
 
         {/* Engagement Score */}
         <Box sx={{ 
           display: 'flex', 
           alignItems: 'center', 
-          gap: 1, 
-          p: 1.5, 
-          backgroundColor: 'rgba(255,255,255,0.05)', 
+          gap: 0.75,
+          p: 0.75, 
+          backgroundColor: `rgba(${stats.engagementScore === 'High' ? '76, 175, 80' : stats.engagementScore === 'Medium' ? '255, 152, 0' : '244, 67, 54'}, 0.1)`, 
           borderRadius: 1,
-          border: `1px solid ${getEngagementColor(stats.engagementScore)}`
+          border: `1px solid ${getEngagementColor(stats.engagementScore)}`,
+          mb: 2
         }}>
           {getEngagementIcon(stats.engagementScore)}
           <Typography variant="body2" sx={{ 
             color: getEngagementColor(stats.engagementScore), 
-            fontWeight: 500 
+            fontWeight: 600
           }}>
-            Community Engagement: {stats.engagementScore}
+            {stats.engagementScore} Engagement
           </Typography>
         </Box>
+
+        {/* Activity Highlights */}
+        {(stats.hotStreak > 0 || stats.communityBuzz > 0 || stats.upvotedContent > 0) && (
+          <Box>
+            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
+              Recent Activity
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              {/* Hot Streak */}
+              {stats.hotStreak > 0 && (
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 1, 
+                  p: 0.75, 
+                  backgroundColor: 'rgba(0, 150, 136, 0.1)', 
+                  borderRadius: 1 
+                }}>
+                  <LocalFireDepartment sx={{ color: 'teal.main', fontSize: 16 }} />
+                  <Typography variant="body2" color="teal.main" sx={{ fontWeight: 600 }}>
+                    {stats.hotStreak} students completed lessons today
+                  </Typography>
+                </Box>
+              )}
+
+              {/* Community Buzz */}
+              {stats.communityBuzz > 0 && (
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 1, 
+                  p: 0.75, 
+                  backgroundColor: 'rgba(76, 175, 80, 0.1)', 
+                  borderRadius: 1 
+                }}>
+                  <TrendingUp sx={{ color: 'success.main', fontSize: 16 }} />
+                  <Typography variant="body2" color="success.main" sx={{ fontWeight: 600 }}>
+                    {stats.communityBuzz} new questions in last 24h
+                  </Typography>
+                </Box>
+              )}
+
+              {/* Upvoted Content */}
+              {stats.upvotedContent > 0 && (
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 1, 
+                  p: 0.75, 
+                  backgroundColor: 'rgba(156, 39, 176, 0.1)', 
+                  borderRadius: 1 
+                }}>
+                  <Star sx={{ color: 'secondary.main', fontSize: 16 }} />
+                  <Typography variant="body2" color="secondary.main" sx={{ fontWeight: 600 }}>
+                    {stats.upvotedContent} items upvoted in last 24h
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          </Box>
+        )}
       </CardContent>
     </Card>
   );

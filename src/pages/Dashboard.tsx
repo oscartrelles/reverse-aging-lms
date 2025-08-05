@@ -14,6 +14,7 @@ import {
   AccordionDetails,
   useTheme,
   CircularProgress,
+  Divider,
 } from '@mui/material';
 
 import {
@@ -779,11 +780,11 @@ const Dashboard: React.FC = () => {
             </Card>
           )}
 
-          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3, alignItems: 'stretch', mb: 3 }}>
             {/* Progress Overview */}
             <Box sx={{ flex: { md: 2 } }}>
-              <Card sx={{ mb: 3, border: '1px solid', borderColor: 'rgba(80, 235, 151, 0.15)', backgroundColor: 'rgba(80, 235, 151, 0.02)' }}>
-                <CardContent>
+              <Card sx={{ border: '1px solid', borderColor: 'rgba(80, 235, 151, 0.15)', backgroundColor: 'rgba(80, 235, 151, 0.02)', height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                     <Typography variant="h6">Your Progress</Typography>
                     <Chip 
@@ -862,7 +863,6 @@ const Dashboard: React.FC = () => {
               <CommunityPulse 
                 cohortId={resolvedCurrentCohort?.id} 
                 sx={{ 
-                  mb: 3,
                   border: '1px solid',
                   borderColor: 'rgba(80, 235, 151, 0.15)',
                   backgroundColor: 'rgba(80, 235, 151, 0.02)'
@@ -1023,9 +1023,7 @@ const Dashboard: React.FC = () => {
                         {/* Video Player */}
                         {lesson.videoUrl && isSequentiallyAvailable && (
                           <>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
-                              Lesson Video:
-                            </Typography>
+                            <Divider sx={{ my: 2 }} />
                             <VideoPlayer
                               videoUrl={lesson.videoUrl}
                               lessonId={lesson.id}

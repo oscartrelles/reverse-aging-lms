@@ -102,7 +102,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
         }
       } catch (error) {
-        console.error('❌ Error loading existing progress:', error);
+        // Only log permission errors in development, as they're expected for new lessons
+        if (process.env.NODE_ENV === 'development') {
+          console.error('❌ Error loading existing progress:', error);
+        }
       }
     };
 

@@ -94,7 +94,8 @@ service cloud.firestore {
     // Also allow queries for community stats
     match /lessonProgress/{progressId} {
       allow read, write: if request.auth != null && 
-        resource.data.userId == request.auth.uid;
+        (resource == null || // Allow reading/writing non-existent documents
+         resource.data.userId == request.auth.uid);
       // Allow queries for community stats (completion tracking)
       allow list: if request.auth != null;
     }

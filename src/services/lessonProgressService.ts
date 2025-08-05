@@ -225,7 +225,10 @@ export const lessonProgressService = {
       
       return null;
     } catch (error) {
-      console.error('❌ Error getting lesson progress:', error);
+      // Only log permission errors in development, as they're expected for new lessons
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ Error getting lesson progress:', error);
+      }
       throw error;
     }
   },

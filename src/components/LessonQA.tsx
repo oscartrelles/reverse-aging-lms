@@ -331,7 +331,7 @@ const LessonQA: React.FC<LessonQAProps> = ({ lessonId, courseId, lessonTitle, is
 
       {/* Floating Action Button for asking questions */}
       {questions.length > 0 && (
-        <Box sx={{ position: 'relative', mt: 2 }}>
+        <Box sx={{ position: 'relative', mt: 2, mb: 3 }}>
           <Button
             variant="contained"
             startIcon={<QuestionAnswer />}
@@ -344,7 +344,11 @@ const LessonQA: React.FC<LessonQAProps> = ({ lessonId, courseId, lessonTitle, is
               position: 'absolute',
               right: 0,
               top: -40,
-              zIndex: 1
+              zIndex: 1,
+              px: 2,
+              py: 0.5,
+              fontSize: '0.875rem',
+              minWidth: 'auto'
             }}
           >
             Ask a Question
