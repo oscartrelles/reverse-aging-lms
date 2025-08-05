@@ -11,45 +11,29 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemAvatar,
-  Avatar,
-  Chip,
-  TextField,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Divider,
+  ListItemIcon,
 } from '@mui/material';
 import { 
-  Add, 
-  School, 
-  People, 
-  Schedule, 
-  Edit, 
-  Create, 
-  PlayArrow,
-  QuestionAnswer,
-  CheckCircle,
-  Person,
-  Send,
-  ExpandLess,
-  ExpandMore,
-  Science,
   Analytics,
+  People,
+  School,
+  QuestionAnswer,
+  Science,
+  ArrowForward,
+  Warning,
+  CheckCircle,
+  Book,
+  Visibility,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCourse } from '../../contexts/CourseContext';
 import { questionService } from '../../services/questionService';
 import { scientificUpdateService } from '../../services/scientificUpdateService';
-import { courseManagementService } from '../../services/courseManagementService';
+
 import { userManagementService } from '../../services/userManagementService';
 import { enrollmentService } from '../../services/enrollmentService';
-import CourseEditor from '../../components/admin/CourseEditor';
-import LessonEditor from '../../components/admin/LessonEditor';
-import CohortEditor from '../../components/admin/CohortEditor';
-import ScientificUpdateEditor from '../../components/admin/ScientificUpdateEditor';
+import { studentManagementService } from '../../services/studentManagementService';
 
 // Helper function to check user permissions
 const hasPermission = (user: any, permission: 'admin' | 'moderator' | 'full') => {
@@ -61,169 +45,230 @@ const hasPermission = (user: any, permission: 'admin' | 'moderator' | 'full') =>
     case 'moderator':
       return user.isAdmin || user.isModerator;
     case 'full':
-      return user.isAdmin; // Only admins have full access
+      return user.isAdmin;
     default:
       return false;
   }
 };
 
+interface DashboardStats {
+  totalUsers: number;
+  newUsersSinceLastLogin: number;
+  totalStudents: number;
+  newEnrollmentsSinceLastLogin: number;
+  unansweredQuestions: number;
+  newQuestionsSinceLastLogin: number;
+  totalScientificUpdates: number;
+  newUpdatesSinceLastLogin: number;
+  activeCohorts: number;
+  upcomingCohorts: number;
+  strugglingStudents: number;
+  topPerformers: number;
+}
+
 const AdminDashboard: React.FC = () => {
   const { currentUser } = useAuth();
-  const { courses, cohorts, loading: courseLoading } = useCourse();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  
-  // Editor states
-  const [showCourseEditor, setShowCourseEditor] = useState(false);
-  const [showLessonEditor, setShowLessonEditor] = useState(false);
-  const [showCohortEditor, setShowCohortEditor] = useState(false);
-  const [editingCourse, setEditingCourse] = useState<any>(null);
-  const [editingLesson, setEditingLesson] = useState<any>(null);
-  const [editingCohort, setEditingCohort] = useState<any>(null);
-  const [lessons, setLessons] = useState<any[]>([]);
-  const [lessonsLoading, setLessonsLoading] = useState(false);
-  
-  // Q&A Management
-  const [questions, setQuestions] = useState<any[]>([]);
-  const [questionsLoading, setQuestionsLoading] = useState(false);
-  const [showQAManagement, setShowQAManagement] = useState(false);
-  const [selectedQuestion, setSelectedQuestion] = useState<any>(null);
-  const [answerText, setAnswerText] = useState('');
-  const [answeringQuestion, setAnsweringQuestion] = useState(false);
-  const [showAllLessons, setShowAllLessons] = useState(false);
-  const [users, setUsers] = useState<any[]>([]);
-  const [usersLoading, setUsersLoading] = useState(false);
-  const [enrollments, setEnrollments] = useState<any[]>([]);
-  
-  // Scientific Updates Management
-  const [scientificUpdates, setScientificUpdates] = useState<any[]>([]);
-  const [scientificUpdatesLoading, setScientificUpdatesLoading] = useState(false);
-  const [showScientificUpdateEditor, setShowScientificUpdateEditor] = useState(false);
-  const [editingScientificUpdate, setEditingScientificUpdate] = useState<any>(null);
-  
+  const { courses, cohorts } = useCourse();
   const navigate = useNavigate();
+  
+  // State for dashboard data
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState<DashboardStats>({
+    totalUsers: 0,
+    newUsersSinceLastLogin: 0,
+    totalStudents: 0,
+    newEnrollmentsSinceLastLogin: 0,
+    unansweredQuestions: 0,
+    newQuestionsSinceLastLogin: 0,
+    totalScientificUpdates: 0,
+    newUpdatesSinceLastLogin: 0,
+    activeCohorts: 0,
+    upcomingCohorts: 0,
+    strugglingStudents: 0,
+    topPerformers: 0,
+  });
 
-  const loadLessons = async () => {
-    setLessonsLoading(true);
-    try {
-      const lessonsData = await courseManagementService.getLessons();
-      setLessons(lessonsData);
-    } catch (error) {
-      console.error('Error loading lessons:', error);
-    } finally {
-      setLessonsLoading(false);
-    }
-  };
-
-  // Load data when component mounts
+  // Load dashboard data
   useEffect(() => {
-    loadLessons();
-    loadUsers();
-    loadScientificUpdates();
+    loadDashboardData();
   }, []);
 
-  const loadQuestions = async () => {
-    setQuestionsLoading(true);
-    try {
-      const questionsData = await questionService.getAllQuestions();
-      setQuestions(questionsData);
-    } catch (error) {
-      console.error('Error loading questions:', error);
-    } finally {
-      setQuestionsLoading(false);
-    }
-  };
-
-  const loadUsers = async () => {
-    setUsersLoading(true);
-    try {
-      const usersData = await userManagementService.getUsers();
-      setUsers(usersData);
-
-      const enrollmentsData = await enrollmentService.getAllEnrollments();
-      setEnrollments(enrollmentsData);
-    } catch (error) {
-      console.error('Error loading users:', error);
-    } finally {
-      setUsersLoading(false);
-    }
-  };
-
-  const loadScientificUpdates = async () => {
-    setScientificUpdatesLoading(true);
-    try {
-      const updates = await scientificUpdateService.getAllUpdates();
-      setScientificUpdates(updates);
-    } catch (error) {
-      console.error('Error loading scientific updates:', error);
-    } finally {
-      setScientificUpdatesLoading(false);
-    }
-  };
-
-  const handleAnswerQuestion = async () => {
-    if (!selectedQuestion || !answerText.trim()) return;
-
-    try {
-      setAnsweringQuestion(true);
-      await questionService.answerQuestion(selectedQuestion.id, answerText.trim(), currentUser?.id);
-      
-      // Reload questions to show the answer
-      await loadQuestions();
-      
-      setAnswerText('');
-      setSelectedQuestion(null);
-      setSuccess('Question answered successfully!');
-    } catch (error) {
-      console.error('Error answering question:', error);
-      setError('Failed to answer question');
-    } finally {
-      setAnsweringQuestion(false);
-    }
-  };
-
-  // Update cohort status when cohorts change
-  useEffect(() => {
-    const updateCohortStatuses = async () => {
-      for (const cohort of cohorts) {
-        // await updateCohortStatus(cohort); // This line was removed as per the edit hint
-      }
-    };
-    
-    if (cohorts.length > 0) {
-      updateCohortStatuses();
-    }
-  }, [cohorts]);
-
-  const handleUpdateVideoUrls = async () => {
+  const loadDashboardData = async () => {
     try {
       setLoading(true);
       setError(null);
-      // await updateLessonVideoUrls(); // This line was removed as per the edit hint
-      setSuccess('Video URLs updated successfully!');
+
+      // Load all data in parallel
+      const [
+        users,
+        enrollments,
+        questions,
+        scientificUpdates,
+        strugglingStudents,
+        topPerformers
+      ] = await Promise.all([
+        userManagementService.getUsers(),
+        enrollmentService.getAllEnrollments(),
+        questionService.getAllQuestions(),
+        scientificUpdateService.getAllUpdates(),
+        studentManagementService.getStrugglingStudents(),
+        studentManagementService.getTopPerformers()
+      ]);
+
+      // Calculate stats
+      const now = new Date();
+      const lastLogin = new Date(now.getTime() - 24 * 60 * 60 * 1000); // Default to 24 hours ago
+
+      const newUsersSinceLastLogin = users.filter(user => 
+        user.createdAt?.toDate() > lastLogin
+      ).length;
+
+      const newEnrollmentsSinceLastLogin = enrollments.filter(enrollment => 
+        enrollment.enrolledAt?.toDate() > lastLogin
+      ).length;
+
+      const unansweredQuestions = questions.filter(q => !q.isAnswered).length;
+      const newQuestionsSinceLastLogin = questions.filter(q => 
+        q.createdAt?.toDate() > lastLogin
+      ).length;
+
+      const newUpdatesSinceLastLogin = scientificUpdates.filter(update => 
+        update.createdAt?.toDate() > lastLogin
+      ).length;
+
+      const activeCohorts = cohorts.filter(c => c.status === 'active').length;
+      const upcomingCohorts = cohorts.filter(c => c.status === 'upcoming').length;
+
+      setStats({
+        totalUsers: users.length,
+        newUsersSinceLastLogin,
+        totalStudents: enrollments.length,
+        newEnrollmentsSinceLastLogin,
+        unansweredQuestions,
+        newQuestionsSinceLastLogin,
+        totalScientificUpdates: scientificUpdates.length,
+        newUpdatesSinceLastLogin,
+        activeCohorts,
+        upcomingCohorts,
+        strugglingStudents: strugglingStudents.length,
+        topPerformers: topPerformers.length,
+      });
+
     } catch (error) {
-      console.error('Error updating video URLs:', error);
-      setError('Failed to update video URLs');
+      console.error('Error loading dashboard data:', error);
+      setError('Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleListLessons = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      // const lessons = await listAllLessons(); // This line was removed as per the edit hint
-      console.log('All lessons:', lessons);
-      setSuccess('Lessons listed successfully! Check console for details.');
-    } catch (error) {
-      console.error('Error listing lessons:', error);
-      setError('Failed to list lessons');
-    } finally {
-      setLoading(false);
-    }
+  const ManagementBox: React.FC<{
+    title: string;
+    icon: React.ReactNode;
+    highlights: Array<{ label: string; value: string | number; color?: 'success' | 'warning' | 'error' | 'info' }>;
+    actionItems?: Array<{ label: string; count: number; color?: 'success' | 'warning' | 'error' | 'info' }>;
+    linkTo: string;
+    permission?: 'admin' | 'moderator' | 'full';
+  }> = ({ title, icon, highlights, actionItems, linkTo, permission = 'full' }) => {
+    if (!hasPermission(currentUser, permission)) return null;
+
+    return (
+      <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              {icon}
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                {title}
+              </Typography>
+            </Box>
+            <Button
+              variant="outlined"
+              size="small"
+              endIcon={<ArrowForward />}
+              onClick={() => navigate(linkTo)}
+            >
+              Manage
+            </Button>
+          </Box>
+
+          {/* Highlights */}
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+              Highlights
+            </Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1 }}>
+              {highlights.map((highlight, index) => (
+                <Box key={index}>
+                  <Box sx={{ 
+                    p: 1, 
+                    backgroundColor: 'rgba(255,255,255,0.02)', 
+                    borderRadius: 1,
+                    border: '1px solid rgba(255,255,255,0.05)'
+                  }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                      {highlight.label}
+                    </Typography>
+                    <Typography 
+                      variant="h6" 
+                      color={highlight.color ? `${highlight.color}.main` : 'primary.main'}
+                      sx={{ fontWeight: 600 }}
+                    >
+                      {highlight.value}
+                    </Typography>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+
+          {/* Action Items */}
+          {actionItems && actionItems.length > 0 && (
+            <Box sx={{ mt: 'auto' }}>
+              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                Action Items
+              </Typography>
+              <List dense sx={{ p: 0 }}>
+                {actionItems.map((item, index) => (
+                  <ListItem key={index} sx={{ px: 0, py: 0.5 }}>
+                    <ListItemIcon sx={{ minWidth: 32 }}>
+                      {item.color === 'warning' && <Warning color="warning" />}
+                      {item.color === 'error' && <Warning color="error" />}
+                      {item.color === 'success' && <CheckCircle color="success" />}
+                      {item.color === 'info' && <Visibility color="info" />}
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={
+                        <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                          {item.label}
+                        </Typography>
+                      }
+                      secondary={
+                        <Typography variant="caption" color="text.secondary">
+                          {item.count} items need attention
+                        </Typography>
+                      }
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            </Box>
+          )}
+        </CardContent>
+      </Card>
+    );
   };
+
+  if (loading) {
+    return (
+      <Container maxWidth="lg">
+        <Box sx={{ py: 3, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+          <CircularProgress />
+        </Box>
+      </Container>
+    );
+  }
 
   return (
     <Container maxWidth="lg">
@@ -238,700 +283,174 @@ const AdminDashboard: React.FC = () => {
           </Alert>
         )}
 
-        {success && (
-          <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
-            {success}
-          </Alert>
-        )}
+        {/* Management System Grid */}
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 3 }}>
+          {/* Analytics Management */}
+          <Box>
+            <ManagementBox
+              title="Analytics"
+              icon={<Analytics color="primary" />}
+              highlights={[
+                { label: 'Total Users', value: stats.totalUsers },
+                { label: 'Active Students', value: stats.totalStudents },
+                { label: 'Active Cohorts', value: stats.activeCohorts },
+                { label: 'Upcoming Cohorts', value: stats.upcomingCohorts },
+              ]}
+              actionItems={[
+                { label: 'Review performance trends', count: 1, color: 'info' as const },
+              ]}
+              linkTo="/admin/analytics"
+              permission="full"
+            />
+          </Box>
 
-        {/* Admin Navigation */}
-        <Card sx={{ mb: 3 }}>
+          {/* User Management */}
+          <Box>
+            <ManagementBox
+              title="User Management"
+              icon={<People color="primary" />}
+              highlights={[
+                { label: 'Total Users', value: stats.totalUsers },
+                { label: 'New Since Login', value: stats.newUsersSinceLastLogin, color: 'success' as const },
+              ]}
+              actionItems={[
+                { label: 'New users to review', count: stats.newUsersSinceLastLogin, color: 'info' as const },
+              ]}
+              linkTo="/admin/users"
+              permission="full"
+            />
+          </Box>
+
+          {/* Student Management */}
+          <Box>
+            <ManagementBox
+              title="Student Management"
+              icon={<School color="primary" />}
+              highlights={[
+                { label: 'Total Students', value: stats.totalStudents },
+                { label: 'New Enrollments', value: stats.newEnrollmentsSinceLastLogin, color: 'success' as const },
+                { label: 'Struggling', value: stats.strugglingStudents, color: 'warning' as const },
+                { label: 'Top Performers', value: stats.topPerformers, color: 'success' as const },
+              ]}
+              actionItems={[
+                { label: 'Students need support', count: stats.strugglingStudents, color: 'warning' as const },
+                { label: 'New enrollments to review', count: stats.newEnrollmentsSinceLastLogin, color: 'info' as const },
+              ]}
+              linkTo="/admin/students"
+              permission="full"
+            />
+          </Box>
+
+          {/* Q&A Management */}
+          <Box>
+            <ManagementBox
+              title="Q&A Management"
+              icon={<QuestionAnswer color="primary" />}
+              highlights={[
+                { label: 'Unanswered', value: stats.unansweredQuestions, color: 'warning' as const },
+                { label: 'New Since Login', value: stats.newQuestionsSinceLastLogin, color: 'success' as const },
+              ]}
+              actionItems={[
+                { label: 'Questions need answers', count: stats.unansweredQuestions, color: 'warning' as const },
+                { label: 'New questions to review', count: stats.newQuestionsSinceLastLogin, color: 'info' as const },
+              ]}
+              linkTo="/admin/qa"
+              permission="moderator"
+            />
+          </Box>
+
+          {/* Scientific Updates Management */}
+          <Box>
+            <ManagementBox
+              title="Scientific Updates"
+              icon={<Science color="primary" />}
+              highlights={[
+                { label: 'Total Updates', value: stats.totalScientificUpdates },
+                { label: 'New Since Login', value: stats.newUpdatesSinceLastLogin, color: 'success' as const },
+              ]}
+              actionItems={[
+                { label: 'New updates to review', count: stats.newUpdatesSinceLastLogin, color: 'info' as const },
+              ]}
+              linkTo="/admin/scientific-updates"
+              permission="moderator"
+            />
+          </Box>
+
+          {/* Course Management */}
+          <Box>
+            <ManagementBox
+              title="Course Management"
+              icon={<Book color="primary" />}
+              highlights={[
+                { label: 'Total Courses', value: courses.length },
+                { label: 'Active Cohorts', value: stats.activeCohorts },
+                { label: 'Upcoming Cohorts', value: stats.upcomingCohorts },
+                { label: 'Total Lessons', value: 0 }, // TODO: Add lessons count
+              ]}
+              actionItems={[
+                { label: 'Upcoming cohorts to prepare', count: stats.upcomingCohorts, color: 'info' as const },
+              ]}
+              linkTo="/admin/courses"
+              permission="full"
+            />
+          </Box>
+        </Box>
+
+        {/* Quick Actions */}
+        <Card sx={{ mt: 3 }}>
           <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Admin Tools
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+              Quick Actions
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+              {hasPermission(currentUser, 'moderator') && (
+                <Button
+                  variant="outlined"
+                  startIcon={<QuestionAnswer />}
+                  onClick={() => navigate('/admin/qa')}
+                >
+                  Answer Questions
+                </Button>
+              )}
+              {hasPermission(currentUser, 'moderator') && (
+                <Button
+                  variant="outlined"
+                  startIcon={<Science />}
+                  onClick={() => navigate('/admin/scientific-updates')}
+                >
+                  Create Scientific Update
+                </Button>
+              )}
               {hasPermission(currentUser, 'full') && (
-                <>
-                  <Button
-                    variant="outlined"
-                    startIcon={<Analytics />}
-                    onClick={() => navigate('/admin/analytics')}
-                    size="small"
-                  >
-                    Analytics Dashboard
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    startIcon={<People />}
-                    onClick={() => navigate('/admin/students')}
-                    size="small"
-                  >
-                    Student Management
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    startIcon={<Person />}
-                    onClick={() => navigate('/admin/users')}
-                    size="small"
-                  >
-                    User Management
-                  </Button>
-                </>
+                <Button
+                  variant="outlined"
+                  startIcon={<School />}
+                  onClick={() => navigate('/admin/students')}
+                >
+                  Manage Students
+                </Button>
+              )}
+              {hasPermission(currentUser, 'full') && (
+                <Button
+                  variant="outlined"
+                  startIcon={<People />}
+                  onClick={() => navigate('/admin/users')}
+                >
+                  Manage Users
+                </Button>
+              )}
+              {hasPermission(currentUser, 'full') && (
+                <Button
+                  variant="outlined"
+                  startIcon={<Analytics />}
+                  onClick={() => navigate('/admin/analytics')}
+                >
+                  View Analytics
+                </Button>
               )}
             </Box>
           </CardContent>
         </Card>
-
-        {/* Q&A Management - Most Frequent Task */}
-        <Box sx={{ mb: 3 }}>
-            <Card>
-            <CardContent sx={{ py: 2 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Q&A Management
-                </Typography>
-                <Button
-                  variant="contained"
-                  startIcon={<QuestionAnswer />}
-                  onClick={() => {
-                    setShowQAManagement(!showQAManagement);
-                    if (!showQAManagement) {
-                      loadQuestions();
-                    }
-                  }}
-                  size="small"
-                >
-                  {showQAManagement ? 'Hide Q&A' : 'Manage Q&A'}
-                </Button>
-              </Box>
-
-              {showQAManagement && (
-                <Box>
-                  {questionsLoading ? (
-                    <CircularProgress size={20} />
-                  ) : (
-                    <Box>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        {questions.length} total questions
-                      </Typography>
-                      
-                      <List sx={{ maxHeight: 400, overflow: 'auto' }}>
-                        {questions.map((question, index) => (
-                          <React.Fragment key={question.id}>
-                            <ListItem alignItems="flex-start" sx={{ px: 0, py: 1 }}>
-                              <ListItemAvatar>
-                                <Avatar sx={{ bgcolor: question.isAnswered ? 'success.main' : 'primary.main', width: 32, height: 32 }}>
-                                  {question.isAnswered ? <CheckCircle /> : <Person />}
-                                </Avatar>
-                              </ListItemAvatar>
-                              <ListItemText
-                                primary={
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                                    <Typography variant="body2" sx={{ fontWeight: 500, flex: 1 }}>
-                                      {question.question}
-                                    </Typography>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                      {question.isAnswered && (
-                                        <Chip label="Answered" color="success" size="small" />
-                                      )}
-                                      {!question.isPublic && (
-                                        <Chip label="Private" color="warning" size="small" />
-                                      )}
-                                      <Chip 
-                                        label={question.votes || 0} 
-                                        size="small" 
-                  variant="outlined"
-                                      />
-                                    </Box>
-                                  </Box>
-                                }
-                                secondary={
-                                  <Box>
-                                    <Typography variant="caption" color="text.secondary">
-                                      Asked by {question.userName || 'Anonymous'} on {question.createdAt.toDate().toLocaleDateString()}
-                                    </Typography>
-                                    {question.answer && (
-                                      <Box sx={{ mt: 1, p: 1.5, backgroundColor: 'grey.50', borderRadius: 1 }}>
-                                        <Typography variant="subtitle2" color="primary.main" gutterBottom>
-                                          Answer:
-                                        </Typography>
-                                        <Typography variant="body2">
-                                          {question.answer}
-                                        </Typography>
-                                        {question.answererName && (
-                                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                                            Answered by {question.answererName}
-                                          </Typography>
-                                        )}
-                                      </Box>
-                                    )}
-                                    {!question.isAnswered && (
-                <Button
-                                        size="small"
-                  variant="outlined"
-                                        startIcon={<Send />}
-                                        onClick={() => setSelectedQuestion(question)}
-                                        sx={{ mt: 1 }}
-                                      >
-                                        Answer Question
-                </Button>
-                                    )}
-                                  </Box>
-                                }
-                              />
-                            </ListItem>
-                            {index < questions.length - 1 && <Divider variant="inset" component="li" />}
-                          </React.Fragment>
-                        ))}
-                      </List>
-                    </Box>
-                  )}
-                </Box>
-              )}
-              </CardContent>
-            </Card>
-          </Box>
-
-          {/* User Management - Quick Access */}
-          {hasPermission(currentUser, 'full') && (
-            <Box sx={{ mb: 3 }}>
-              <Card>
-                <CardContent sx={{ py: 2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                      User Management
-                  </Typography>
-                    <Button
-                      variant="contained"
-                      startIcon={<Person />}
-                      onClick={() => navigate('/admin/users')}
-                      size="small"
-                    >
-                      Manage Users
-                    </Button>
-                  </Box>
-
-                  <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5 }}>
-                    {/* Users Summary */}
-                    <Box sx={{ p: 1.5, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                        Users ({users.length})
-                      </Typography>
-                      {usersLoading ? (
-                        <CircularProgress size={16} />
-                      ) : (
-                        <Box>
-                          {users.slice(0, 3).map((user) => (
-                            <Box key={user.id} sx={{ mb: 1, p: 1, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 0.5 }}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <Box>
-                                  <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
-                                    {user.name || user.email}
-                                  </Typography>
-                                  <Typography variant="caption" color="text.secondary" display="block">
-                                    {user.email}
-                                  </Typography>
-                                  {user.isAdmin && (
-                                    <Chip 
-                                      label="Admin" 
-                                      size="small" 
-                                      color="primary"
-                                      sx={{ fontSize: '0.7rem', mt: 0.5 }}
-                                    />
-                                  )}
-                                  {user.isModerator && (
-                                    <Chip 
-                                      label="Moderator" 
-                                      size="small" 
-                                      color="secondary"
-                                      sx={{ fontSize: '0.7rem', mt: 0.5 }}
-                                    />
-                                  )}
-                                </Box>
-                              </Box>
-                            </Box>
-                          ))}
-                          {users.length > 3 && (
-                            <Typography variant="caption" color="text.secondary">
-                              +{users.length - 3} more users
-                            </Typography>
-                          )}
-                        </Box>
-                      )}
-                    </Box>
-
-                    {/* Enrollments Summary */}
-                    <Box sx={{ p: 1.5, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                        Enrollments ({enrollments.length})
-                      </Typography>
-                      <Box>
-                        {enrollments.slice(0, 3).map((enrollment) => (
-                          <Box key={enrollment.id} sx={{ mb: 1, p: 1, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 0.5 }}>
-                            <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
-                              {enrollment.userId?.substring(0, 8)}...
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" display="block">
-                              {enrollment.status}
-                            </Typography>
-                            <Chip 
-                              label={enrollment.paymentStatus || 'unknown'} 
-                              size="small" 
-                              color={enrollment.paymentStatus === 'paid' ? 'success' : 'default'}
-                              sx={{ fontSize: '0.7rem', mt: 0.5 }}
-                            />
-                          </Box>
-                        ))}
-                        {enrollments.length > 3 && (
-                          <Typography variant="caption" color="text.secondary">
-                            +{enrollments.length - 3} more enrollments
-                          </Typography>
-                        )}
-                      </Box>
-                    </Box>
-
-                    {/* Quick Stats */}
-                    <Box sx={{ p: 1.5, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                        Quick Stats
-                      </Typography>
-                      <Box>
-                        <Typography variant="body2" sx={{ fontSize: '0.875rem', mb: 0.5 }}>
-                          Active Users: {users.filter(u => !u.isAdmin).length}
-                        </Typography>
-                        <Typography variant="body2" sx={{ fontSize: '0.875rem', mb: 0.5 }}>
-                          Paid Enrollments: {enrollments.filter(e => e.paymentStatus === 'paid').length}
-                        </Typography>
-                        <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                          Pending Payments: {enrollments.filter(e => e.paymentStatus === 'pending').length}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Box>
-          )}
-
-          {/* Content Overview - Streamlined */}
-          {hasPermission(currentUser, 'full') && (
-            <Box sx={{ mb: 3 }}>
-              <Card>
-                <CardContent sx={{ py: 2 }}>
-                  <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                    Content Overview
-                  </Typography>
-                  
-                  {courseLoading ? (
-                    <CircularProgress size={20} />
-                  ) : (
-                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 2 }}>
-                      {/* Courses Summary */}
-                      <Box sx={{ p: 1.5, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1 }}>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                          Courses ({courses.length})
-                        </Typography>
-                        {courses.map((course) => (
-                          <Box key={course.id} sx={{ mb: 1, p: 1, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 0.5 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                              <Box>
-                                <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
-                            {course.title}
-                          </Typography>
-                                <Typography variant="caption" color="text.secondary" display="block">
-                                  €{course.price} • {course.duration} weeks
-                          </Typography>
-                              </Box>
-                          <Button
-                            size="small"
-                            startIcon={<Edit />}
-                            onClick={() => {
-                              setEditingCourse(course);
-                              setShowCourseEditor(true);
-                            }}
-                              sx={{ fontSize: '0.75rem' }}
-                          >
-                            Edit
-                          </Button>
-                          </Box>
-                        </Box>
-                      ))}
-                      {courses.length > 0 && (
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            onClick={() => {
-                            setEditingCourse(null);
-                            setShowCourseEditor(true);
-                            }}
-                          sx={{ mt: 1, fontSize: '0.75rem' }}
-                          >
-                          Create New Course
-                          </Button>
-                      )}
-                    </Box>
-
-                    {/* Cohorts Summary */}
-                    <Box sx={{ p: 1.5, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                        Cohorts ({cohorts.length})
-                      </Typography>
-                      {cohorts.map((cohort) => (
-                        <Box key={cohort.id} sx={{ mb: 1, p: 1, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 0.5 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <Box>
-                              <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
-                                {cohort.name}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary" display="block">
-                                {cohort.currentStudents}/{cohort.maxStudents} students
-                              </Typography>
-                              <Chip 
-                                label={cohort.status} 
-                                size="small" 
-                                color={cohort.status === 'active' ? 'success' : 'default'}
-                                sx={{ fontSize: '0.7rem', mt: 0.5 }}
-                              />
-                            </Box>
-                            <Button
-                              size="small"
-                              startIcon={<Edit />}
-                              onClick={() => {
-                                setEditingCohort(cohort);
-                                setShowCohortEditor(true);
-                              }}
-                              sx={{ fontSize: '0.75rem' }}
-                            >
-                              Edit
-                            </Button>
-                          </Box>
-                        </Box>
-                      ))}
-                      {cohorts.length > 0 && (
-                            <Button
-                              size="small"
-                              variant="outlined"
-                          onClick={() => {
-                            setEditingCohort(null);
-                            setShowCohortEditor(true);
-                          }}
-                          sx={{ mt: 1, fontSize: '0.75rem' }}
-                        >
-                          Create New Cohort
-                            </Button>
-                      )}
-                    </Box>
-
-                    {/* Lessons Summary */}
-                    <Box sx={{ p: 1.5, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                        Lessons ({lessons.length})
-                      </Typography>
-                      {lessonsLoading ? (
-                        <CircularProgress size={16} />
-                      ) : (
-                        <Box>
-                          {(showAllLessons ? lessons : lessons.slice(0, 3)).map((lesson) => (
-                            <Box key={lesson.id} sx={{ mb: 1, p: 1, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 0.5 }}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <Box>
-                                  <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
-                                    Week {lesson.weekNumber}: {lesson.title}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                                    {lesson.isPublished ? 'Published' : 'Draft'}
-                          </Typography>
-                                </Box>
-                          <Button
-                            size="small"
-                            startIcon={<Edit />}
-                            onClick={() => {
-                                    setEditingLesson(lesson);
-                                    setShowLessonEditor(true);
-                            }}
-                                  sx={{ fontSize: '0.75rem' }}
-                          >
-                            Edit
-                          </Button>
-                              </Box>
-                        </Box>
-                      ))}
-                          {lessons.length > 3 && (
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                              <Typography variant="caption" color="text.secondary">
-                                {showAllLessons ? 'Showing all lessons' : `+${lessons.length - 3} more lessons`}
-                              </Typography>
-                              <Button
-                                size="small"
-                                startIcon={showAllLessons ? <ExpandLess /> : <ExpandMore />}
-                                onClick={() => setShowAllLessons(!showAllLessons)}
-                                sx={{ fontSize: '0.75rem' }}
-                              >
-                                {showAllLessons ? 'Show Less' : 'View All'}
-                              </Button>
-                            </Box>
-                          )}
-                        </Box>
-                      )}
-                      {lessons.length > 0 && (
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          onClick={() => {
-                            setEditingLesson(null);
-                            setShowLessonEditor(true);
-                          }}
-                          sx={{ mt: 1, fontSize: '0.75rem' }}
-                        >
-                          Create New Lesson
-                        </Button>
-                      )}
-                    </Box>
-                  </Box>
-                )}
-              </CardContent>
-            </Card>
-          </Box>
-          )}
-
-          {/* Scientific Updates Management */}
-          <Box sx={{ mb: 3 }}>
-            <Card>
-              <CardContent sx={{ py: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    Scientific Updates Management
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    startIcon={<Science />}
-                    onClick={() => {
-                      setEditingScientificUpdate(null);
-                      setShowScientificUpdateEditor(true);
-                    }}
-                    size="small"
-                  >
-                    Create New Update
-                  </Button>
-                </Box>
-
-                {scientificUpdatesLoading ? (
-                  <CircularProgress size={20} />
-                ) : (
-                  <Box>
-                    {scientificUpdates.length === 0 ? (
-                      <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
-                        No scientific updates yet. Create the first one!
-                      </Typography>
-                    ) : (
-                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-                        {scientificUpdates.slice(0, 4).map((update) => (
-                          <Box key={update.id} sx={{ p: 1.5, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                              <Box>
-                                <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
-                                  {update.title}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary" display="block">
-                                  {update.category} • {new Date(update.publishedDate.toDate()).toLocaleDateString()}
-                                </Typography>
-                              </Box>
-                              <Button
-                                size="small"
-                                startIcon={<Edit />}
-                                onClick={() => {
-                                  setEditingScientificUpdate(update);
-                                  setShowScientificUpdateEditor(true);
-                                }}
-                                sx={{ fontSize: '0.75rem' }}
-                              >
-                                Edit
-                              </Button>
-                            </Box>
-                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                              <Chip
-                                label={`${update.votes || 0} votes`}
-                                size="small"
-                                color="primary"
-                                variant="outlined"
-                                sx={{ fontSize: '0.7rem' }}
-                              />
-                              <Chip
-                                label={`${update.readCount || 0} reads`}
-                                size="small"
-                                color="secondary"
-                                variant="outlined"
-                                sx={{ fontSize: '0.7rem' }}
-                              />
-                              <Chip
-                                label={`${update.shareCount || 0} shares`}
-                                size="small"
-                                color="info"
-                                variant="outlined"
-                                sx={{ fontSize: '0.7rem' }}
-                              />
-                            </Box>
-                          </Box>
-                        ))}
-                      </Box>
-                    )}
-                    {scientificUpdates.length > 4 && (
-                      <Box sx={{ mt: 2, textAlign: 'center' }}>
-                        <Typography variant="caption" color="text.secondary">
-                          +{scientificUpdates.length - 4} more updates
-                        </Typography>
-                      </Box>
-                    )}
-                  </Box>
-                )}
-              </CardContent>
-            </Card>
-          </Box>
-
-          {/* Editors */}
-          {hasPermission(currentUser, 'full') && (
-            <>
-              {showCourseEditor && (
-                <Box sx={{ mt: 3 }}>
-                  <CourseEditor
-                    courseId={editingCourse?.id}
-                    courseData={editingCourse}
-                    onSave={(courseData) => {
-                      setShowCourseEditor(false);
-                      setEditingCourse(null);
-                      setSuccess('Course saved successfully!');
-                    }}
-                    onCancel={() => {
-                      setShowCourseEditor(false);
-                      setEditingCourse(null);
-                    }}
-                  />
-                </Box>
-              )}
-
-              {showLessonEditor && (
-                <Box sx={{ mt: 3 }}>
-                  <LessonEditor
-                    courseId={courses[0]?.id || ''}
-                    lessonId={editingLesson?.id}
-                    lessonData={editingLesson}
-                    onSave={async (lessonData) => {
-                      setShowLessonEditor(false);
-                      setEditingLesson(null);
-                      setSuccess('Lesson saved successfully!');
-                      // Reload lessons to show the updated list
-                      await loadLessons();
-                    }}
-                    onCancel={() => {
-                      setShowLessonEditor(false);
-                      setEditingLesson(null);
-                    }}
-                  />
-                </Box>
-              )}
-
-              {showCohortEditor && (
-                <Box sx={{ mt: 3 }}>
-                  <CohortEditor
-                    courseId={courses[0]?.id || ''}
-                    cohortId={editingCohort?.id}
-                    cohortData={editingCohort}
-                    onSave={(cohortData) => {
-                      setShowCohortEditor(false);
-                      setEditingCohort(null);
-                      setSuccess('Cohort saved successfully!');
-                    }}
-                    onCancel={() => {
-                      setShowCohortEditor(false);
-                      setEditingCohort(null);
-                    }}
-                  />
-                </Box>
-              )}
-            </>
-          )}
-
-          {/* Scientific Update Editor - Available for both admins and moderators */}
-          {showScientificUpdateEditor && (
-            <Box sx={{ mt: 3 }}>
-              <ScientificUpdateEditor
-                updateId={editingScientificUpdate?.id}
-                updateData={editingScientificUpdate}
-                onSave={async (updateData) => {
-                  setShowScientificUpdateEditor(false);
-                  setEditingScientificUpdate(null);
-                  setSuccess('Scientific update saved successfully!');
-                  // Reload scientific updates to show the updated list
-                  await loadScientificUpdates();
-                }}
-                onCancel={() => {
-                  setShowScientificUpdateEditor(false);
-                  setEditingScientificUpdate(null);
-                }}
-              />
-            </Box>
-          )}
-
-      {/* Answer Question Dialog */}
-      <Dialog 
-        open={!!selectedQuestion} 
-        onClose={() => {
-          setSelectedQuestion(null);
-          setAnswerText('');
-        }} 
-        maxWidth="md" 
-        fullWidth
-      >
-        <DialogTitle>
-          Answer Question
-        </DialogTitle>
-        <DialogContent>
-          {selectedQuestion && (
-            <Box>
-              <Typography variant="body1" sx={{ fontWeight: 500, mb: 2 }}>
-                {selectedQuestion.question}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 3 }}>
-                Asked by {selectedQuestion.userName || 'Anonymous'} on {selectedQuestion.createdAt.toDate().toLocaleDateString()}
-              </Typography>
-              
-              <TextField
-                fullWidth
-                multiline
-                rows={6}
-                label="Your answer"
-                value={answerText}
-                onChange={(e) => setAnswerText(e.target.value)}
-                placeholder="Provide a helpful answer to this question..."
-                sx={{ mb: 2 }}
-              />
-              
-              <Typography variant="body2" color="text.secondary">
-                This answer will be visible to the student and can help other students with similar questions.
-              </Typography>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button 
-            onClick={() => {
-              setSelectedQuestion(null);
-              setAnswerText('');
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleAnswerQuestion}
-            variant="contained"
-            disabled={!answerText.trim() || answeringQuestion}
-            startIcon={answeringQuestion ? <CircularProgress size={16} /> : <Send />}
-          >
-            {answeringQuestion ? 'Submitting...' : 'Submit Answer'}
-          </Button>
-        </DialogActions>
-      </Dialog>
       </Box>
     </Container>
   );
