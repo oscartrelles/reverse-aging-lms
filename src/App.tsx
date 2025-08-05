@@ -25,6 +25,7 @@ import AdminStudentManagement from './pages/admin/AdminStudentManagement';
 import AdminUserManagement from './pages/admin/AdminUserManagement';
 import AdminScientificUpdates from './pages/admin/AdminScientificUpdates';
 import AdminQAManagement from './pages/admin/AdminQAManagement';
+import AdminCourseManagement from './pages/admin/AdminCourseManagement';
 import { AdvancedAnalyticsDashboard } from './components/analytics/AdvancedAnalyticsDashboard';
 import EvidencePage from './pages/EvidencePage';
 import PrivacyPage from './pages/PrivacyPage';
@@ -288,6 +289,12 @@ function App() {
                           <Route path="/admin/qa" element={
                             <AdminRoute>
                               <AdminQAManagement />
+                            </AdminRoute>
+                          } />
+                          
+                          <Route path="/admin/courses" element={
+                            <AdminRoute>
+                              <AdminCourseManagement />
                             </AdminRoute>
                           } />
                           

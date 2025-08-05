@@ -84,8 +84,9 @@ export const getNextLessonReleaseTime = (
   const nextWeekStart = new Date(cohort.startDate.toDate());
   nextWeekStart.setDate(nextWeekStart.getDate() + (currentWeek * 7));
   
-  // Set to 8am local time
-  const [hours, minutes] = cohort.weeklyReleaseTime.split(':').map(Number);
+  // Set to 8am local time (default) or use cohort's specified time
+  const releaseTime = cohort.weeklyReleaseTime || '08:00';
+  const [hours, minutes] = releaseTime.split(':').map(Number);
   nextWeekStart.setHours(hours, minutes, 0, 0);
   
   return nextWeekStart;

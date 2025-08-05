@@ -62,8 +62,10 @@ export interface Lesson {
   weekNumber: number;
   title: string;
   description: string;
+  content?: string; // Lesson content (markdown supported)
   videoUrl?: string;
   videoDuration?: number; // in seconds
+  duration?: number; // in minutes
   resources: Resource[];
   isPublished: boolean;
   releaseDate?: Timestamp;
@@ -74,6 +76,8 @@ export interface Lesson {
   // Additional robust fields
   theme?: string; // Lesson theme/topic
   learningObjectives?: string[]; // Array of learning objectives
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
 }
 
 export interface Resource {
@@ -104,12 +108,17 @@ export interface Cohort {
   id: string;
   courseId: string;
   name: string;
+  description?: string;
   startDate: Timestamp;
   endDate: Timestamp;
   maxStudents: number;
   currentStudents: number;
-  status: 'upcoming' | 'active' | 'completed';
-  weeklyReleaseTime: string; // "08:00" for 8am
+  status: 'upcoming' | 'active' | 'completed' | 'cancelled';
+  weeklyReleaseTime?: string; // "08:00" for 8am
+  isActive?: boolean;
+  enrollmentDeadline?: Timestamp;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
 }
 
 // Progress types

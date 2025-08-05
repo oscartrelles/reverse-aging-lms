@@ -1,8 +1,8 @@
 import { 
   collection, 
   doc, 
-  getDoc, 
   getDocs, 
+  getDoc, 
   addDoc, 
   updateDoc, 
   deleteDoc, 
@@ -11,31 +11,29 @@ import {
   orderBy, 
   Timestamp,
   writeBatch,
-  onSnapshot,
-  Unsubscribe
+  onSnapshot
 } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
-import { Course, Lesson, Cohort, Resource } from '../types';
+import { Course, Lesson, Cohort } from '../types';
 
-// Course Management Interfaces
 export interface CreateCourseData {
   title: string;
   description: string;
   price: number;
-  isFree: boolean;
+  duration: number;
   maxStudents: number;
-  duration: number; // weeks
   status: 'draft' | 'active' | 'archived';
+  isFree: boolean;
 }
 
 export interface UpdateCourseData {
   title?: string;
   description?: string;
   price?: number;
-  isFree?: boolean;
-  maxStudents?: number;
   duration?: number;
+  maxStudents?: number;
   status?: 'draft' | 'active' | 'archived';
+  isFree?: boolean;
 }
 
 export interface CreateLessonData {
@@ -45,7 +43,14 @@ export interface CreateLessonData {
   description: string;
   videoUrl?: string;
   videoDuration?: number;
-  resources: Resource[];
+  duration?: number;
+  resources: Array<{
+    id: string;
+    title: string;
+    type: 'pdf' | 'workbook' | 'link';
+    url: string;
+    size?: number;
+  }>;
   isPublished: boolean;
   releaseDate?: Date;
   order: number;
@@ -61,7 +66,14 @@ export interface UpdateLessonData {
   description?: string;
   videoUrl?: string;
   videoDuration?: number;
-  resources?: Resource[];
+  duration?: number;
+  resources?: Array<{
+    id: string;
+    title: string;
+    type: 'pdf' | 'workbook' | 'link';
+    url: string;
+    size?: number;
+  }>;
   isPublished?: boolean;
   releaseDate?: Date;
   order?: number;
@@ -74,150 +86,97 @@ export interface UpdateLessonData {
 export interface CreateCohortData {
   courseId: string;
   name: string;
+  description?: string;
   startDate: Date;
   endDate: Date;
   maxStudents: number;
-  weeklyReleaseTime: string; // "08:00" for 8am
+  currentStudents?: number;
+  status?: 'upcoming' | 'active' | 'completed' | 'cancelled';
+  weeklyReleaseTime?: string;
+  isActive?: boolean;
+  enrollmentDeadline?: Date;
 }
 
 export interface UpdateCohortData {
   name?: string;
+  description?: string;
   startDate?: Date;
   endDate?: Date;
   maxStudents?: number;
-  status?: 'upcoming' | 'active' | 'completed';
+  currentStudents?: number;
+  status?: 'upcoming' | 'active' | 'completed' | 'cancelled';
   weeklyReleaseTime?: string;
+  isActive?: boolean;
+  enrollmentDeadline?: Date;
 }
 
-export interface CourseFilters {
-  status?: 'draft' | 'active' | 'archived';
-  isFree?: boolean;
-  search?: string;
-}
-
-export interface LessonFilters {
-  courseId?: string;
-  isPublished?: boolean;
-  weekNumber?: number;
-  search?: string;
-}
-
-export interface CohortFilters {
-  courseId?: string;
-  status?: 'upcoming' | 'active' | 'completed';
-  search?: string;
-}
-
-export interface CourseAnalytics {
-  totalCourses: number;
-  activeCourses: number;
-  draftCourses: number;
-  archivedCourses: number;
-  totalLessons: number;
-  totalCohorts: number;
-  activeCohorts: number;
-  upcomingCohorts: number;
-  completedCohorts: number;
-  averageLessonsPerCourse: number;
-  averageCohortsPerCourse: number;
-}
-
-// Centralized Course Management Service
 export const courseManagementService = {
-  // ===== COURSE OPERATIONS =====
-  
-  /**
-   * Get all courses with optional filtering
-   */
-  async getCourses(filters?: CourseFilters): Promise<Course[]> {
+  // Course Management
+  async getAllCourses(): Promise<Course[]> {
     try {
-      let coursesQuery = query(collection(db, 'courses'), orderBy('createdAt', 'desc'));
-      
-      // Apply filters
-      if (filters?.status) {
-        coursesQuery = query(coursesQuery, where('status', '==', filters.status));
-      }
-      
-      if (filters?.isFree !== undefined) {
-        coursesQuery = query(coursesQuery, where('isFree', '==', filters.isFree));
-      }
+      const coursesQuery = query(
+        collection(db, 'courses'),
+        orderBy('createdAt', 'desc')
+      );
       
       const snapshot = await getDocs(coursesQuery);
-      let courses = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Course[];
-      
-      // Apply search filter in memory
-      if (filters?.search) {
-        const searchTerm = filters.search.toLowerCase();
-        courses = courses.filter(course => 
-          course.title.toLowerCase().includes(searchTerm) ||
-          course.description.toLowerCase().includes(searchTerm)
-        );
-      }
-      
-      return courses;
+      return snapshot.docs.map(doc => ({
+        ...doc.data(),
+        id: doc.id
+      } as Course));
     } catch (error) {
-      console.error('❌ Error fetching courses:', error);
+      console.error('Error getting all courses:', error);
       throw error;
     }
   },
 
-  /**
-   * Get a single course by ID
-   */
-  async getCourseById(courseId: string): Promise<Course | null> {
+  async getCourse(courseId: string): Promise<Course | null> {
     try {
       const courseDoc = await getDoc(doc(db, 'courses', courseId));
-      if (courseDoc.exists()) {
-        return {
-          id: courseDoc.id,
-          ...courseDoc.data()
-        } as Course;
-      }
-      return null;
+      if (!courseDoc.exists()) return null;
+      
+      return {
+        ...courseDoc.data(),
+        id: courseDoc.id
+      } as Course;
     } catch (error) {
-      console.error('❌ Error fetching course:', error);
+      console.error('Error getting course:', error);
       throw error;
     }
   },
 
-  /**
-   * Create a new course
-   */
   async createCourse(courseData: CreateCourseData): Promise<string> {
     try {
-      const courseDoc = await addDoc(collection(db, 'courses'), {
+      const courseDataWithTimestamps = {
         ...courseData,
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
-      });
-      return courseDoc.id;
+      };
+      
+      const courseRef = await addDoc(collection(db, 'courses'), courseDataWithTimestamps);
+      console.log('✅ Course created successfully:', courseRef.id);
+      return courseRef.id;
     } catch (error) {
       console.error('❌ Error creating course:', error);
       throw error;
     }
   },
 
-  /**
-   * Update an existing course
-   */
-  async updateCourse(courseId: string, updates: UpdateCourseData): Promise<void> {
+  async updateCourse(courseId: string, courseData: UpdateCourseData): Promise<void> {
     try {
-      await updateDoc(doc(db, 'courses', courseId), {
-        ...updates,
+      const courseDataWithTimestamp = {
+        ...courseData,
         updatedAt: Timestamp.now(),
-      });
+      };
+      
+      await updateDoc(doc(db, 'courses', courseId), courseDataWithTimestamp);
+      console.log('✅ Course updated successfully:', courseId);
     } catch (error) {
       console.error('❌ Error updating course:', error);
       throw error;
     }
   },
 
-  /**
-   * Delete a course (and all associated lessons and cohorts)
-   */
   async deleteCourse(courseId: string): Promise<void> {
     try {
       const batch = writeBatch(db);
@@ -225,351 +184,286 @@ export const courseManagementService = {
       // Delete the course
       batch.delete(doc(db, 'courses', courseId));
       
-      // Delete all lessons for this course
-      const lessonsQuery = query(collection(db, 'lessons'), where('courseId', '==', courseId));
+      // Delete associated lessons
+      const lessonsQuery = query(
+        collection(db, 'lessons'),
+        where('courseId', '==', courseId)
+      );
       const lessonsSnapshot = await getDocs(lessonsQuery);
       lessonsSnapshot.docs.forEach(doc => {
         batch.delete(doc.ref);
       });
       
-      // Delete all cohorts for this course
-      const cohortsQuery = query(collection(db, 'cohorts'), where('courseId', '==', courseId));
+      // Delete associated cohorts
+      const cohortsQuery = query(
+        collection(db, 'cohorts'),
+        where('courseId', '==', courseId)
+      );
       const cohortsSnapshot = await getDocs(cohortsQuery);
       cohortsSnapshot.docs.forEach(doc => {
         batch.delete(doc.ref);
       });
       
       await batch.commit();
+      console.log('✅ Course and associated data deleted successfully:', courseId);
     } catch (error) {
       console.error('❌ Error deleting course:', error);
       throw error;
     }
   },
 
-  // ===== LESSON OPERATIONS =====
-  
-  /**
-   * Get all lessons with optional filtering
-   */
-  async getLessons(filters?: LessonFilters): Promise<Lesson[]> {
+  // Lesson Management
+  async getAllLessons(): Promise<Lesson[]> {
     try {
-      let lessonsQuery = query(collection(db, 'lessons'), orderBy('order', 'asc'));
-      
-      // Apply filters
-      if (filters?.courseId) {
-        lessonsQuery = query(lessonsQuery, where('courseId', '==', filters.courseId));
-      }
-      
-      if (filters?.isPublished !== undefined) {
-        lessonsQuery = query(lessonsQuery, where('isPublished', '==', filters.isPublished));
-      }
-      
-      if (filters?.weekNumber) {
-        lessonsQuery = query(lessonsQuery, where('weekNumber', '==', filters.weekNumber));
-      }
+      const lessonsQuery = query(
+        collection(db, 'lessons'),
+        orderBy('order', 'asc')
+      );
       
       const snapshot = await getDocs(lessonsQuery);
-      let lessons = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Lesson[];
-      
-      // Apply search filter in memory
-      if (filters?.search) {
-        const searchTerm = filters.search.toLowerCase();
-        lessons = lessons.filter(lesson => 
-          lesson.title.toLowerCase().includes(searchTerm) ||
-          lesson.description.toLowerCase().includes(searchTerm)
-        );
-      }
-      
-      return lessons;
+      return snapshot.docs.map(doc => ({
+        ...doc.data(),
+        id: doc.id
+      } as Lesson));
     } catch (error) {
-      console.error('❌ Error fetching lessons:', error);
+      console.error('Error getting all lessons:', error);
       throw error;
     }
   },
 
-  /**
-   * Get a single lesson by ID
-   */
-  async getLessonById(lessonId: string): Promise<Lesson | null> {
+  async getCourseLessons(courseId: string): Promise<Lesson[]> {
+    try {
+      const lessonsQuery = query(
+        collection(db, 'lessons'),
+        where('courseId', '==', courseId),
+        orderBy('order', 'asc')
+      );
+      
+      const snapshot = await getDocs(lessonsQuery);
+      return snapshot.docs.map(doc => ({
+        ...doc.data(),
+        id: doc.id
+      } as Lesson));
+    } catch (error) {
+      console.error('Error getting course lessons:', error);
+      throw error;
+    }
+  },
+
+  async getLesson(lessonId: string): Promise<Lesson | null> {
     try {
       const lessonDoc = await getDoc(doc(db, 'lessons', lessonId));
-      if (lessonDoc.exists()) {
-        return {
-          id: lessonDoc.id,
-          ...lessonDoc.data()
-        } as Lesson;
-      }
-      return null;
+      if (!lessonDoc.exists()) return null;
+      
+      return {
+        ...lessonDoc.data(),
+        id: lessonDoc.id
+      } as Lesson;
     } catch (error) {
-      console.error('❌ Error fetching lesson:', error);
+      console.error('Error getting lesson:', error);
       throw error;
     }
   },
 
-  /**
-   * Create a new lesson
-   */
   async createLesson(lessonData: CreateLessonData): Promise<string> {
     try {
-      const lessonDoc = await addDoc(collection(db, 'lessons'), {
+      const lessonDataWithTimestamps = {
         ...lessonData,
-        releaseDate: lessonData.releaseDate ? Timestamp.fromDate(lessonData.releaseDate) : undefined,
-      });
-      return lessonDoc.id;
+        releaseDate: lessonData.releaseDate ? Timestamp.fromDate(lessonData.releaseDate) : null,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      };
+      
+      const lessonRef = await addDoc(collection(db, 'lessons'), lessonDataWithTimestamps);
+      console.log('✅ Lesson created successfully:', lessonRef.id);
+      return lessonRef.id;
     } catch (error) {
       console.error('❌ Error creating lesson:', error);
       throw error;
     }
   },
 
-  /**
-   * Update an existing lesson
-   */
-  async updateLesson(lessonId: string, updates: UpdateLessonData): Promise<void> {
+  async updateLesson(lessonId: string, lessonData: UpdateLessonData): Promise<void> {
     try {
-      const updateData: any = { ...updates };
-      if (updates.releaseDate) {
-        updateData.releaseDate = Timestamp.fromDate(updates.releaseDate);
-      }
+      const lessonDataWithTimestamp = {
+        ...lessonData,
+        releaseDate: lessonData.releaseDate ? Timestamp.fromDate(lessonData.releaseDate) : null,
+        updatedAt: Timestamp.now(),
+      };
       
-      await updateDoc(doc(db, 'lessons', lessonId), updateData);
+      await updateDoc(doc(db, 'lessons', lessonId), lessonDataWithTimestamp);
+      console.log('✅ Lesson updated successfully:', lessonId);
     } catch (error) {
       console.error('❌ Error updating lesson:', error);
       throw error;
     }
   },
 
-  /**
-   * Delete a lesson
-   */
   async deleteLesson(lessonId: string): Promise<void> {
     try {
       await deleteDoc(doc(db, 'lessons', lessonId));
+      console.log('✅ Lesson deleted successfully:', lessonId);
     } catch (error) {
       console.error('❌ Error deleting lesson:', error);
       throw error;
     }
   },
 
-  /**
-   * Reorder lessons for a course
-   */
-  async reorderLessons(courseId: string, lessonIds: string[]): Promise<void> {
+  // Cohort Management
+  async getAllCohorts(): Promise<Cohort[]> {
     try {
-      const batch = writeBatch(db);
-      
-      lessonIds.forEach((lessonId, index) => {
-        const lessonRef = doc(db, 'lessons', lessonId);
-        batch.update(lessonRef, { order: index + 1 });
-      });
-      
-      await batch.commit();
-    } catch (error) {
-      console.error('❌ Error reordering lessons:', error);
-      throw error;
-    }
-  },
-
-  // ===== COHORT OPERATIONS =====
-  
-  /**
-   * Get all cohorts with optional filtering
-   */
-  async getCohorts(filters?: CohortFilters): Promise<Cohort[]> {
-    try {
-      let cohortsQuery = query(collection(db, 'cohorts'), orderBy('startDate', 'desc'));
-      
-      // Apply filters
-      if (filters?.courseId) {
-        cohortsQuery = query(cohortsQuery, where('courseId', '==', filters.courseId));
-      }
-      
-      if (filters?.status) {
-        cohortsQuery = query(cohortsQuery, where('status', '==', filters.status));
-      }
+      const cohortsQuery = query(
+        collection(db, 'cohorts'),
+        orderBy('startDate', 'desc')
+      );
       
       const snapshot = await getDocs(cohortsQuery);
-      let cohorts = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Cohort[];
-      
-      // Apply search filter in memory
-      if (filters?.search) {
-        const searchTerm = filters.search.toLowerCase();
-        cohorts = cohorts.filter(cohort => 
-          cohort.name.toLowerCase().includes(searchTerm)
-        );
-      }
-      
-      return cohorts;
+      return snapshot.docs.map(doc => ({
+        ...doc.data(),
+        id: doc.id
+      } as Cohort));
     } catch (error) {
-      console.error('❌ Error fetching cohorts:', error);
+      console.error('Error getting all cohorts:', error);
       throw error;
     }
   },
 
-  /**
-   * Get a single cohort by ID
-   */
-  async getCohortById(cohortId: string): Promise<Cohort | null> {
+  async getCourseCohorts(courseId: string): Promise<Cohort[]> {
+    try {
+      const cohortsQuery = query(
+        collection(db, 'cohorts'),
+        where('courseId', '==', courseId),
+        orderBy('startDate', 'desc')
+      );
+      
+      const snapshot = await getDocs(cohortsQuery);
+      return snapshot.docs.map(doc => ({
+        ...doc.data(),
+        id: doc.id
+      } as Cohort));
+    } catch (error) {
+      console.error('Error getting course cohorts:', error);
+      throw error;
+    }
+  },
+
+  async getCohort(cohortId: string): Promise<Cohort | null> {
     try {
       const cohortDoc = await getDoc(doc(db, 'cohorts', cohortId));
-      if (cohortDoc.exists()) {
-        return {
-          id: cohortDoc.id,
-          ...cohortDoc.data()
-        } as Cohort;
-      }
-      return null;
+      if (!cohortDoc.exists()) return null;
+      
+      return {
+        ...cohortDoc.data(),
+        id: cohortDoc.id
+      } as Cohort;
     } catch (error) {
-      console.error('❌ Error fetching cohort:', error);
+      console.error('Error getting cohort:', error);
       throw error;
     }
   },
 
-  /**
-   * Create a new cohort
-   */
   async createCohort(cohortData: CreateCohortData): Promise<string> {
     try {
-      const cohortDoc = await addDoc(collection(db, 'cohorts'), {
+      const cohortDataWithTimestamps = {
         ...cohortData,
         startDate: Timestamp.fromDate(cohortData.startDate),
         endDate: Timestamp.fromDate(cohortData.endDate),
-        currentStudents: 0,
-        status: 'upcoming',
-      });
-      return cohortDoc.id;
+        currentStudents: cohortData.currentStudents || 0,
+        status: cohortData.status || 'upcoming',
+        isActive: cohortData.isActive || false,
+        enrollmentDeadline: cohortData.enrollmentDeadline ? Timestamp.fromDate(cohortData.enrollmentDeadline) : null,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      };
+      
+      const cohortRef = await addDoc(collection(db, 'cohorts'), cohortDataWithTimestamps);
+      console.log('✅ Cohort created successfully:', cohortRef.id);
+      return cohortRef.id;
     } catch (error) {
       console.error('❌ Error creating cohort:', error);
       throw error;
     }
   },
 
-  /**
-   * Update an existing cohort
-   */
-  async updateCohort(cohortId: string, updates: UpdateCohortData): Promise<void> {
+  async updateCohort(cohortId: string, cohortData: UpdateCohortData): Promise<void> {
     try {
-      const updateData: any = { ...updates };
-      if (updates.startDate) {
-        updateData.startDate = Timestamp.fromDate(updates.startDate);
+      const updateData: any = {
+        ...cohortData,
+        updatedAt: Timestamp.now(),
+      };
+      
+      if (cohortData.startDate) {
+        updateData.startDate = Timestamp.fromDate(cohortData.startDate);
       }
-      if (updates.endDate) {
-        updateData.endDate = Timestamp.fromDate(updates.endDate);
+      if (cohortData.endDate) {
+        updateData.endDate = Timestamp.fromDate(cohortData.endDate);
+      }
+      if (cohortData.enrollmentDeadline) {
+        updateData.enrollmentDeadline = Timestamp.fromDate(cohortData.enrollmentDeadline);
       }
       
       await updateDoc(doc(db, 'cohorts', cohortId), updateData);
+      console.log('✅ Cohort updated successfully:', cohortId);
     } catch (error) {
       console.error('❌ Error updating cohort:', error);
       throw error;
     }
   },
 
-  /**
-   * Delete a cohort
-   */
   async deleteCohort(cohortId: string): Promise<void> {
     try {
       await deleteDoc(doc(db, 'cohorts', cohortId));
+      console.log('✅ Cohort deleted successfully:', cohortId);
     } catch (error) {
       console.error('❌ Error deleting cohort:', error);
       throw error;
     }
   },
 
-  // ===== ANALYTICS =====
-  
-  /**
-   * Get course management analytics
-   */
-  async getCourseAnalytics(): Promise<CourseAnalytics> {
-    try {
-      const [courses, lessons, cohorts] = await Promise.all([
-        this.getCourses(),
-        this.getLessons(),
-        this.getCohorts()
-      ]);
-      
-      const activeCourses = courses.filter(c => c.status === 'active').length;
-      const draftCourses = courses.filter(c => c.status === 'draft').length;
-      const archivedCourses = courses.filter(c => c.status === 'archived').length;
-      
-      const activeCohorts = cohorts.filter(c => c.status === 'active').length;
-      const upcomingCohorts = cohorts.filter(c => c.status === 'upcoming').length;
-      const completedCohorts = cohorts.filter(c => c.status === 'completed').length;
-      
-      return {
-        totalCourses: courses.length,
-        activeCourses,
-        draftCourses,
-        archivedCourses,
-        totalLessons: lessons.length,
-        totalCohorts: cohorts.length,
-        activeCohorts,
-        upcomingCohorts,
-        completedCohorts,
-        averageLessonsPerCourse: courses.length > 0 ? Math.round(lessons.length / courses.length * 10) / 10 : 0,
-        averageCohortsPerCourse: courses.length > 0 ? Math.round(cohorts.length / courses.length * 10) / 10 : 0,
-      };
-    } catch (error) {
-      console.error('❌ Error fetching course analytics:', error);
-      throw error;
-    }
-  },
-
-  // ===== REAL-TIME SUBSCRIPTIONS =====
-  
-  /**
-   * Subscribe to courses changes
-   */
-  subscribeToCourses(callback: (courses: Course[]) => void): Unsubscribe {
-    const q = query(collection(db, 'courses'), orderBy('createdAt', 'desc'));
-    return onSnapshot(q, (snapshot) => {
+  // Real-time listeners
+  subscribeToCourses(callback: (courses: Course[]) => void) {
+    const coursesQuery = query(
+      collection(db, 'courses'),
+      orderBy('createdAt', 'desc')
+    );
+    
+    return onSnapshot(coursesQuery, (snapshot) => {
       const courses = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Course[];
+        ...doc.data(),
+        id: doc.id
+      } as Course));
       callback(courses);
     });
   },
 
-  /**
-   * Subscribe to lessons changes for a course
-   */
-  subscribeToCourseLessons(courseId: string, callback: (lessons: Lesson[]) => void): Unsubscribe {
-    const q = query(
-      collection(db, 'lessons'), 
+  subscribeToCourseLessons(courseId: string, callback: (lessons: Lesson[]) => void) {
+    const lessonsQuery = query(
+      collection(db, 'lessons'),
       where('courseId', '==', courseId),
       orderBy('order', 'asc')
     );
-    return onSnapshot(q, (snapshot) => {
+    
+    return onSnapshot(lessonsQuery, (snapshot) => {
       const lessons = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Lesson[];
+        ...doc.data(),
+        id: doc.id
+      } as Lesson));
       callback(lessons);
     });
   },
 
-  /**
-   * Subscribe to cohorts changes for a course
-   */
-  subscribeToCourseCohorts(courseId: string, callback: (cohorts: Cohort[]) => void): Unsubscribe {
-    const q = query(
-      collection(db, 'cohorts'), 
+  subscribeToCourseCohorts(courseId: string, callback: (cohorts: Cohort[]) => void) {
+    const cohortsQuery = query(
+      collection(db, 'cohorts'),
       where('courseId', '==', courseId),
       orderBy('startDate', 'desc')
     );
-    return onSnapshot(q, (snapshot) => {
+    
+    return onSnapshot(cohortsQuery, (snapshot) => {
       const cohorts = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Cohort[];
+        ...doc.data(),
+        id: doc.id
+      } as Cohort));
       callback(cohorts);
     });
   },
