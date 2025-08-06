@@ -24,6 +24,7 @@ import {
   CheckCircle,
   Book,
   Visibility,
+  Email,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -34,6 +35,7 @@ import { scientificUpdateService } from '../../services/scientificUpdateService'
 import { userManagementService } from '../../services/userManagementService';
 import { enrollmentService } from '../../services/enrollmentService';
 import { studentManagementService } from '../../services/studentManagementService';
+import EmailTestPanel from '../../components/admin/EmailTestPanel';
 
 // Helper function to check user permissions
 const hasPermission = (user: any, permission: 'admin' | 'moderator' | 'full') => {
@@ -451,6 +453,22 @@ const AdminDashboard: React.FC = () => {
             </Box>
           </CardContent>
         </Card>
+
+        {/* Email System Test */}
+        {hasPermission(currentUser, 'full') && (
+          <Card sx={{ mt: 3 }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Email color="primary" />
+                Email System Test
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Test the MailerSend email integration and welcome email template
+              </Typography>
+              <EmailTestPanel />
+            </CardContent>
+          </Card>
+        )}
       </Box>
     </Container>
   );

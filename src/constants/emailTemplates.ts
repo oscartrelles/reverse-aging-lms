@@ -1,49 +1,50 @@
+// Email configuration constants
+export const EMAIL_CONFIG = {
+  BASE_URL: 'https://academy.7weekreverseagingchallenge.com',
+  SUPPORT_EMAIL: 'support@reverseagingacademy.com',
+} as const;
+
 // Email template IDs for MailerSend
 // These will be created in the MailerSend dashboard
 export const EMAIL_TEMPLATES = {
-  // Welcome Series
+  // Free Users (Account Only)
   WELCOME_EMAIL: 'k68zxl2en23lj905', // ✅ COMPLETE
   WELCOME_SOCIAL: 'welcome-social', // ⏳ PENDING
-  ONBOARDING_NAVIGATION: 'onboarding-navigation',
-  ONBOARDING_FIRST_LESSON: 'onboarding-first-lesson',
-  ONBOARDING_COMMUNITY: 'onboarding-community',
-  ONBOARDING_SUCCESS_TIPS: 'onboarding-success-tips',
+  SCIENTIFIC_UPDATE_DIGEST: '0r83ql3jzq0gzw1j', // ✅ READY FOR TESTING
+  FREE_USER_REENGAGEMENT: 'free-user-reengagement', // ⏳ PENDING
+  COURSE_ENROLLMENT_INVITATION: 'course-enrollment-invitation', // ⏳ PENDING
 
-  // Payment & Enrollment
-  PAYMENT_CONFIRMATION: 'payment-confirmation',
-  ENROLLMENT_CONFIRMATION: 'enrollment-confirmation',
-  PAYMENT_FAILED: 'payment-failed',
-  REFUND_CONFIRMATION: 'refund-confirmation',
+  // Students (Enrolled Users)
+  ENROLLMENT_CONFIRMATION: 'k68zxl2exq5lj905', // ✅ Ready for Testing
+  PAYMENT_CONFIRMATION: 'payment-confirmation', // ⏳ PENDING
+  COURSE_START_REMINDER: 'course-start-reminder', // ⏳ PENDING
+  ONBOARDING_NAVIGATION: 'onboarding-navigation', // ⏳ PENDING
+  ONBOARDING_FIRST_LESSON: 'onboarding-first-lesson', // ⏳ PENDING
+  ONBOARDING_COMMUNITY: 'onboarding-community', // ⏳ PENDING
+  ONBOARDING_SUCCESS_TIPS: 'onboarding-success-tips', // ⏳ PENDING
+  LESSON_RELEASE: 'lesson-release', // ⏳ PENDING
+  WEEKLY_PROGRESS_REPORT: 'weekly-progress-report', // ⏳ PENDING
+  COURSE_COMPLETION: 'course-completion', // ⏳ PENDING
+  ACHIEVEMENT_UNLOCKED: 'achievement-unlocked', // ⏳ PENDING
+  STREAK_MILESTONE: 'streak-milestone', // ⏳ PENDING
+  STUDENT_REENGAGEMENT: 'student-reengagement', // ⏳ PENDING
 
-  // Course Progress
-  COURSE_START_REMINDER: 'course-start-reminder',
-  LESSON_RELEASE: 'lesson-release',
-  COURSE_COMPLETION: 'course-completion',
-  WEEKLY_PROGRESS_REPORT: 'weekly-progress-report',
+  // System Emails (All Users)
+  PASSWORD_RESET: 'password-reset', // ⏳ PENDING
+  EMAIL_VERIFICATION: 'email-verification', // ⏳ PENDING
+  PAYMENT_FAILED: 'payment-failed', // ⏳ PENDING
+  REFUND_CONFIRMATION: 'refund-confirmation', // ⏳ PENDING
 
-  // Achievements & Motivation
-  STREAK_MILESTONE: 'streak-milestone',
-  ACHIEVEMENT_UNLOCKED: 'achievement-unlocked',
+  // Legacy/Deprecated (to be removed)
   BEHIND_SCHEDULE_REMINDER: 'behind-schedule-reminder',
-
-  // Community & Support
   QUESTION_ANSWERED: 'question-answered',
   COMMUNITY_HIGHLIGHTS: 'community-highlights',
-  SCIENTIFIC_UPDATE_DIGEST: 'scientific-update-digest',
-
-  // Content & Updates
   NEW_SCIENTIFIC_UPDATE: 'new-scientific-update',
   COURSE_UPDATE: 'course-update',
   SEASONAL_CHALLENGE: 'seasonal-challenge',
-
-  // Re-engagement
   INACTIVE_USER_REENGAGEMENT: 'inactive-user-reengagement',
   COURSE_COMPLETION_FOLLOWUP: 'course-completion-followup',
   REFERRAL_PROGRAM: 'referral-program',
-
-  // Account Security
-  PASSWORD_RESET: 'password-reset',
-  EMAIL_VERIFICATION: 'email-verification',
   ACCOUNT_SECURITY_ALERT: 'account-security-alert',
 } as const;
 
@@ -134,20 +135,33 @@ export const TEMPLATE_VARIABLES = {
 
 // Email scheduling constants
 export const EMAIL_SCHEDULING = {
-  // Welcome series timing (in hours after signup)
-  WELCOME_SERIES: {
+  // Free Users (Account Only)
+  FREE_USER_SERIES: {
     WELCOME_EMAIL: 0, // Immediate
-    ONBOARDING_NAVIGATION: 24, // 1 day later
+    SCIENTIFIC_UPDATE_DIGEST: 168, // 1 week later (weekly)
+    COURSE_ENROLLMENT_INVITATION: 336, // 2 weeks later
+    FREE_USER_REENGAGEMENT: 504, // 3 weeks later
+  },
+
+  // Students (Enrolled Users)
+  STUDENT_SERIES: {
+    ENROLLMENT_CONFIRMATION: 0, // Immediate
+    COURSE_START_REMINDER: 24, // 1 day later
+    ONBOARDING_NAVIGATION: 48, // 2 days later
     ONBOARDING_FIRST_LESSON: 72, // 3 days later
     ONBOARDING_COMMUNITY: 168, // 1 week later
     ONBOARDING_SUCCESS_TIPS: 336, // 2 weeks later
+    WEEKLY_PROGRESS_REPORT: 168, // Weekly (1 week after enrollment)
   },
 
   // Re-engagement timing (in days after last activity)
   REENGAGEMENT: {
-    INACTIVE_7_DAYS: 7,
-    INACTIVE_14_DAYS: 14,
-    INACTIVE_30_DAYS: 30,
+    FREE_USER_7_DAYS: 7,
+    FREE_USER_14_DAYS: 14,
+    FREE_USER_30_DAYS: 30,
+    STUDENT_7_DAYS: 7,
+    STUDENT_14_DAYS: 14,
+    STUDENT_30_DAYS: 30,
   },
 
   // Weekly digest timing

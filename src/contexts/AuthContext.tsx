@@ -87,10 +87,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Track successful sign up
       analyticsEvents.signUpSuccess('email');
 
-      // Send welcome email and schedule welcome series
+      // Send welcome email and schedule free user series
       try {
         await emailIntegrationService.sendWelcomeEmail(userData, false);
-        await emailIntegrationService.scheduleWelcomeSeries(userData);
+        await emailIntegrationService.scheduleFreeUserSeries(userData);
       } catch (emailError) {
         console.warn('Failed to send welcome email:', emailError);
         // Don't fail the signup if email fails
@@ -239,7 +239,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Send welcome email for new social users
         try {
           await emailIntegrationService.sendWelcomeEmail(userData, true);
-          await emailIntegrationService.scheduleWelcomeSeries(userData);
+          await emailIntegrationService.scheduleFreeUserSeries(userData);
         } catch (emailError) {
           console.warn('Failed to send welcome email:', emailError);
           // Don't fail the sign-in if email fails

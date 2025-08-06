@@ -41,11 +41,11 @@ exports.sendEmail = functions.https.onCall(async (data, context) => {
         },
       ],
       template_id: templateId,
-      subject: getSubjectForTemplate(templateId, variables), // Add subject field
-      variables: [
+      subject: getSubjectForTemplate(templateId, variables),
+      personalization: [
         {
           email: to,
-          substitutions: convertVariablesToSubstitutions(variables),
+          data: variables,
         },
       ],
     };
@@ -186,10 +186,10 @@ exports.testMailerSend = functions.https.onCall(async (data, context) => {
         },
       ],
       template_id: 'test-template',
-      variables: [
+      personalization: [
         {
           email: 'test@example.com',
-          substitutions: convertVariablesToSubstitutions(testVariables),
+          data: testVariables,
         },
       ],
     };

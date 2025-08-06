@@ -33,13 +33,21 @@ export interface EmailVariables {
   lessonUrl?: string;
   enrollmentUrl?: string;
   
+  // Cohort data
+  cohortName?: string;
+  cohortStartDate?: string;
+  firstLessonDate?: string;
+  totalLessons?: number;
+  courseDuration?: string;
+  
   // Platform data
   loginUrl?: string;
   supportEmail?: string;
+  year?: string;
   
   // Dynamic content
   weeklyHighlights?: string;
-  scientificUpdates?: ScientificUpdate[];
+  scientificUpdates?: ScientificUpdate[] | string;
   achievements?: Achievement[];
   
   // Payment data
