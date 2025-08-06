@@ -500,7 +500,7 @@ const Header: React.FC = () => {
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <Button
               color="inherit"
-              onClick={() => showAuthModal(undefined, 'Welcome back!')}
+              onClick={() => showAuthModal('signin', 'Welcome back!')}
               sx={{ 
                 mr: 2,
                 transition: 'all 0.3s ease',

@@ -286,11 +286,11 @@ const LandingPage: React.FC = () => {
                   pointerEvents: 'none',
                 }
               }}>
-                <CardContent sx={{ p: 3, position: 'relative', zIndex: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                <CardContent sx={{ p: 2.5, position: 'relative', zIndex: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                     <Box sx={{ 
-                      width: 40, 
-                      height: 40, 
+                      width: 36, 
+                      height: 36, 
                       borderRadius: '50%', 
                       backgroundColor: `${theme.palette.primary.main}20`, 
                       display: 'flex', 
@@ -298,23 +298,78 @@ const LandingPage: React.FC = () => {
                       justifyContent: 'center',
                       border: `1px solid ${theme.palette.primary.main}30`
                     }}>
-                      <Science sx={{ fontSize: 24, color: theme.palette.primary.main }} />
+                      <Science sx={{ fontSize: 22, color: theme.palette.primary.main }} />
                     </Box>
-                    <Typography variant="h6" component="h3" sx={{ fontWeight: 700, color: theme.palette.text.primary }}>
+                    <Typography variant="h6" component="h3" sx={{ fontWeight: 700, color: theme.palette.text.primary, fontSize: '1.1rem' }}>
                       Latest Scientific Evidence
                     </Typography>
                   </Box>
                   
-                  <Typography variant="body2" sx={{ mb: 4, color: theme.palette.text.secondary, lineHeight: 1.6 }}>
+                  <Typography variant="body2" sx={{ mb: 3, color: theme.palette.text.secondary, lineHeight: 1.5, fontSize: '0.9rem' }}>
                     Get access to cutting-edge research on healthspan and longevity. Stay ahead with weekly scientific updates.
                   </Typography>
 
                   {loadingUpdate ? (
-                    <Box sx={{ textAlign: 'center', py: 2 }}>
+                    <Box sx={{ textAlign: 'center', py: 2, height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <CircularProgress size={24} />
                     </Box>
                   ) : scientificUpdates.length > 0 ? (
                     <Box sx={{ position: 'relative' }}>
+                      {/* Navigation Controls - Outside Content */}
+                      {scientificUpdates.length > 1 && (
+                        <Box sx={{ 
+                          position: 'absolute', 
+                          top: '50%', 
+                          left: -20, 
+                          right: -20, 
+                          transform: 'translateY(-50%)',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          pointerEvents: 'none',
+                          zIndex: 2
+                        }}>
+                          <IconButton
+                            onClick={() => setCurrentUpdateIndex(prev => prev === 0 ? scientificUpdates.length - 1 : prev - 1)}
+                            sx={{
+                              backgroundColor: `${theme.palette.background.paper}CC`,
+                              backdropFilter: 'blur(10px)',
+                              border: `1px solid ${theme.palette.divider}`,
+                              color: theme.palette.text.primary,
+                              pointerEvents: 'auto',
+                              transition: 'all 0.3s ease',
+                              width: 40,
+                              height: 40,
+                              '&:hover': {
+                                backgroundColor: `${theme.palette.primary.main}20`,
+                                transform: 'scale(1.1)',
+                              }
+                            }}
+                          >
+                            <ChevronLeft />
+                          </IconButton>
+                          <IconButton
+                            onClick={() => setCurrentUpdateIndex(prev => prev === scientificUpdates.length - 1 ? 0 : prev + 1)}
+                            sx={{
+                              backgroundColor: `${theme.palette.background.paper}CC`,
+                              backdropFilter: 'blur(10px)',
+                              border: `1px solid ${theme.palette.divider}`,
+                              color: theme.palette.text.primary,
+                              pointerEvents: 'auto',
+                              transition: 'all 0.3s ease',
+                              width: 40,
+                              height: 40,
+                              '&:hover': {
+                                backgroundColor: `${theme.palette.primary.main}20`,
+                                transform: 'scale(1.1)',
+                              }
+                            }}
+                          >
+                            <ChevronRight />
+                          </IconButton>
+                        </Box>
+                      )}
+
+                      {/* Content Card with Fixed Height */}
                       <Box sx={{ 
                         p: 2, 
                         backgroundColor: `${theme.palette.primary.main}15`, 
@@ -323,6 +378,10 @@ const LandingPage: React.FC = () => {
                         boxShadow: `0 4px 12px ${theme.palette.primary.main}20`,
                         position: 'relative',
                         transition: 'all 0.3s ease',
+                        height: 200,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
                         '&:hover': {
                           backgroundColor: `${theme.palette.primary.main}25`,
                           boxShadow: `0 6px 16px ${theme.palette.primary.main}30`,
@@ -339,116 +398,66 @@ const LandingPage: React.FC = () => {
                           pointerEvents: 'none',
                         }
                       }}>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5, color: theme.palette.text.primary, fontSize: '1rem' }}>
-                          {scientificUpdates[currentUpdateIndex].title}
-                        </Typography>
-                        <Typography variant="body2" sx={{ mb: 1.5, lineHeight: 1.5, color: theme.palette.text.secondary, fontWeight: 500 }}>
-                          {scientificUpdates[currentUpdateIndex].summary.length > 120 
-                            ? `${scientificUpdates[currentUpdateIndex].summary.substring(0, 120)}...` 
-                            : scientificUpdates[currentUpdateIndex].summary
-                          }
-                        </Typography>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        <Box>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: theme.palette.text.primary, fontSize: '0.95rem', lineHeight: 1.3 }}>
+                            {scientificUpdates[currentUpdateIndex].title}
+                          </Typography>
+                          <Typography variant="body2" sx={{ lineHeight: 1.4, color: theme.palette.text.secondary, fontWeight: 500, fontSize: '0.85rem' }}>
+                            {scientificUpdates[currentUpdateIndex].summary.length > 160 
+                              ? `${scientificUpdates[currentUpdateIndex].summary.substring(0, 160)}...` 
+                              : scientificUpdates[currentUpdateIndex].summary
+                            }
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
                           <Box sx={{ 
-                            px: 2, 
-                            py: 0.75, 
+                            px: 1.5, 
+                            py: 0.5, 
                             backgroundColor: theme.palette.primary.main, 
-                            borderRadius: 2,
+                            borderRadius: 1.5,
                             display: 'flex',
                             alignItems: 'center',
-                            alignSelf: 'flex-start',
                             boxShadow: `0 2px 8px ${theme.palette.primary.main}40`
                           }}>
-                            <Typography variant="caption" sx={{ color: '#000', fontWeight: 700, fontSize: '0.75rem' }}>
+                            <Typography variant="caption" sx={{ color: '#000', fontWeight: 700, fontSize: '0.7rem' }}>
                               {scientificUpdates[currentUpdateIndex].category}
                             </Typography>
                           </Box>
-                          <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
+                          <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 500, fontSize: '0.75rem' }}>
                             Published: {new Date(scientificUpdates[currentUpdateIndex].publishedDate.toDate()).toLocaleDateString()}
                           </Typography>
                         </Box>
                       </Box>
 
-                      {/* Navigation Controls */}
+                      {/* Dots Indicator */}
                       {scientificUpdates.length > 1 && (
-                        <>
-                          {/* Previous/Next Buttons */}
-                          <Box sx={{ 
-                            position: 'absolute', 
-                            top: '50%', 
-                            left: 0, 
-                            right: 0, 
-                            transform: 'translateY(-50%)',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            px: 1,
-                            pointerEvents: 'none'
-                          }}>
-                            <IconButton
-                              onClick={() => setCurrentUpdateIndex(prev => prev === 0 ? scientificUpdates.length - 1 : prev - 1)}
+                        <Box sx={{ 
+                          display: 'flex', 
+                          justifyContent: 'center', 
+                          gap: 0.75, 
+                          mt: 1.5 
+                        }}>
+                          {scientificUpdates.map((_, index) => (
+                            <Box
+                              key={index}
+                              onClick={() => setCurrentUpdateIndex(index)}
                               sx={{
-                                backgroundColor: `${theme.palette.background.paper}CC`,
-                                backdropFilter: 'blur(10px)',
-                                border: `1px solid ${theme.palette.divider}`,
-                                color: theme.palette.text.primary,
-                                pointerEvents: 'auto',
+                                width: 6,
+                                height: 6,
+                                borderRadius: '50%',
+                                backgroundColor: index === currentUpdateIndex 
+                                  ? theme.palette.primary.main 
+                                  : theme.palette.text.secondary,
+                                cursor: 'pointer',
                                 transition: 'all 0.3s ease',
                                 '&:hover': {
-                                  backgroundColor: `${theme.palette.primary.main}20`,
-                                  transform: 'scale(1.1)',
+                                  backgroundColor: theme.palette.primary.main,
+                                  transform: 'scale(1.2)',
                                 }
                               }}
-                            >
-                              <ChevronLeft />
-                            </IconButton>
-                            <IconButton
-                              onClick={() => setCurrentUpdateIndex(prev => prev === scientificUpdates.length - 1 ? 0 : prev + 1)}
-                              sx={{
-                                backgroundColor: `${theme.palette.background.paper}CC`,
-                                backdropFilter: 'blur(10px)',
-                                border: `1px solid ${theme.palette.divider}`,
-                                color: theme.palette.text.primary,
-                                pointerEvents: 'auto',
-                                transition: 'all 0.3s ease',
-                                '&:hover': {
-                                  backgroundColor: `${theme.palette.primary.main}20`,
-                                  transform: 'scale(1.1)',
-                                }
-                              }}
-                            >
-                              <ChevronRight />
-                            </IconButton>
-                          </Box>
-
-                          {/* Dots Indicator */}
-                          <Box sx={{ 
-                            display: 'flex', 
-                            justifyContent: 'center', 
-                            gap: 1, 
-                            mt: 2 
-                          }}>
-                            {scientificUpdates.map((_, index) => (
-                              <Box
-                                key={index}
-                                onClick={() => setCurrentUpdateIndex(index)}
-                                sx={{
-                                  width: 8,
-                                  height: 8,
-                                  borderRadius: '50%',
-                                  backgroundColor: index === currentUpdateIndex 
-                                    ? theme.palette.primary.main 
-                                    : theme.palette.text.secondary,
-                                  cursor: 'pointer',
-                                  transition: 'all 0.3s ease',
-                                  '&:hover': {
-                                    backgroundColor: theme.palette.primary.main,
-                                    transform: 'scale(1.2)',
-                                  }
-                                }}
-                              />
-                            ))}
-                          </Box>
-                        </>
+                            />
+                          ))}
+                        </Box>
                       )}
                     </Box>
                   ) : (
@@ -457,7 +466,11 @@ const LandingPage: React.FC = () => {
                       backgroundColor: `${theme.palette.primary.main}20`, 
                       borderRadius: 2,
                       border: `1px solid ${theme.palette.primary.main}30`,
-                      textAlign: 'center'
+                      textAlign: 'center',
+                      height: 200,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
                     }}>
                       <Typography variant="body2" color="text.secondary">
                         Weekly scientific updates coming soon...
@@ -465,7 +478,7 @@ const LandingPage: React.FC = () => {
                     </Box>
                   )}
 
-                  <Typography variant="body2" sx={{ mt: 3, textAlign: 'center', color: theme.palette.text.secondary, fontWeight: 500 }}>
+                  <Typography variant="body2" sx={{ mt: 2.5, textAlign: 'center', color: theme.palette.text.secondary, fontWeight: 500, fontSize: '0.85rem' }}>
                     <strong style={{ color: theme.palette.primary.main }}>Free accounts</strong> get access to all scientific evidence
                   </Typography>
                 </CardContent>
