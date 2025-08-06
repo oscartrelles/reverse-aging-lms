@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "the-reverse-aging-challenge"
+    "default": "the-reverse-aging-challenge",
+    "staging": "the-reverse-aging-challenge",
+    "production": "the-reverse-aging-challenge"
   }
 }

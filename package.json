@@ -30,7 +30,13 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "deploy:staging": "npm run build && firebase deploy --only hosting:the-reverse-aging-challenge",
+    "deploy:production": "npm run build && firebase deploy --only hosting:reverse-aging-academy",
+    "deploy:functions": "firebase deploy --only functions",
+    "deploy:hosting": "npm run build && firebase deploy --only hosting",
+    "deploy:firestore": "firebase deploy --only firestore",
+    "deploy:storage": "firebase deploy --only storage"
   },
   "eslintConfig": {
     "extends": [
