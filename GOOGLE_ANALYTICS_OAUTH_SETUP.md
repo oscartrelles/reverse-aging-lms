@@ -59,8 +59,8 @@ http://localhost:3000
 
 ## Environment Variables Check
 
-Your current `.env` file has:
-- ✅ `REACT_APP_GA_API_KEY`: `AIzaSyANm3MPLeU4fgKk3Iu3lM5HhVmOEHoeRok`
+Your current `.env` file should have:
+- ✅ `REACT_APP_GA_API_KEY`: `your_google_analytics_api_key_here`
 - ✅ `REACT_APP_GA_CLIENT_ID`: `337168912273-uakjkqm6jk2ef1jpgvjr4aib262821sb.apps.googleusercontent.com`
 - ✅ `REACT_APP_GA_PROPERTY_ID`: `499202078`
 
