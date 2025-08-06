@@ -89,7 +89,7 @@ This document outlines the Google Analytics 4 (GA4) implementation for the Rever
 - **Page Performance**: Real-time page view and engagement metrics
 - **Event Streaming**: Live event tracking and analysis
 
-#### 4. Advanced Analytics Dashboard (`src/components/analytics/AdvancedAnalyticsDashboard.tsx`)
+#### 4. Google Analytics Dashboard (`src/components/analytics/GoogleAnalyticsDashboard.tsx`)
 - **Multi-Tab Interface**: Real-time metrics, cohort analysis, and A/B testing
 - **Interactive Charts**: Visual representation of analytics data
 - **Real-Time Updates**: Live data updates with WebSocket-like functionality

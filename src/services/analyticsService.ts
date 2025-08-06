@@ -126,8 +126,8 @@ export const analyticsEvents = {
   },
 
   // Course events
-  courseEnroll: (courseId: string, courseName: string, price?: number) => {
-    trackEvent('course_enroll', {
+  courseEnroll: async (courseId: string, courseName: string, price?: number) => {
+    await trackEvent('course_enroll', {
       course_id: courseId,
       course_name: courseName,
       value: price,
@@ -135,8 +135,8 @@ export const analyticsEvents = {
     });
   },
 
-  lessonStart: (lessonId: string, lessonTitle: string, courseId: string, weekNumber: number) => {
-    trackEvent('lesson_start', {
+  lessonStart: async (lessonId: string, lessonTitle: string, courseId: string, weekNumber: number) => {
+    await trackEvent('lesson_start', {
       lesson_id: lessonId,
       lesson_title: lessonTitle,
       course_id: courseId,
@@ -145,8 +145,8 @@ export const analyticsEvents = {
     });
   },
 
-  lessonComplete: (lessonId: string, lessonTitle: string, courseId: string, weekNumber: number) => {
-    trackEvent('lesson_complete', {
+  lessonComplete: async (lessonId: string, lessonTitle: string, courseId: string, weekNumber: number) => {
+    await trackEvent('lesson_complete', {
       lesson_id: lessonId,
       lesson_title: lessonTitle,
       course_id: courseId,
@@ -155,8 +155,8 @@ export const analyticsEvents = {
     });
   },
 
-  courseComplete: (courseId: string, courseName: string) => {
-    trackEvent('course_complete', {
+  courseComplete: async (courseId: string, courseName: string) => {
+    await trackEvent('course_complete', {
       course_id: courseId,
       course_name: courseName,
       event_category: 'course',
@@ -164,16 +164,16 @@ export const analyticsEvents = {
   },
 
   // Engagement events
-  ctaClick: (ctaType: string, pageLocation: string) => {
-    trackEvent('cta_click', {
+  ctaClick: async (ctaType: string, pageLocation: string) => {
+    await trackEvent('cta_click', {
       cta_type: ctaType,
       page_location: pageLocation,
       event_category: 'engagement',
     });
   },
 
-  resourceDownload: (resourceType: string, resourceTitle: string, courseId: string) => {
-    trackEvent('resource_download', {
+  resourceDownload: async (resourceType: string, resourceTitle: string, courseId: string) => {
+    await trackEvent('resource_download', {
       resource_type: resourceType,
       resource_title: resourceTitle,
       course_id: courseId,
@@ -182,16 +182,16 @@ export const analyticsEvents = {
   },
 
   // Community events
-  questionAsked: (questionId: string, courseId: string) => {
-    trackEvent('question_asked', {
+  questionAsked: async (questionId: string, courseId: string) => {
+    await trackEvent('question_asked', {
       question_id: questionId,
       course_id: courseId,
       event_category: 'community',
     });
   },
 
-  scientificUpdateRead: (updateId: string, updateTitle: string) => {
-    trackEvent('scientific_update_read', {
+  scientificUpdateRead: async (updateId: string, updateTitle: string) => {
+    await trackEvent('scientific_update_read', {
       update_id: updateId,
       update_title: updateTitle,
       event_category: 'community',
@@ -199,8 +199,8 @@ export const analyticsEvents = {
   },
 
   // Payment events
-  paymentInitiated: (courseId: string, amount: number, currency: string) => {
-    trackEvent('payment_initiated', {
+  paymentInitiated: async (courseId: string, amount: number, currency: string) => {
+    await trackEvent('payment_initiated', {
       course_id: courseId,
       value: amount,
       currency,

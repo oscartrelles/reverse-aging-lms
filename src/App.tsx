@@ -8,9 +8,10 @@ import { AuthModalProvider } from './contexts/AuthModalContext';
 import { ContactModalProvider } from './contexts/ContactModalContext';
 import PrivateRoute from './components/auth/PrivateRoute';
 import AdminRoute from './components/auth/AdminRoute';
-import AuthRedirect from './components/auth/AuthRedirect';
+
 import { initializeGA4 } from './services/analyticsService';
 import { AnalyticsWrapper } from './components/analytics/AnalyticsWrapper';
+import { initializeSPAAnalytics } from './utils/analytics';
 
 
 // Pages
@@ -26,7 +27,7 @@ import AdminUserManagement from './pages/admin/AdminUserManagement';
 import AdminScientificUpdates from './pages/admin/AdminScientificUpdates';
 import AdminQAManagement from './pages/admin/AdminQAManagement';
 import AdminCourseManagement from './pages/admin/AdminCourseManagement';
-import { AdvancedAnalyticsDashboard } from './components/analytics/AdvancedAnalyticsDashboard';
+import { GoogleAnalyticsDashboard } from './components/analytics/GoogleAnalyticsDashboard';
 import EvidencePage from './pages/EvidencePage';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
@@ -171,10 +172,12 @@ const theme = createTheme({
 });
 
 function App() {
-  // Initialize GA4 on app load
+  // Initialize GA4 and SPA analytics on app load
   useEffect(() => {
     if (process.env.REACT_APP_GA_MEASUREMENT_ID) {
       initializeGA4(process.env.REACT_APP_GA_MEASUREMENT_ID);
+      // Initialize SPA page tracking
+      initializeSPAAnalytics();
     }
   }, []);
 
@@ -276,7 +279,7 @@ function App() {
                           
                           <Route path="/admin/analytics" element={
                             <AdminRoute>
-                              <AdvancedAnalyticsDashboard />
+                              <GoogleAnalyticsDashboard />
                             </AdminRoute>
                           } />
                           
