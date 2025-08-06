@@ -3,5 +3,17 @@
     "default": "the-reverse-aging-challenge",
     "staging": "the-reverse-aging-challenge",
     "production": "the-reverse-aging-challenge"
+  },
+  "targets": {
+    "the-reverse-aging-challenge": {
+      "hosting": {
+        "staging": [
+          "the-reverse-aging-challenge"
+        ],
+        "production": [
+          "reverse-aging-academy"
+        ]
+      }
+    }
   }
 }
