@@ -56,7 +56,7 @@ const AboutPage: React.FC = () => {
               mx: 'auto',
             }}
           >
-            The Reverse Aging Academy is the online home for the 7‑Week Reverse Aging Challenge—and much more.
+            The Reverse Aging Academy is the online home for the 7-Week Reverse Aging Challenge—and much more.
           </Typography>
         </Box>
 
@@ -328,7 +328,7 @@ const AboutPage: React.FC = () => {
                   fontSize: '1.1rem',
                 }}
               >
-                The driving force behind the Academy is Oscar Trelles—systemic coach, certified Wim Hof Method instructor, and Program Director of the 7‑Week Reverse Aging Challenge.
+                The driving force behind the Academy is Oscar Trelles—systemic coach, certified Wim Hof Method instructor, and Program Director of the 7-Week Reverse Aging Challenge.
               </Typography>
 
               <Typography

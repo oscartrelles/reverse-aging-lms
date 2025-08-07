@@ -1,4 +1,4 @@
-import { collection, getDocs, doc, getDoc, updateDoc, query, where, orderBy, onSnapshot, Timestamp, limit } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, updateDoc, query, where, orderBy, onSnapshot, Timestamp, limit, writeBatch } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { User, Enrollment, Cohort, Lesson, LessonProgress, Question } from '../types';
 import { enrollmentService } from './enrollmentService';
@@ -308,6 +308,9 @@ export const studentManagementService = {
         stripeSubscriptionId: options?.stripeSubscriptionId
       });
       
+      // Refresh cohort counts after enrollment
+      await this.refreshCohortStudentCounts();
+      
       console.log('✅ Student enrolled successfully');
       return enrollmentId;
     } catch (error) {
@@ -327,6 +330,10 @@ export const studentManagementService = {
       );
       if (activeEnrollment && activeEnrollment.id) {
         await enrollmentService.cancelEnrollment(activeEnrollment.id);
+        
+        // Refresh cohort counts after unenrollment
+        await this.refreshCohortStudentCounts();
+        
         console.log('✅ Student unenrolled successfully');
       } else {
         throw new Error('No active enrollment found for this course');
@@ -348,9 +355,13 @@ export const studentManagementService = {
         throw new Error('No active enrollment found');
       }
       
+      // Update the enrollment
       await enrollmentService.updateEnrollment(activeEnrollment.id, {
         cohortId: newCohortId
       });
+      
+      // Refresh cohort counts after transfer
+      await this.refreshCohortStudentCounts();
       
       console.log('✅ Student transferred successfully');
     } catch (error) {
@@ -821,5 +832,58 @@ export const studentManagementService = {
       averageCommunityParticipation: totalParticipation / students.length,
       averageStreak: totalStreak / students.length
     };
+  },
+
+  /**
+   * Refresh cohort student counts based on actual enrollment data
+   */
+  async refreshCohortStudentCounts(): Promise<void> {
+    try {
+      console.log('🔄 Refreshing cohort student counts...');
+      
+      // Get all cohorts
+      const cohortsQuery = query(collection(db, 'cohorts'));
+      const cohortsSnapshot = await getDocs(cohortsQuery);
+      const cohorts = cohortsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+      // Get all active enrollments
+      const enrollmentsQuery = query(
+        collection(db, 'enrollments'),
+        where('status', 'in', ['active', 'pending'])
+      );
+      const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
+      const enrollments = enrollmentsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Array<{ id: string; cohortId?: string; status: string }>;
+      
+      // Count students per cohort
+      const cohortCounts: Record<string, number> = {};
+      enrollments.forEach(enrollment => {
+        if (enrollment.cohortId) {
+          cohortCounts[enrollment.cohortId] = (cohortCounts[enrollment.cohortId] || 0) + 1;
+        }
+      });
+      
+      // Update each cohort with the correct count
+      const batch = writeBatch(db);
+      cohorts.forEach(cohort => {
+        const actualCount = cohortCounts[cohort.id] || 0;
+        const cohortRef = doc(db, 'cohorts', cohort.id);
+        batch.update(cohortRef, {
+          currentStudents: actualCount,
+          updatedAt: Timestamp.now()
+        });
+      });
+      
+      await batch.commit();
+      console.log(`✅ Updated ${cohorts.length} cohorts with accurate student counts`);
+    } catch (error) {
+      console.error('❌ Error refreshing cohort student counts:', error);
+      throw error;
+    }
   }
 }; 

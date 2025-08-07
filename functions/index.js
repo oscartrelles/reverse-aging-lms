@@ -267,8 +267,8 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
         },
       ],
       mode: 'payment',
-      success_url: `${process.env.REACT_APP_FRONTEND_URL || 'http://localhost:3000'}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.REACT_APP_FRONTEND_URL || 'http://localhost:3000'}/payment-cancelled`,
+      success_url: `${process.env.REACT_APP_FRONTEND_URL || 'https://academy.7weekreverseagingchallenge.com'}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.REACT_APP_FRONTEND_URL || 'https://academy.7weekreverseagingchallenge.com'}/payment-cancelled`,
       customer_email: userEmail,
       metadata: {
         userId: userId,

@@ -527,7 +527,7 @@ const LandingPage: React.FC = () => {
               The Reverse Aging Challenge
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mb: 3, lineHeight: 1.6, maxWidth: 800, mx: 'auto', textAlign: 'center' }}>
-              Transform your health and vitality through our comprehensive 7-week program designed for people to build sustainable habits supported by evidence‑based, nature‑powered practices and a golab community.
+              Transform your health and vitality through our comprehensive 7-week program designed for people to build sustainable habits supported by evidence‑based, nature‑powered practices and a global community.
             </Typography>
           </Box>
 

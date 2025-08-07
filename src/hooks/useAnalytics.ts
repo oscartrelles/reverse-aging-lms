@@ -16,16 +16,20 @@ export const useAnalytics = () => {
   const { currentUser, firebaseUser } = useAuth();
   const { currentEnrollment, currentCohort } = useCourse();
 
-  // Track page views on route changes
+  // Check if we're in production environment
+  const isProduction = window.location.hostname === 'academy.7weekreverseagingchallenge.com' || 
+                      window.location.hostname === 'reverse-aging-academy.web.app';
+
+  // Track page views on route changes (only in production)
   useEffect(() => {
-    if (process.env.REACT_APP_GA_MEASUREMENT_ID) {
+    if (process.env.REACT_APP_GA_MEASUREMENT_ID && isProduction) {
       trackPageView(document.title, window.location.href);
     }
-  }, [location]);
+  }, [location, isProduction]);
 
-  // Set user properties when user data changes
+  // Set user properties when user data changes (only in production)
   useEffect(() => {
-    if (currentUser && process.env.REACT_APP_GA_MEASUREMENT_ID) {
+    if (currentUser && process.env.REACT_APP_GA_MEASUREMENT_ID && isProduction) {
       // Set user ID
       setUserId(currentUser.id);
 
@@ -39,10 +43,12 @@ export const useAnalytics = () => {
         cohort_id: currentCohort?.id,
       });
     }
-  }, [currentUser, currentEnrollment, currentCohort]);
+  }, [currentUser, currentEnrollment, currentCohort, isProduction]);
 
-  // Scroll depth tracking
+  // Scroll depth tracking (only in production)
   const trackScroll = useCallback(() => {
+    if (!isProduction) return;
+    
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
     const docHeight = document.documentElement.scrollHeight - window.innerHeight;
     const scrollPercent = Math.round((scrollTop / docHeight) * 100);
@@ -51,10 +57,12 @@ export const useAnalytics = () => {
     if ([25, 50, 75, 100].includes(scrollPercent)) {
       trackScrollDepth(scrollPercent);
     }
-  }, []);
+  }, [isProduction]);
 
-  // Time on page tracking
+  // Time on page tracking (only in production)
   useEffect(() => {
+    if (!isProduction) return;
+    
     let startTime = Date.now();
     let intervalId: NodeJS.Timeout;
 
@@ -80,7 +88,7 @@ export const useAnalytics = () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('scroll', trackScroll);
     };
-  }, [trackScroll]);
+  }, [trackScroll, isProduction]);
 
   return {
     trackEvent: analyticsEvents,

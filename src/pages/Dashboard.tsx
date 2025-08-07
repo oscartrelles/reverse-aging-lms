@@ -40,6 +40,7 @@ import {
   getAvailableLessons,
   getUpcomingLessons,
   isLessonReleased,
+  isLessonAvailableWithReleases,
 } from '../utils/lessonUtils';
 import VideoPlayer from '../components/VideoPlayer';
 import LessonQA from '../components/LessonQA';
@@ -310,7 +311,11 @@ const Dashboard: React.FC = () => {
       
       for (const lesson of activeCourseLessons) {
         try {
-          const isReleased = await isLessonReleased(lesson.id, activeCohort.id);
+          const isReleased = await isLessonAvailableWithReleases(
+            lesson.id, 
+            activeCohort.id, 
+            currentUser?.timezone
+          );
           availability[lesson.id] = isReleased;
         } catch (error) {
           console.error(`Error checking availability for lesson ${lesson.id}:`, error);
@@ -362,6 +367,11 @@ const Dashboard: React.FC = () => {
   const courseId = currentEnrollment?.courseId;
   const course = courses.find(c => c.id === courseId);
   const courseLessons = courseId ? getLessonsByCourse(courseId) : [];
+
+  // Find the next upcoming cohort for unenrolled users
+  const nextUpcomingCohort = cohorts
+    .filter(cohort => cohort.status === 'upcoming')
+    .sort((a, b) => a.startDate.toDate().getTime() - b.startDate.toDate().getTime())[0];
 
 
 
@@ -1247,7 +1257,9 @@ const Dashboard: React.FC = () => {
                       flex: 1,
                       color: '#333333'
                     }}>
-                      {study.summary}
+                      {study.summary.length > 250 
+                        ? `${study.summary.substring(0, 250)}...` 
+                        : study.summary}
                     </Typography>
                     
                     <Box sx={{ mt: 'auto' }}>
@@ -1303,6 +1315,9 @@ const Dashboard: React.FC = () => {
             </Box>
           </CardContent>
         </Card>
+
+        {/* Divider between sections */}
+        <Divider sx={{ my: 6, borderColor: 'primary.light', borderWidth: 2 }} />
 
         {/* Program Overview Section */}
         <Box sx={{ mb: 6 }}>
@@ -1573,9 +1588,25 @@ const Dashboard: React.FC = () => {
                 <Typography variant="h5" gutterBottom sx={{ color: 'primary.main', fontWeight: 700, mb: 2 }}>
                   Next Cohort Starting
                 </Typography>
-                <Typography variant="h4" color="primary.main" sx={{ mb: 3, fontWeight: 700 }}>
-                  November 2025
+                {nextUpcomingCohort && (
+                  <Typography variant="h6" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
+                    {nextUpcomingCohort.name}
+                  </Typography>
+                )}
+                <Typography variant="h4" color="primary.main" sx={{ mb: 1, fontWeight: 700 }}>
+                  {nextUpcomingCohort ? 
+                    nextUpcomingCohort.startDate.toDate().toLocaleDateString('en-US', { 
+                      month: 'long', 
+                      year: 'numeric' 
+                    }) : 
+                    'Coming Soon'
+                  }
                 </Typography>
+                {nextUpcomingCohort && (
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                    {nextUpcomingCohort.maxStudents - nextUpcomingCohort.currentStudents} spots available
+                  </Typography>
+                )}
                   
                 {/* Pricing */}
                 <Box sx={{ mb: 4 }}>
@@ -1593,7 +1624,13 @@ const Dashboard: React.FC = () => {
                       €299
                     </Typography>
                     <Typography variant="body2" color="#e0e0e0" sx={{ fontWeight: 600 }}>
-                      Enroll before September 30th
+                      {nextUpcomingCohort?.enrollmentDeadline ? 
+                        `Enroll before ${nextUpcomingCohort.enrollmentDeadline.toDate().toLocaleDateString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric' 
+                        })}` : 
+                        'Limited time offer'
+                      }
                     </Typography>
                   </Box>
                 </Box>
@@ -1603,11 +1640,22 @@ const Dashboard: React.FC = () => {
                   fullWidth
                   size="large"
                   onClick={() => {
-                    const course = courses.find(c => c.title === 'The Reverse Aging Challenge');
-                    if (course) {
-                      navigate(`/payment/${course.id}`);
+                    if (nextUpcomingCohort) {
+                      // Navigate to payment with cohort info
+                      const course = courses.find(c => c.id === nextUpcomingCohort.courseId);
+                      if (course) {
+                        navigate(`/payment/${course.id}?cohortId=${nextUpcomingCohort.id}`);
+                      } else {
+                        navigate('/payment/reverse-aging-challenge');
+                      }
                     } else {
-                      navigate('/payment/reverse-aging-challenge');
+                      // Fallback to general payment page
+                      const course = courses.find(c => c.title === 'The Reverse Aging Challenge');
+                      if (course) {
+                        navigate(`/payment/${course.id}`);
+                      } else {
+                        navigate('/payment/reverse-aging-challenge');
+                      }
                     }
                   }}
                   sx={{

@@ -48,7 +48,10 @@ export const initializeGA4 = (measurementId: string) => {
 
 // Track page views
 export const trackPageView = (page_title: string, page_location?: string) => {
-  if (typeof window.gtag !== 'undefined') {
+  const isProduction = window.location.hostname === 'academy.7weekreverseagingchallenge.com' || 
+                      window.location.hostname === 'reverse-aging-academy.web.app';
+  
+  if (typeof window.gtag !== 'undefined' && isProduction) {
     window.gtag('config', process.env.REACT_APP_GA_MEASUREMENT_ID, {
       page_title,
       page_location: page_location || window.location.href,
@@ -58,14 +61,20 @@ export const trackPageView = (page_title: string, page_location?: string) => {
 
 // Track custom events
 export const trackEvent = (eventName: string, parameters?: Record<string, any>) => {
-  if (typeof window.gtag !== 'undefined') {
+  const isProduction = window.location.hostname === 'academy.7weekreverseagingchallenge.com' || 
+                      window.location.hostname === 'reverse-aging-academy.web.app';
+  
+  if (typeof window.gtag !== 'undefined' && isProduction) {
     window.gtag('event', eventName, parameters);
   }
 };
 
 // Set user properties
 export const setUserProperties = (properties: UserProperties) => {
-  if (typeof window.gtag !== 'undefined') {
+  const isProduction = window.location.hostname === 'academy.7weekreverseagingchallenge.com' || 
+                      window.location.hostname === 'reverse-aging-academy.web.app';
+  
+  if (typeof window.gtag !== 'undefined' && isProduction) {
     window.gtag('config', process.env.REACT_APP_GA_MEASUREMENT_ID, {
       custom_map: {
         'user_id': 'user_id',
@@ -82,7 +91,10 @@ export const setUserProperties = (properties: UserProperties) => {
 
 // Track user identification
 export const setUserId = (userId: string) => {
-  if (typeof window.gtag !== 'undefined') {
+  const isProduction = window.location.hostname === 'academy.7weekreverseagingchallenge.com' || 
+                      window.location.hostname === 'reverse-aging-academy.web.app';
+  
+  if (typeof window.gtag !== 'undefined' && isProduction) {
     window.gtag('config', process.env.REACT_APP_GA_MEASUREMENT_ID, {
       user_id: userId,
     });

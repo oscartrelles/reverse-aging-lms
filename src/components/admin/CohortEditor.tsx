@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   TextField,
@@ -14,7 +14,9 @@ import {
   FormControlLabel,
   Switch,
 } from '@mui/material';
-import { Cohort } from '../../types';
+import { Cohort, Course } from '../../types';
+import { courseManagementService } from '../../services/courseManagementService';
+import { db } from '../../firebaseConfig';
 
 interface CohortEditorProps {
   cohortId?: string;
@@ -31,6 +33,7 @@ const CohortEditor: React.FC<CohortEditorProps> = ({
   onSave,
   onCancel,
 }) => {
+  const [course, setCourse] = useState<Course | null>(null);
   const [formData, setFormData] = useState({
     name: cohortData?.name || '',
     description: cohortData?.description || '',
@@ -45,6 +48,64 @@ const CohortEditor: React.FC<CohortEditorProps> = ({
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Fetch course data to get duration
+  useEffect(() => {
+    const fetchCourse = async () => {
+      try {
+        const courseData = await courseManagementService.getCourse(courseId);
+        setCourse(courseData);
+      } catch (error) {
+        console.error('Error fetching course:', error);
+      }
+    };
+    
+    if (courseId) {
+      fetchCourse();
+    }
+  }, [courseId]);
+
+  // Update current students count from enrollments for existing cohorts
+  useEffect(() => {
+    const updateCurrentStudents = async () => {
+      if (!cohortId) return; // Only for existing cohorts
+      
+      try {
+        const { collection, query, where, getDocs } = await import('firebase/firestore');
+        
+        const enrollmentsQuery = query(
+          collection(db, 'enrollments'),
+          where('cohortId', '==', cohortId)
+        );
+        
+        const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
+        const currentStudents = enrollmentsSnapshot.docs.length;
+        
+        setFormData(prev => ({
+          ...prev,
+          currentStudents
+        }));
+      } catch (error) {
+        console.error('Error fetching current students:', error);
+      }
+    };
+    
+    updateCurrentStudents();
+  }, [cohortId]);
+
+  // Auto-calculate endDate when startDate changes
+  useEffect(() => {
+    if (formData.startDate && course?.duration && !cohortId) {
+      const startDate = new Date(formData.startDate);
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + (course.duration * 7)); // Add weeks
+      
+      setFormData(prev => ({
+        ...prev,
+        endDate: endDate.toISOString().split('T')[0]
+      }));
+    }
+  }, [formData.startDate, course?.duration, cohortId]);
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
@@ -156,9 +217,11 @@ const CohortEditor: React.FC<CohortEditorProps> = ({
             value={formData.endDate}
             onChange={(e) => handleInputChange('endDate', e.target.value)}
             required
+            disabled={!cohortId && !!course?.duration} // Auto-calculated for new cohorts
             InputLabelProps={{
               shrink: true,
             }}
+            helperText={!cohortId && course?.duration ? `Auto-calculated based on ${course.duration} week course duration` : ""}
           />
         </Box>
 
@@ -194,10 +257,9 @@ const CohortEditor: React.FC<CohortEditorProps> = ({
             label="Current Students"
             type="number"
             value={formData.currentStudents}
-            onChange={(e) => handleInputChange('currentStudents', parseInt(e.target.value) || 0)}
-            inputProps={{ min: 0 }}
-            disabled={!cohortId} // Only editable for existing cohorts
-            helperText={!cohortId ? "Will be set automatically when students enroll" : ""}
+            inputProps={{ min: 0, readOnly: true }}
+            disabled={true} // Always read-only - updated automatically from enrollments
+            helperText="Updated automatically from student enrollments"
           />
         </Box>
 

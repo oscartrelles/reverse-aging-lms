@@ -172,12 +172,20 @@ const theme = createTheme({
 });
 
 function App() {
-  // Initialize GA4 and SPA analytics on app load
+  // Initialize GA4 and SPA analytics on app load (only in production)
   useEffect(() => {
-    if (process.env.REACT_APP_GA_MEASUREMENT_ID) {
+    const isProduction = window.location.hostname === 'academy.7weekreverseagingchallenge.com' || 
+                        window.location.hostname === 'reverse-aging-academy.web.app';
+    
+    if (process.env.REACT_APP_GA_MEASUREMENT_ID && isProduction) {
+      console.log('📊 Initializing analytics for production environment');
       initializeGA4(process.env.REACT_APP_GA_MEASUREMENT_ID);
       // Initialize SPA page tracking
       initializeSPAAnalytics();
+    } else if (isProduction) {
+      console.warn('⚠️ Analytics measurement ID not found for production');
+    } else {
+      console.log('🚫 Analytics disabled for staging environment');
     }
   }, []);
 

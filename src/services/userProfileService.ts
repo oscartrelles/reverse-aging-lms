@@ -11,6 +11,7 @@ export interface ExtendedProfile {
   bio: string;
   age: number;
   location: string;
+  timezone?: string;
   goals: string[];
   preferences: {
     emailNotifications: boolean;
@@ -68,6 +69,7 @@ export const userProfileService = {
           bio: profileData.bio || '',
           age: profileData.age || 0,
           location: profileData.location || '',
+          timezone: profileData.timezone,
           goals: profileData.goals || ['Improve energy levels', 'Build sustainable habits'],
           preferences: {
             emailNotifications: profileData.preferences?.emailNotifications !== undefined ? profileData.preferences.emailNotifications : true,

@@ -1,16 +1,15 @@
 import { Lesson, Cohort, Enrollment } from '../types';
 import { Timestamp } from 'firebase/firestore';
+import { 
+  detectUserTimezone, 
+  isLessonAvailableForStudent, 
+  getTimeUntilRelease,
+  formatReleaseTime 
+} from './timezoneUtils';
 
 // Get user's timezone (default to UTC if not set)
 export const getUserTimezone = (timezone?: string): string => {
-  return timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-};
-
-// Convert date to user's local timezone
-export const convertToUserTimezone = (date: Date, timezone: string): Date => {
-  const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
-  const userTime = new Date(utc + (new Date().getTimezoneOffset() * 60000));
-  return userTime;
+  return timezone || detectUserTimezone();
 };
 
 // Check if a lesson is available for a user based on their cohort
@@ -22,16 +21,65 @@ export const isLessonAvailable = (
   if (!cohort || !userEnrollment) return false;
   
   const now = new Date();
-  const userTimezone = getUserTimezone(); // We'll get this from user profile later
-  const userLocalTime = convertToUserTimezone(now, userTimezone);
   
   // Calculate weeks since cohort start
   const weeksSinceStart = Math.floor(
-    (userLocalTime.getTime() - cohort.startDate.toDate().getTime()) / (7 * 24 * 60 * 60 * 1000)
+    (now.getTime() - cohort.startDate.toDate().getTime()) / (7 * 24 * 60 * 60 * 1000)
   );
   
   // Lesson is available if it's within the weeks since start
   return lesson.weekNumber <= weeksSinceStart;
+};
+
+// Check if a lesson is available using lessonReleases (primary method)
+export const isLessonAvailableWithReleases = async (
+  lessonId: string,
+  cohortId: string,
+  userTimezone?: string
+): Promise<boolean> => {
+  try {
+    const { collection, query, where, getDocs } = await import('firebase/firestore');
+    const { db } = await import('../firebaseConfig');
+    
+    // Check lesson release document
+    const releaseQuery = query(
+      collection(db, 'lessonReleases'),
+      where('lessonId', '==', lessonId),
+      where('cohortId', '==', cohortId)
+    );
+    
+    const releaseSnapshot = await getDocs(releaseQuery);
+    
+    if (releaseSnapshot.empty) {
+      // No release schedule found, fall back to time-based logic
+      return true;
+    }
+    
+    const releaseDoc = releaseSnapshot.docs[0];
+    const releaseData = releaseDoc.data();
+    
+    // Use new timezone-aware logic if user timezone is provided
+    if (userTimezone) {
+      return isLessonAvailableForStudent({
+        releaseDate: releaseData.releaseDate,
+        isReleased: releaseData.isReleased
+      }, userTimezone);
+    }
+    
+    // Fallback to original logic for backward compatibility
+    if (releaseData.isReleased) {
+      return true;
+    }
+    
+    const now = new Date();
+    const releaseDate = releaseData.releaseDate.toDate();
+    
+    return now >= releaseDate;
+  } catch (error) {
+    console.error('Error checking lesson release:', error);
+    // Fall back to time-based logic on error
+    return true;
+  }
 };
 
 // Check if a lesson is available based on lesson release schedule
@@ -79,7 +127,8 @@ export const isLessonReleased = async (
 // Get the next lesson release time for a user
 export const getNextLessonReleaseTime = (
   cohort: Cohort,
-  currentWeek: number
+  currentWeek: number,
+  userTimezone?: string
 ): Date => {
   const nextWeekStart = new Date(cohort.startDate.toDate());
   nextWeekStart.setDate(nextWeekStart.getDate() + (currentWeek * 7));
@@ -90,6 +139,75 @@ export const getNextLessonReleaseTime = (
   nextWeekStart.setHours(hours, minutes, 0, 0);
   
   return nextWeekStart;
+};
+
+// Get lesson release information with timezone support
+export const getLessonReleaseInfo = async (
+  lessonId: string,
+  cohortId: string,
+  userTimezone?: string
+): Promise<{
+  isAvailable: boolean;
+  timeUntilRelease: string;
+  formattedReleaseTime: string;
+  releaseDate: Date | null;
+}> => {
+  try {
+    const { collection, query, where, getDocs } = await import('firebase/firestore');
+    const { db } = await import('../firebaseConfig');
+    
+    const releaseQuery = query(
+      collection(db, 'lessonReleases'),
+      where('lessonId', '==', lessonId),
+      where('cohortId', '==', cohortId)
+    );
+    
+    const releaseSnapshot = await getDocs(releaseQuery);
+    
+    if (releaseSnapshot.empty) {
+      return {
+        isAvailable: true,
+        timeUntilRelease: 'Available now',
+        formattedReleaseTime: 'Available now',
+        releaseDate: null
+      };
+    }
+    
+    const releaseDoc = releaseSnapshot.docs[0];
+    const releaseData = releaseDoc.data();
+    
+    if (userTimezone) {
+      const typedReleaseData = {
+        releaseDate: releaseData.releaseDate,
+        isReleased: releaseData.isReleased
+      };
+      
+      return {
+        isAvailable: isLessonAvailableForStudent(typedReleaseData, userTimezone),
+        timeUntilRelease: getTimeUntilRelease(typedReleaseData, userTimezone),
+        formattedReleaseTime: formatReleaseTime(typedReleaseData, userTimezone),
+        releaseDate: releaseData.releaseDate.toDate()
+      };
+    }
+    
+    // Fallback for users without timezone
+    const isAvailable = releaseData.isReleased || new Date() >= releaseData.releaseDate.toDate();
+    
+    return {
+      isAvailable,
+      timeUntilRelease: isAvailable ? 'Available now' : 'Coming soon',
+      formattedReleaseTime: isAvailable ? 'Available now' : 'Coming soon',
+      releaseDate: releaseData.releaseDate.toDate()
+    };
+  } catch (error) {
+    console.error('Error getting lesson release info:', error);
+    return {
+      isAvailable: true,
+      timeUntilRelease: 'Available now',
+      formattedReleaseTime: 'Available now',
+      releaseDate: null
+    };
+  }
 };
 
 // Get countdown to next lesson

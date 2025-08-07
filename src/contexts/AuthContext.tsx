@@ -13,6 +13,7 @@ import { auth, db, googleProvider, facebookProvider, signInWithGoogle as firebas
 import { User } from '../types';
 import { emailIntegrationService } from '../services/emailIntegrationService';
 import { analyticsEvents } from '../services/analyticsService';
+import { detectUserTimezone } from '../utils/timezoneUtils';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -74,6 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           communityUpdates: false,
         },
         authProvider: 'email',
+        timezone: detectUserTimezone(), // Detect and store user's timezone
       };
 
       // Only add photoURL if it exists
@@ -223,6 +225,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             scientificUpdates: true,
             communityUpdates: false,
           },
+          timezone: detectUserTimezone(), // Detect and store user's timezone
         };
 
         // Only add photoURL if it exists
@@ -340,7 +343,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           try {
             const userDoc = await getDoc(doc(db, 'users', user.uid));
             if (userDoc.exists()) {
-              setCurrentUser(userDoc.data() as User);
+              const userData = userDoc.data() as User;
+              
+              // Add timezone for existing users who don't have it
+              if (!userData.timezone) {
+                const timezone = detectUserTimezone();
+                await updateDoc(doc(db, 'users', user.uid), { timezone });
+                userData.timezone = timezone;
+              }
+              
+              setCurrentUser(userData);
             } else {
               await handleSocialSignIn(user);
             }

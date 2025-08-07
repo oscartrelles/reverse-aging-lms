@@ -8,13 +8,13 @@ export interface EnrollmentData {
   userId: string;
   courseId: string;
   cohortId: string;
-  paymentId?: string;
+  paymentId?: string | null;
   paymentStatus?: 'pending' | 'paid' | 'failed' | 'refunded';
   status: 'pending' | 'active' | 'completed' | 'cancelled';
   enrolledAt: Timestamp;
   completedAt?: Timestamp;
-  stripeCustomerId?: string;
-  stripeSubscriptionId?: string;
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
 }
 
 // Enrollment creation options
@@ -22,11 +22,11 @@ export interface CreateEnrollmentOptions {
   userId: string;
   courseId: string;
   cohortId: string;
-  paymentId?: string;
+  paymentId?: string | null;
   paymentStatus?: 'pending' | 'paid' | 'failed' | 'refunded';
   status?: 'pending' | 'active' | 'completed' | 'cancelled';
-  stripeCustomerId?: string;
-  stripeSubscriptionId?: string;
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
 }
 
 // Enrollment update options
@@ -35,8 +35,8 @@ export interface UpdateEnrollmentOptions {
   paymentStatus?: 'pending' | 'paid' | 'failed' | 'refunded';
   cohortId?: string;
   completedAt?: Timestamp;
-  stripeCustomerId?: string;
-  stripeSubscriptionId?: string;
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
 }
 
 // Centralized enrollment service
@@ -91,12 +91,12 @@ export const enrollmentService = {
           userId: options.userId,
           courseId: options.courseId,
           cohortId: options.cohortId,
-          paymentId: options.paymentId,
+          paymentId: options.paymentId || null,
           paymentStatus: options.paymentStatus,
           status: status,
         enrolledAt: Timestamp.now(),
-          stripeCustomerId: options.stripeCustomerId,
-          stripeSubscriptionId: options.stripeSubscriptionId,
+          stripeCustomerId: options.stripeCustomerId || null,
+          stripeSubscriptionId: options.stripeSubscriptionId || null,
       };
 
         transaction.set(enrollmentRef, enrollmentData);
@@ -149,6 +149,7 @@ export const enrollmentService = {
       // Only update provided fields
       if (updates.status !== undefined) updateData.status = updates.status;
       if (updates.paymentStatus !== undefined) updateData.paymentStatus = updates.paymentStatus;
+      if (updates.cohortId !== undefined) updateData.cohortId = updates.cohortId;
       if (updates.completedAt !== undefined) updateData.completedAt = updates.completedAt;
       if (updates.stripeCustomerId !== undefined) updateData.stripeCustomerId = updates.stripeCustomerId;
       if (updates.stripeSubscriptionId !== undefined) updateData.stripeSubscriptionId = updates.stripeSubscriptionId;

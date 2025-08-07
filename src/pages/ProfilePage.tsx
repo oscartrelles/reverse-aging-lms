@@ -43,11 +43,14 @@ import {
   Add,
   People,
   Close,
+  AccessTime,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { useCourse } from '../contexts/CourseContext';
 import { useNavigate } from 'react-router-dom';
 import { userProfileService, ExtendedProfile, UserProgress } from '../services/userProfileService';
+import { detectUserTimezone, getTimezoneDisplayName, isValidTimezone } from '../utils/timezoneUtils';
+import TimezoneSelector from '../components/TimezoneSelector';
 
 const ProfilePage: React.FC = () => {
   const { currentUser, updateUserProfile } = useAuth();
@@ -171,10 +174,19 @@ const ProfilePage: React.FC = () => {
       // Update extended profile
       await userProfileService.updateExtendedProfile(currentUser.id, profileData);
       
-      // Update basic user profile if name changed
+      // Update basic user profile if name or timezone changed
       const nameChanged = `${profileData.firstName} ${profileData.lastName}`.trim() !== currentUser.name;
-      if (nameChanged) {
-        await updateUserProfile({ name: `${profileData.firstName} ${profileData.lastName}`.trim() });
+      const timezoneChanged = profileData.timezone !== currentUser.timezone;
+      
+      if (nameChanged || timezoneChanged) {
+        const updates: any = {};
+        if (nameChanged) {
+          updates.name = `${profileData.firstName} ${profileData.lastName}`.trim();
+        }
+        if (timezoneChanged) {
+          updates.timezone = profileData.timezone;
+        }
+        await updateUserProfile(updates);
       }
       
       setIsEditing(false);
@@ -552,6 +564,16 @@ const ProfilePage: React.FC = () => {
                       />
                     )}
                   </Box>
+                  
+                  {/* Timezone Display */}
+                  {profileData.timezone && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2 }}>
+                      <AccessTime sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      <Typography variant="body2" color="text.secondary">
+                        Timezone: {getTimezoneDisplayName(profileData.timezone)}
+                      </Typography>
+                    </Box>
+                  )}
                 </Box>
               </Box>
 
@@ -614,6 +636,14 @@ const ProfilePage: React.FC = () => {
                     onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
                     disabled={!isEditing || saving}
                     sx={{ mb: 2 }}
+                  />
+                </Box>
+                <Box sx={{ flex: { xs: 1, sm: '0 0 calc(50% - 12px)' } }}>
+                  <TimezoneSelector
+                    value={profileData.timezone || detectUserTimezone()}
+                    onChange={(timezone) => setProfileData({ ...profileData, timezone })}
+                    disabled={!isEditing || saving}
+                    helperText="Lessons will be released at 8:00 AM in your timezone"
                   />
                 </Box>
                 <Box sx={{ flex: '1 1 100%' }}>

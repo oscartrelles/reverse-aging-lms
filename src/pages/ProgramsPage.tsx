@@ -138,11 +138,11 @@ const ProgramsPage: React.FC = () => {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
                   <School sx={{ fontSize: 32, color: theme.palette.primary.main }} />
                   <Typography variant="h4" component="h3" sx={{ fontWeight: 700, color: theme.palette.text.primary }}>
-                    The 7‑Week Reverse Aging Challenge
+                    The 7-Week Reverse Aging Challenge
                   </Typography>
                 </Box>
                 <Typography variant="subtitle1" sx={{ mb: 3, color: theme.palette.text.secondary, fontWeight: 600 }}>
-                  Our flagship online course is a guided, 7‑week experience that teaches you how to integrate the seven core pillars of the Academy: breath, movement, cold, heat, nourish, mindset, and community.
+                  Our flagship online course is a guided, 7-week experience that teaches you how to integrate the seven core pillars of the Academy: breath, movement, cold, heat, nourish, mindset, and community.
                 </Typography>
 
                 <Box sx={{ mb: 4, flex: 1 }}>
@@ -212,7 +212,7 @@ const ProgramsPage: React.FC = () => {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
                   <Spa sx={{ fontSize: 32, color: theme.palette.secondary.main }} />
                   <Typography variant="h4" component="h3" sx={{ fontWeight: 700, color: theme.palette.text.primary }}>
-                    The 7‑Day Reverse Aging Reset
+                    The 7-Day Reverse Aging Reset
                   </Typography>
                 </Box>
                 <Typography variant="subtitle1" sx={{ mb: 3, color: theme.palette.text.secondary, fontWeight: 600 }}>
@@ -317,7 +317,7 @@ const ProgramsPage: React.FC = () => {
                     Ready for a system
                   </Typography>
                   <Typography variant="body2" sx={{ mb: 3, color: theme.palette.text.secondary }}>
-                    Enroll in the 7‑Week Reverse Aging Challenge.
+                    Enroll in the 7-Week Reverse Aging Challenge.
                   </Typography>
                   <Button
                     variant="text"
@@ -337,7 +337,7 @@ const ProgramsPage: React.FC = () => {
                     Ready for a reset
                   </Typography>
                   <Typography variant="body2" sx={{ mb: 3, color: theme.palette.text.secondary }}>
-                    Apply for the 7‑Day Retreat and experience the full transformation.
+                    Apply for the 7-Day Retreat and experience the full transformation.
                   </Typography>
                   <Button
                     variant="text"

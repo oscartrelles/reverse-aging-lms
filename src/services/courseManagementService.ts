@@ -378,6 +378,10 @@ export const courseManagementService = {
       
       const cohortRef = await addDoc(collection(db, 'cohorts'), cohortDataWithTimestamps);
       console.log('✅ Cohort created successfully:', cohortRef.id);
+      
+      // Create lesson releases for all lessons in the course
+      await this.createLessonReleasesForCohort(cohortRef.id, cohortData.courseId, cohortData.startDate);
+      
       return cohortRef.id;
     } catch (error) {
       console.error('❌ Error creating cohort:', error);
@@ -410,12 +414,118 @@ export const courseManagementService = {
     }
   },
 
-  async deleteCohort(cohortId: string): Promise<void> {
+  async deleteCohort(cohortId: string, force: boolean = false): Promise<void> {
     try {
+      // Check if there are any enrolled students
+      const enrollmentsQuery = query(
+        collection(db, 'enrollments'),
+        where('cohortId', '==', cohortId)
+      );
+      
+      const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
+      const enrolledStudents = enrollmentsSnapshot.docs.length;
+      
+      if (enrolledStudents > 0 && !force) {
+        throw new Error(`Cannot delete cohort: ${enrolledStudents} student(s) are currently enrolled. Please reassign them to another cohort first.`);
+      }
+      
+      // If force deleting, delete all enrollments for this cohort
+      if (enrolledStudents > 0 && force) {
+        const batch = writeBatch(db);
+        enrollmentsSnapshot.docs.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+        await batch.commit();
+        console.log(`⚠️ Force deleted ${enrolledStudents} enrollments for cohort:`, cohortId);
+      }
+      
+      // Delete all lesson releases for this cohort
+      const lessonReleasesQuery = query(
+        collection(db, 'lessonReleases'),
+        where('cohortId', '==', cohortId)
+      );
+      
+      const lessonReleasesSnapshot = await getDocs(lessonReleasesQuery);
+      
+      // Batch delete lesson releases
+      if (!lessonReleasesSnapshot.empty) {
+        const batch = writeBatch(db);
+        lessonReleasesSnapshot.docs.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+        await batch.commit();
+        console.log(`✅ Deleted ${lessonReleasesSnapshot.docs.length} lesson releases for cohort:`, cohortId);
+      }
+      
+      // Delete the cohort
       await deleteDoc(doc(db, 'cohorts', cohortId));
-      console.log('✅ Cohort deleted successfully:', cohortId);
+      console.log(`✅ Cohort ${force ? 'force ' : ''}deleted successfully:`, cohortId);
     } catch (error) {
       console.error('❌ Error deleting cohort:', error);
+      throw error;
+    }
+  },
+
+  async createLessonReleasesForCohort(cohortId: string, courseId: string, startDate: Date): Promise<void> {
+    try {
+      // Get all lessons for the course
+      const lessonsQuery = query(
+        collection(db, 'lessons'),
+        where('courseId', '==', courseId),
+        orderBy('order', 'asc')
+      );
+      
+      const lessonsSnapshot = await getDocs(lessonsQuery);
+      const lessons = lessonsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Lesson[];
+
+      if (lessons.length === 0) {
+        console.log('⚠️ No lessons found for course:', courseId);
+        return;
+      }
+
+      // Create lesson releases for each lesson
+      const lessonReleases = lessons.map(lesson => {
+        // Start with the cohort start date
+        const releaseDate = new Date(startDate);
+        
+        // Add 1 day to fix the 24-hour offset issue
+        releaseDate.setDate(releaseDate.getDate() + 1);
+        
+        // For week 1, release on the cohort start date
+        // For subsequent weeks, add the appropriate number of weeks
+        if (lesson.weekNumber > 1) {
+          releaseDate.setDate(releaseDate.getDate() + (lesson.weekNumber - 1) * 7);
+        }
+        
+        // Set to 8am local time (default release time)
+        releaseDate.setHours(8, 0, 0, 0);
+        
+        return {
+          cohortId,
+          lessonId: lesson.id,
+          courseId,
+          weekNumber: lesson.weekNumber,
+          releaseDate: Timestamp.fromDate(releaseDate),
+          isReleased: false,
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+        };
+      });
+
+      // Batch write all lesson releases
+      const batch = writeBatch(db);
+      lessonReleases.forEach(lessonRelease => {
+        const docRef = doc(collection(db, 'lessonReleases'));
+        batch.set(docRef, lessonRelease);
+      });
+
+      await batch.commit();
+      console.log(`✅ Created ${lessonReleases.length} lesson releases for cohort:`, cohortId);
+    } catch (error) {
+      console.error('❌ Error creating lesson releases:', error);
       throw error;
     }
   },

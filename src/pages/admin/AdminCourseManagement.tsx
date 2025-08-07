@@ -260,28 +260,68 @@ const AdminCourseManagement: React.FC = () => {
   };
 
   const handleDeleteCohort = async (cohortId: string) => {
-    if (!window.confirm('Are you sure you want to delete this cohort? This action cannot be undone.')) {
+    // Find the cohort to get its name for better messaging
+    const cohort = cohorts.find(c => c.id === cohortId);
+    const cohortName = cohort?.name || 'this cohort';
+    
+    // Check if cohort has enrolled students
+    if (cohort && cohort.currentStudents > 0) {
+      const forceDelete = window.confirm(
+        `⚠️ WARNING: "${cohortName}" has ${cohort.currentStudents} enrolled student(s)!\n\n` +
+        `This will:\n` +
+        `• Delete ALL student enrollments for this cohort\n` +
+        `• Delete ALL lesson releases for this cohort\n` +
+        `• Delete the cohort itself\n\n` +
+        `This action cannot be undone!\n\n` +
+        `Are you sure you want to FORCE DELETE this cohort?`
+      );
+      
+      if (!forceDelete) {
+        setError(`Cannot delete cohort: ${cohort.currentStudents} student(s) are currently enrolled. Please reassign them to another cohort first.`);
+        return;
+      }
+      
+      // Force delete with confirmation
+      try {
+        setError(null);
+        await courseManagementService.deleteCohort(cohortId, true);
+        setSuccess(`Cohort "${cohortName}" force deleted successfully (${cohort.currentStudents} enrollments removed)`);
+        loadData();
+      } catch (error) {
+        console.error('Error force deleting cohort:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Failed to force delete cohort';
+        setError(errorMessage);
+      }
+      return;
+    }
+    
+    // Normal deletion for cohorts without students
+    if (!window.confirm(`Are you sure you want to delete "${cohortName}"? This action cannot be undone.`)) {
       return;
     }
 
     try {
-      await courseManagementService.deleteCohort(cohortId);
-      setSuccess('Cohort deleted successfully');
+      setError(null); // Clear any previous errors
+      await courseManagementService.deleteCohort(cohortId, false);
+      setSuccess(`Cohort "${cohortName}" deleted successfully`);
       loadData();
     } catch (error) {
       console.error('Error deleting cohort:', error);
-      setError('Failed to delete cohort');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete cohort';
+      setError(errorMessage);
     }
   };
 
   const handleSaveCohort = async (cohortData: any) => {
     try {
+      setError(null); // Clear any previous errors
+      
       if (editingCohort) {
         await courseManagementService.updateCohort(editingCohort.id, cohortData);
-        setSuccess('Cohort updated successfully');
+        setSuccess(`Cohort "${cohortData.name}" updated successfully`);
       } else {
         await courseManagementService.createCohort(cohortData);
-        setSuccess('Cohort created successfully');
+        setSuccess(`Cohort "${cohortData.name}" created successfully`);
       }
       setShowCohortEditor(false);
       setEditingCohort(null);
@@ -289,7 +329,8 @@ const AdminCourseManagement: React.FC = () => {
       loadData();
     } catch (error) {
       console.error('Error saving cohort:', error);
-      setError('Failed to save cohort');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save cohort';
+      setError(errorMessage);
     }
   };
 
@@ -870,9 +911,27 @@ const AdminCourseManagement: React.FC = () => {
                     ) : (
                       <List>
                         {getCourseCohorts(selectedCourse.id).map((cohort, index) => (
-                          <ListItem key={cohort.id}>
+                          <ListItem 
+                            key={cohort.id}
+                            sx={{
+                              backgroundColor: cohort.currentStudents > 0 ? 'rgba(255, 152, 0, 0.05)' : 'transparent',
+                              borderLeft: cohort.currentStudents > 0 ? '3px solid #ff9800' : 'none'
+                            }}
+                          >
                             <ListItemText
-                              primary={cohort.name}
+                              primary={
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  {cohort.name}
+                                  {cohort.currentStudents > 0 && (
+                                    <Chip 
+                                      label={`${cohort.currentStudents} enrolled`} 
+                                      size="small" 
+                                      color="warning"
+                                      variant="outlined"
+                                    />
+                                  )}
+                                </Box>
+                              }
                               secondary={`${cohort.currentStudents}/${cohort.maxStudents} students • ${cohort.status}`}
                             />
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -889,7 +948,7 @@ const AdminCourseManagement: React.FC = () => {
                                   <Edit />
                                 </IconButton>
                               </Tooltip>
-                              <Tooltip title="Delete Cohort">
+                              <Tooltip title={cohort.currentStudents > 0 ? `Force delete: ${cohort.currentStudents} student(s) will be removed` : "Delete Cohort"}>
                                 <IconButton
                                   size="small"
                                   color="error"
