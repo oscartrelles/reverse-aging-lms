@@ -405,7 +405,12 @@ const EvidencePage: React.FC = () => {
                   <Chip 
                     label={selectedUpdate.category}
                     color="primary"
-                    sx={{ mb: 2 }}
+                    sx={{ mb: 2, cursor: 'pointer' }}
+                    onClick={() => {
+                      setSelectedCategory(selectedUpdate.category);
+                      setSelectedUpdate(null);
+                      updateURL();
+                    }}
                   />
                   <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 700 }}>
                     {selectedUpdate.title}
@@ -487,6 +492,7 @@ const EvidencePage: React.FC = () => {
                           label={tag}
                           variant="outlined"
                           size="small"
+                          sx={{ cursor: 'pointer' }}
                           onClick={() => {
                             setSelectedTags([tag]);
                             setSelectedUpdate(null);
@@ -510,6 +516,9 @@ const EvidencePage: React.FC = () => {
                     >
                       Read Full Study
                     </Button>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, fontStyle: 'italic' }}>
+                      Opens in a new tab - You'll be taken to an external website
+                    </Typography>
                   </Box>
                 )}
 
@@ -706,7 +715,12 @@ const EvidencePage: React.FC = () => {
                         label={update.category}
                         color="primary"
                         size="small"
-                        sx={{ mb: 1 }}
+                        sx={{ mb: 1, cursor: 'pointer' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedCategory(update.category);
+                          updateURL();
+                        }}
                       />
                       <Typography variant="h6" component="h3" gutterBottom sx={{ fontWeight: 600, lineHeight: 1.3 }}>
                         {update.title}
@@ -746,7 +760,12 @@ const EvidencePage: React.FC = () => {
                               label={tag}
                               size="small"
                               variant="outlined"
-                              sx={{ fontSize: '0.7rem' }}
+                              sx={{ fontSize: '0.7rem', cursor: 'pointer' }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedTags([tag]);
+                                updateURL();
+                              }}
                             />
                           ))}
                           {update.tags.length > 3 && (

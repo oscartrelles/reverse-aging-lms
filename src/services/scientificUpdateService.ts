@@ -1,4 +1,4 @@
-import { doc, setDoc, collection, query, where, getDocs, orderBy, Timestamp, addDoc, getDoc, updateDoc, increment } from 'firebase/firestore';
+import { doc, setDoc, collection, query, where, getDocs, orderBy, Timestamp, addDoc, getDoc, updateDoc, increment, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { ScientificUpdate, UserReadStatus } from '../types';
 import { analyticsEvents } from './analyticsService';
@@ -137,8 +137,8 @@ export const scientificUpdateService = {
   // Delete a scientific update
   async deleteUpdate(updateId: string): Promise<void> {
     try {
-      await setDoc(doc(db, 'scientificUpdates', updateId), {}, { merge: true });
-
+      await deleteDoc(doc(db, 'scientificUpdates', updateId));
+      console.log(`✅ Deleted scientific update ${updateId}`);
     } catch (error) {
       console.error('❌ Error deleting scientific update:', error);
       throw error;

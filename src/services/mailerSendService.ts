@@ -1,5 +1,4 @@
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import app from '../firebaseConfig';
 
 // Configuration interface
 export interface MailerSendConfig {
@@ -86,7 +85,7 @@ export interface EmailQueueItem {
 class MailerSendService {
   private config: MailerSendConfig;
   private emailQueue: EmailQueueItem[] = [];
-  private functions = getFunctions(app);
+  private functions = getFunctions();
   private sendEmailFunction = httpsCallable(this.functions, 'sendEmail');
   private testMailerSendFunction = httpsCallable(this.functions, 'testMailerSend');
 

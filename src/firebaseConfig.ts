@@ -4,15 +4,20 @@ import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 // Detect environment
-const isProduction = window.location.hostname === 'academy.7weekreverseagingchallenge.com' || 
-                    window.location.hostname === 'reverse-aging-academy.web.app';
+const hostname = window.location.hostname;
+const isDevelopment = hostname === 'localhost' || hostname === '127.0.0.1';
+const isProduction = hostname === 'academy.7weekreverseagingchallenge.com' || 
+                    hostname === 'reverse-aging-academy.web.app';
+const isStaging = !isDevelopment && !isProduction;
 
 // Your Firebase configuration
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-  authDomain: isProduction 
-    ? 'academy.7weekreverseagingchallenge.com'  // Production auth domain
-    : 'the-reverse-aging-challenge.web.app',        // Staging auth domain
+  authDomain: isDevelopment 
+    ? 'the-reverse-aging-challenge.web.app'  // Use staging auth domain for development
+    : isProduction 
+      ? 'academy.7weekreverseagingchallenge.com'  // Production auth domain
+      : 'the-reverse-aging-challenge.web.app',    // Staging auth domain
   projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
   storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
@@ -22,8 +27,10 @@ const firebaseConfig = {
 // Log environment info for debugging (development only)
 if (process.env.NODE_ENV === 'development') {
   console.log('🌍 Firebase Environment:', {
+    hostname,
+    isDevelopment,
+    isStaging,
     isProduction,
-    hostname: window.location.hostname,
     projectId: firebaseConfig.projectId,
     authDomain: firebaseConfig.authDomain
   });

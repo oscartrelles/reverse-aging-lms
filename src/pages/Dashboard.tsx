@@ -1348,7 +1348,6 @@ const Dashboard: React.FC = () => {
                               cursor: 'pointer',
                               '&:hover': {
                                 backgroundColor: '#4CAF50',
-                                color: 'white',
                                 borderColor: '#4CAF50'
                               }
                             }}
