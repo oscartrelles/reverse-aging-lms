@@ -146,12 +146,18 @@ const CohortEditor: React.FC<CohortEditorProps> = ({
       setLoading(true);
       setError(null);
       
+      // Create dates in local timezone to avoid timezone conversion issues
+      const createLocalDate = (dateString: string) => {
+        const [year, month, day] = dateString.split('-').map(Number);
+        return new Date(year, month - 1, day); // month is 0-indexed
+      };
+
       const cohortDataToSave = {
         ...formData,
         courseId,
-        startDate: new Date(formData.startDate),
-        endDate: new Date(formData.endDate),
-        enrollmentDeadline: formData.enrollmentDeadline ? new Date(formData.enrollmentDeadline) : null,
+        startDate: createLocalDate(formData.startDate),
+        endDate: createLocalDate(formData.endDate),
+        enrollmentDeadline: formData.enrollmentDeadline ? createLocalDate(formData.enrollmentDeadline) : null,
       };
 
       await onSave(cohortDataToSave);

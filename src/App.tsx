@@ -33,6 +33,7 @@ import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import AuthModal from './components/auth/AuthModal';
 import ContactModalWrapper from './components/ContactModalWrapper';
+import ScrollToTop from './components/ScrollToTop';
 
 // Lazy load heavy components
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
@@ -206,6 +207,7 @@ function App() {
             <ContactModalProvider>
                 <Router>
                   <AnalyticsWrapper>
+                    <ScrollToTop />
                     <div className="App">
                       <Header />
                       <main style={{ minHeight: 'calc(100vh - 140px)' }}>

@@ -9,7 +9,7 @@ export interface ExtendedProfile {
   firstName: string;
   lastName: string;
   bio: string;
-  age: number;
+  dateOfBirth?: Timestamp;
   location: string;
   timezone?: string;
   goals: string[];
@@ -67,7 +67,7 @@ export const userProfileService = {
           firstName: profileData.firstName || '',
           lastName: profileData.lastName || '',
           bio: profileData.bio || '',
-          age: profileData.age || 0,
+          dateOfBirth: profileData.dateOfBirth || profileData.age ? Timestamp.fromDate(new Date(profileData.age)) : undefined,
           location: profileData.location || '',
           timezone: profileData.timezone,
           goals: profileData.goals || ['Improve energy levels', 'Build sustainable habits'],

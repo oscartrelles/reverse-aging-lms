@@ -22,12 +22,21 @@ import {
   ChevronRight, 
   ExpandMore,
   KeyboardArrowDown,
-  School
+  School,
+  Spa,
+  Build,
+  Public,
+  FitnessCenter,
+  Psychology,
+  Restaurant,
+  Group,
+  ArrowForward
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { useAuthModal } from '../contexts/AuthModalContext';
 import { useSearchParams } from 'react-router-dom';
 import { useAnalytics } from '../hooks/useAnalytics';
+import { courseManagementService } from '../services/courseManagementService';
 
 const LandingPage: React.FC = () => {
   const { currentUser, loading: authLoading } = useAuth();
@@ -39,6 +48,10 @@ const LandingPage: React.FC = () => {
   const [scientificUpdates, setScientificUpdates] = useState<any[]>([]);
   const [loadingUpdate, setLoadingUpdate] = useState(false);
   const [currentUpdateIndex, setCurrentUpdateIndex] = useState(0);
+
+  // Upcoming cohort
+  const [upcomingCohort, setUpcomingCohort] = useState<any>(null);
+  const [loadingCohort, setLoadingCohort] = useState(false);
 
   // Testimonial carousel state
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
@@ -62,6 +75,44 @@ const LandingPage: React.FC = () => {
       prev === memoizedScientificUpdates.length - 1 ? 0 : prev + 1
     );
   }, [memoizedScientificUpdates.length]);
+
+  // Load upcoming cohort
+  const loadUpcomingCohort = useCallback(async () => {
+    try {
+      setLoadingCohort(true);
+      const cohort = await courseManagementService.getNextUpcomingCohort();
+      setUpcomingCohort(cohort);
+    } catch (error) {
+      console.error('Error loading upcoming cohort:', error);
+    } finally {
+      setLoadingCohort(false);
+    }
+  }, []);
+
+  // Format cohort date
+  const formatCohortDate = (date: Date | any) => {
+    if (!date) return 'Coming Soon';
+    
+    try {
+      let dateObj;
+      if (date instanceof Date) {
+        dateObj = date;
+      } else if (date && typeof date.toDate === 'function') {
+        dateObj = date.toDate();
+      } else {
+        return 'Coming Soon';
+      }
+      
+      return dateObj.toLocaleDateString('en-US', { 
+        month: 'long', 
+        day: 'numeric', 
+        year: 'numeric' 
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Coming Soon';
+    }
+  };
 
   // Testimonials data
   const testimonials = [
@@ -121,22 +172,29 @@ const LandingPage: React.FC = () => {
     }
   }, [searchParams, showAuthModal]);
 
-  // Load recent scientific updates for preview
+  // Load recent scientific updates and upcoming cohort for preview
   useEffect(() => {
-    const loadRecentUpdates = async () => {
+    const loadData = async () => {
       setLoadingUpdate(true);
+      setLoadingCohort(true);
       try {
+        // Load scientific updates
         const { scientificUpdateService } = await import('../services/scientificUpdateService');
         const updates = await scientificUpdateService.getAllUpdates({ limit: 5 });
         setScientificUpdates(updates);
+        
+        // Load upcoming cohort
+        const cohort = await courseManagementService.getNextUpcomingCohort();
+        setUpcomingCohort(cohort);
       } catch (error) {
-        console.error('Error loading recent scientific updates:', error);
+        console.error('Error loading data:', error);
       } finally {
         setLoadingUpdate(false);
+        setLoadingCohort(false);
       }
     };
 
-    loadRecentUpdates();
+    loadData();
   }, []);
 
   // Redirect authenticated users to dashboard
@@ -227,7 +285,7 @@ const LandingPage: React.FC = () => {
                 size="large"
                 onClick={() => {
                   trackEvent.ctaClick('create_account_hero', '/');
-                  showAuthModal('signup', 'Create Your Account', 'Create a free account to access weekly evidence reports on healthspan and other exclusive content.');
+                  showAuthModal('signup', 'Create Your Account', 'Get free access to our evolving library of healthspan science, plus weekly digests on the latest research.');
                 }}
                 sx={{
                   px: 4,
@@ -506,7 +564,7 @@ const LandingPage: React.FC = () => {
                       onMouseLeave={(e) => (e.target as HTMLElement).style.color = theme.palette.primary.main}
                       onClick={() => {
                         trackEvent.ctaClick('free_account_evidence_box', '/');
-                        showAuthModal('signup', 'Create Your Account', 'Create a free account to access weekly evidence reports on healthspan and other exclusive content.');
+                        showAuthModal('signup', 'Create Your Account', 'Get free access to our evolving library of healthspan science, plus weekly digests on the latest research.');
                       }}
                     >
                       Free accounts
@@ -558,7 +616,7 @@ const LandingPage: React.FC = () => {
               The Reverse Aging Challenge
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mb: 3, lineHeight: 1.6, maxWidth: 800, mx: 'auto', textAlign: 'center' }}>
-              Transform your health and vitality through our comprehensive 7-week program designed for people to build sustainable habits supported by evidence‑based, nature‑powered practices and a global community.
+              Transform your health and vitality through our comprehensive programs designed to help you build sustainable habits supported by evidence‑based, nature‑powered practices and a global community. Choose from our 7-week online course or 7-day in-person reset experience.
             </Typography>
           </Box>
 
@@ -593,10 +651,181 @@ const LandingPage: React.FC = () => {
             </Card>
           </Box>
 
+          {/* Program Options */}
+          <Box sx={{ mb: 6 }}>
+            <Typography variant="h4" sx={{ fontWeight: 700, mb: 4, color: theme.palette.text.primary, textAlign: 'center' }}>
+              Choose Your Path
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 4 }}>
+              {/* Online Course */}
+              <Box sx={{ flex: { xs: 1, md: '0 0 calc(50% - 16px)' } }}>
+                <Card
+                  elevation={0}
+                  sx={{
+                    backgroundColor: theme.palette.background.paper,
+                    borderRadius: 3,
+                    height: '100%',
+                    border: `1px solid ${theme.palette.divider}`,
+                    boxShadow: `0 8px 32px rgba(0,0,0,0.1)`,
+                    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 12px 40px rgba(0,0,0,0.15)`,
+                    }
+                  }}
+                >
+                  <CardContent sx={{ p: { xs: 3, md: 4 }, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <School sx={{ fontSize: 32, color: theme.palette.primary.main }} />
+                      <Box>
+                        <Typography variant="h5" component="h3" sx={{ fontWeight: 700, color: theme.palette.text.primary }}>
+                          The 7-Week Reverse Aging Challenge
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: theme.palette.primary.main, fontWeight: 600, mt: 0.5 }}>
+                          Next cohort starts: {loadingCohort ? 'Loading...' : formatCohortDate(upcomingCohort?.startDate)}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="subtitle1" sx={{ mb: 3, color: theme.palette.text.secondary, fontWeight: 600 }}>
+                      Our flagship online course is a guided, 7-week experience that teaches you how to integrate the seven core pillars of the Academy: breath, movement, cold, heat, nourish, mindset, and community.
+                    </Typography>
+
+                    <Box sx={{ mb: 4, flex: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
+                        <Science sx={{ color: theme.palette.primary.main, mt: 0.5 }} />
+                        <Typography variant="body2">
+                          <strong>Science you can use:</strong> Weekly modules break down the research in plain language.
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
+                        <Build sx={{ color: theme.palette.primary.main, mt: 0.5 }} />
+                        <Typography variant="body2">
+                          <strong>Step‑by‑step practices:</strong> Small daily actions stack into lasting change.
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
+                        <Public sx={{ color: theme.palette.primary.main, mt: 0.5 }} />
+                        <Typography variant="body2">
+                          <strong>Flexible & accessible:</strong> Join from anywhere, on your own schedule, with lifetime access.
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    <Button
+                      variant="contained"
+                      size="large"
+                      onClick={() => {
+                        if (currentUser) {
+                          navigate('/payment/7-week-reverse-aging-challenge');
+                        } else {
+                          showAuthModal('signup', 'Create Your Account', 'You need a free account to enroll in a course.');
+                        }
+                      }}
+                      endIcon={<ArrowForward />}
+                      sx={{
+                        backgroundColor: theme.palette.primary.main,
+                        color: '#000',
+                        fontWeight: 600,
+                        py: 1.5,
+                        '&:hover': {
+                          backgroundColor: theme.palette.primary.dark,
+                        }
+                      }}
+                    >
+                      Enroll in Online Course
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Box>
+
+              {/* In-Person Retreat */}
+              <Box sx={{ flex: { xs: 1, md: '0 0 calc(50% - 16px)' } }}>
+                <Card
+                  elevation={0}
+                  sx={{
+                    backgroundColor: theme.palette.background.paper,
+                    borderRadius: 3,
+                    height: '100%',
+                    border: `1px solid ${theme.palette.divider}`,
+                    boxShadow: `0 8px 32px rgba(0,0,0,0.1)`,
+                    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 12px 40px rgba(0,0,0,0.15)`,
+                    }
+                  }}
+                >
+                  <CardContent sx={{ p: { xs: 3, md: 4 }, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Spa sx={{ fontSize: 32, color: theme.palette.secondary.main }} />
+                      <Box>
+                        <Typography variant="h5" component="h3" sx={{ fontWeight: 700, color: theme.palette.text.primary }}>
+                          The 7-Day Reverse Aging Reset
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: theme.palette.secondary.main, fontWeight: 600, mt: 0.5 }}>
+                          Next retreat: October 25-31, 2024
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="subtitle1" sx={{ mb: 3, color: theme.palette.text.secondary, fontWeight: 600 }}>
+                      For those ready to go all in, our 7‑day retreat in the Málaga countryside is an immersive reset.
+                    </Typography>
+
+                    <Box sx={{ mb: 4, flex: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
+                        <FitnessCenter sx={{ color: theme.palette.secondary.main, mt: 0.5 }} />
+                        <Typography variant="body2">
+                          <strong>Breathwork, cold, and heat exposure</strong> every day, guided by certified instructors
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
+                        <Psychology sx={{ color: theme.palette.secondary.main, mt: 0.5 }} />
+                        <Typography variant="body2">
+                          <strong>Movement and mindset training</strong> designed to rewire how your body responds to stress
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
+                        <Restaurant sx={{ color: theme.palette.secondary.main, mt: 0.5 }} />
+                        <Typography variant="body2">
+                          <strong>Chef‑prepared, metabolically aligned meals</strong> to fuel the transformation
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
+                        <Group sx={{ color: theme.palette.secondary.main, mt: 0.5 }} />
+                        <Typography variant="body2">
+                          <strong>A small, supportive group</strong> creating breakthroughs that last long after you leave
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    <Button
+                      variant="outlined"
+                      size="large"
+                      onClick={() => window.open('https://7weekreverseagingchallenge.com', '_blank')}
+                      endIcon={<ArrowForward />}
+                      sx={{
+                        borderColor: theme.palette.secondary.main,
+                        color: theme.palette.secondary.main,
+                        fontWeight: 600,
+                        py: 1.5,
+                        '&:hover': {
+                          borderColor: theme.palette.secondary.dark,
+                          backgroundColor: `${theme.palette.secondary.main}10`,
+                        }
+                      }}
+                    >
+                      Apply for In-Person Reset
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Box>
+            </Box>
+          </Box>
+
           {/* Course Overview */}
           <Box sx={{ mb: 4 }}>
             <Typography variant="h5" sx={{ fontWeight: 600, mb: 3, color: theme.palette.text.primary, textAlign: 'center' }}>
-              7-Week Transformation Journey
+              7-Pillar Transformation Journey
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 4 }}>
               <Box sx={{ flex: { xs: 1, md: 4 } }}>
@@ -679,7 +908,7 @@ const LandingPage: React.FC = () => {
                     Master Your Health
                   </Typography>
                   <Typography variant="body1" sx={{ color: theme.palette.text.secondary, lineHeight: 1.6 }}>
-                    Dive deep into nutrition optimization, movement patterns, advanced breathwork techniques, and cold exposure protocols.
+                    Dive deep into nutrition optimization, movement patterns, advanced breathwork techniques, and cold and heat exposure protocols.
                   </Typography>
                 </Card>
               </Box>
@@ -721,115 +950,14 @@ const LandingPage: React.FC = () => {
                     Daily Practices
                   </Typography>
                   <Typography variant="body1" sx={{ color: theme.palette.text.secondary, lineHeight: 1.6 }}>
-                    Develop a comprehensive daily routine including meditation, journaling, movement, and breathwork for lasting transformation.
+                    Develop a comprehensive, personalized plan that stacks sustainable habits in your daily routine for long-lasting transformation.
                   </Typography>
                 </Card>
               </Box>
             </Box>
           </Box>
 
-          {/* Final CTA */}
-          <Box sx={{ textAlign: 'center', mt: 2 }}>
-            <Typography variant="h5" sx={{ fontWeight: 600, mb: 2, color: theme.palette.text.primary }}>
-              Ready to Start Your Transformation?
-            </Typography>
-            <Typography variant="h6" sx={{ mb: 4, maxWidth: 600, mx: 'auto', color: theme.palette.text.secondary }}>
-              Join a global community of people who are already transforming their lives through our evidence-based approach to health and wellness.
-            </Typography>
-            <Button
-              variant="contained"
-              size="large"
-              onClick={() => {
-                trackEvent.ctaClick('start_journey_footer', '/');
-                navigate('/programs');
-              }}
-              sx={{
-                px: 4,
-                py: 2,
-                fontWeight: 600,
-                fontSize: '1.1rem',
-                backgroundColor: theme.palette.primary.main,
-                color: '#000',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                transform: 'translateY(0)',
-                boxShadow: `0 4px 14px ${theme.palette.primary.main}40`,
-                '&:hover': {
-                  backgroundColor: theme.palette.primary.dark,
-                  transform: 'translateY(-2px)',
-                  boxShadow: `0 8px 25px ${theme.palette.primary.main}60`,
-                },
-                '&:active': {
-                  transform: 'translateY(0)',
-                  boxShadow: `0 4px 14px ${theme.palette.primary.main}40`,
-                },
-              }}
-            >
-              Start Your Journey
-            </Button>
-          </Box>
-        </Container>
-      </Box>
 
-      {/* FAQ Section */}
-      <Box sx={{ py: { xs: 4, md: 6 }, backgroundColor: theme.palette.background.default }}>
-        <Container maxWidth="lg">
-          <Typography variant="h3" component="h2" align="center" gutterBottom sx={{ mb: 4, color: theme.palette.text.primary, fontWeight: 600 }}>
-            Frequently Asked Questions
-          </Typography>
-          
-          <Box sx={{ maxWidth: 800, mx: 'auto' }}>
-            <Accordion sx={{ mb: 2, borderRadius: 2, backgroundColor: theme.palette.background.paper, '&:before': { display: 'none' } }}>
-              <AccordionSummary expandIcon={<ExpandMore />}>
-                <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
-                  What if I'm not satisfied with the program?
-                </Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Typography variant="body1" sx={{ lineHeight: 1.6, color: theme.palette.text.secondary }}>
-                  We offer a 30-day money-back guarantee. If you're not completely satisfied with the program within the first 30 days, we'll refund your full investment, no questions asked.
-                </Typography>
-              </AccordionDetails>
-            </Accordion>
-
-            <Accordion sx={{ mb: 2, borderRadius: 2, backgroundColor: theme.palette.background.paper, '&:before': { display: 'none' } }}>
-              <AccordionSummary expandIcon={<ExpandMore />}>
-                <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
-                  How much time do I need to commit each day?
-                </Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Typography variant="body1" sx={{ lineHeight: 1.6, color: theme.palette.text.secondary }}>
-                  The program is designed to be flexible. You can start with just 15-20 minutes per day and gradually build up to 30-45 minutes as you progress through the program.
-                </Typography>
-              </AccordionDetails>
-            </Accordion>
-
-            <Accordion sx={{ mb: 2, borderRadius: 2, backgroundColor: theme.palette.background.paper, '&:before': { display: 'none' } }}>
-              <AccordionSummary expandIcon={<ExpandMore />}>
-                <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
-                  Is this program suitable for beginners?
-                </Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Typography variant="body1" sx={{ lineHeight: 1.6, color: theme.palette.text.secondary }}>
-                  Absolutely! The program is designed to meet you where you are. Whether you're a complete beginner or have some experience with wellness practices, our step-by-step approach ensures everyone can participate and benefit.
-                </Typography>
-              </AccordionDetails>
-            </Accordion>
-
-            <Accordion sx={{ mb: 2, borderRadius: 2, backgroundColor: theme.palette.background.paper, '&:before': { display: 'none' } }}>
-              <AccordionSummary expandIcon={<ExpandMore />}>
-                <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
-                  What equipment do I need?
-                </Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Typography variant="body1" sx={{ lineHeight: 1.6, color: theme.palette.text.secondary }}>
-                  The program requires no equipment. You'll need comfortable clothing for movement, a quiet space for meditation, and access to cold water for cold exposure practices. We'll provide detailed guidance on any additional items.
-                </Typography>
-              </AccordionDetails>
-            </Accordion>
-          </Box>
         </Container>
       </Box>
 
@@ -919,7 +1047,7 @@ const LandingPage: React.FC = () => {
                     fontStyle: 'italic',
                     lineHeight: 1.6,
                     color: theme.palette.text.primary,
-                    minHeight: 80,
+                    height: 140,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center'
@@ -965,6 +1093,84 @@ const LandingPage: React.FC = () => {
           </Card>
         </Container>
       </Box>
+
+      {/* FAQ Section */}
+      <Box sx={{ py: { xs: 4, md: 6 }, backgroundColor: theme.palette.background.default }}>
+        <Container maxWidth="lg">
+          <Typography variant="h3" component="h2" align="center" gutterBottom sx={{ mb: 4, color: theme.palette.text.primary, fontWeight: 600 }}>
+            Frequently Asked Questions
+          </Typography>
+          
+          <Box sx={{ maxWidth: 800, mx: 'auto' }}>
+            <Accordion sx={{ mb: 2, borderRadius: 2, backgroundColor: theme.palette.background.paper, '&:before': { display: 'none' } }}>
+              <AccordionSummary expandIcon={<ExpandMore />}>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                  What's the difference between the online course and in-person retreat?
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Typography variant="body1" sx={{ lineHeight: 1.6, color: theme.palette.text.secondary }}>
+                  The online course offers flexible, self-paced learning with lifetime access to materials and community support. The in-person retreat provides an immersive, intensive experience with hands-on guidance, group dynamics, and immediate feedback in a dedicated environment designed for transformation.
+                </Typography>
+              </AccordionDetails>
+            </Accordion>
+
+            <Accordion sx={{ mb: 2, borderRadius: 2, backgroundColor: theme.palette.background.paper, '&:before': { display: 'none' } }}>
+              <AccordionSummary expandIcon={<ExpandMore />}>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                  Are these programs suitable for beginners?
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Typography variant="body1" sx={{ lineHeight: 1.6, color: theme.palette.text.secondary }}>
+                  Absolutely! Both programs are designed to meet you where you are. Whether you're a complete beginner or have some experience with wellness practices, our step-by-step approach ensures everyone can participate and benefit from the experience.
+                </Typography>
+              </AccordionDetails>
+            </Accordion>
+
+            <Accordion sx={{ mb: 2, borderRadius: 2, backgroundColor: theme.palette.background.paper, '&:before': { display: 'none' } }}>
+              <AccordionSummary expandIcon={<ExpandMore />}>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                  What equipment or preparation do I need?
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Typography variant="body1" sx={{ lineHeight: 1.6, color: theme.palette.text.secondary }}>
+                  For the online course, you'll need comfortable clothing for movement, a quiet space for meditation, and access to cold water for cold exposure practices. For the in-person retreat, we provide all necessary equipment and materials - you just need to bring comfortable clothing and an open mind.
+                </Typography>
+              </AccordionDetails>
+            </Accordion>
+
+            <Accordion sx={{ mb: 2, borderRadius: 2, backgroundColor: theme.palette.background.paper, '&:before': { display: 'none' } }}>
+              <AccordionSummary expandIcon={<ExpandMore />}>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                  How much time do I need to commit?
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Typography variant="body1" sx={{ lineHeight: 1.6, color: theme.palette.text.secondary }}>
+                  Our online course is designed to be flexible - you can start with just 15-20 minutes per day and gradually build up to 30-45 minutes as you progress. The in-person retreat is a 7-day immersive experience with full-day programming, meals, and activities included.
+                </Typography>
+              </AccordionDetails>
+            </Accordion>
+
+            <Accordion sx={{ mb: 2, borderRadius: 2, backgroundColor: theme.palette.background.paper, '&:before': { display: 'none' } }}>
+              <AccordionSummary expandIcon={<ExpandMore />}>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                  What if I'm not satisfied with the program?
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Typography variant="body1" sx={{ lineHeight: 1.6, color: theme.palette.text.secondary }}>
+                  We offer a 30-day money-back guarantee for our online course. If you're not completely satisfied within the first 30 days, we'll refund your full investment, no questions asked. For our in-person retreat, we offer a satisfaction guarantee with specific terms outlined in your enrollment agreement.
+                </Typography>
+              </AccordionDetails>
+            </Accordion>
+          </Box>
+        </Container>
+      </Box>
+
+
 
       {/* Trust Indicators Section */}
       <Box sx={{ py: { xs: 3, md: 4 }, backgroundColor: theme.palette.background.default, color: theme.palette.text.primary, borderTop: `1px solid ${theme.palette.divider}` }}>
@@ -1040,6 +1246,50 @@ const LandingPage: React.FC = () => {
                 </Typography>
               </Box>
             </Box>
+          </Box>
+        </Container>
+      </Box>
+
+      {/* Final CTA - Moved to bottom */}
+      <Box sx={{ py: { xs: 6, md: 8 }, backgroundColor: theme.palette.background.paper }}>
+        <Container maxWidth="lg">
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="h4" sx={{ fontWeight: 700, mb: 3, color: theme.palette.text.primary }}>
+              Ready to Start Your Transformation?
+            </Typography>
+            <Typography variant="h6" sx={{ mb: 5, maxWidth: 600, mx: 'auto', color: theme.palette.text.secondary, lineHeight: 1.6 }}>
+              Join a global community of people who are already transforming their lives through our evidence-based approach to health and wellness.
+            </Typography>
+            <Button
+              variant="contained"
+              size="large"
+              onClick={() => {
+                trackEvent.ctaClick('start_journey_footer', '/');
+                navigate('/programs');
+              }}
+              sx={{
+                px: 6,
+                py: 2.5,
+                fontWeight: 600,
+                fontSize: '1.2rem',
+                backgroundColor: theme.palette.primary.main,
+                color: '#000',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                transform: 'translateY(0)',
+                boxShadow: `0 4px 14px ${theme.palette.primary.main}40`,
+                '&:hover': {
+                  backgroundColor: theme.palette.primary.dark,
+                  transform: 'translateY(-2px)',
+                  boxShadow: `0 8px 25px ${theme.palette.primary.main}60`,
+                },
+                '&:active': {
+                  transform: 'translateY(0)',
+                  boxShadow: `0 4px 14px ${theme.palette.primary.main}40`,
+                },
+              }}
+            >
+              Start Your Journey
+            </Button>
           </Box>
         </Container>
       </Box>

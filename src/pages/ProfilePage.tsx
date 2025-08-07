@@ -50,6 +50,7 @@ import { useCourse } from '../contexts/CourseContext';
 import { useNavigate } from 'react-router-dom';
 import { userProfileService, ExtendedProfile, UserProgress } from '../services/userProfileService';
 import { detectUserTimezone, getTimezoneDisplayName, isValidTimezone } from '../utils/timezoneUtils';
+import { calculateAge, formatDateOfBirth, toFirestoreTimestamp } from '../utils/ageUtils';
 import TimezoneSelector from '../components/TimezoneSelector';
 
 const ProfilePage: React.FC = () => {
@@ -85,7 +86,7 @@ const ProfilePage: React.FC = () => {
   // Check if this is a new social user who needs to complete their profile
   const isNewSocialUser = currentUser?.authProvider && 
                          currentUser.authProvider !== 'email' && 
-                         (!currentUser.age || !currentUser.location || !currentUser.bio);
+                         (!currentUser.dateOfBirth || !currentUser.location || !currentUser.bio);
 
   // State to track if welcome message should be shown
   const [showWelcomeMessage, setShowWelcomeMessage] = useState(true);
@@ -130,7 +131,7 @@ const ProfilePage: React.FC = () => {
             firstName: currentUser.name?.split(' ')[0] || '',
             lastName: currentUser.name?.split(' ').slice(1).join(' ') || '',
             bio: '',
-            age: 0,
+            dateOfBirth: undefined,
             location: '',
             goals: ['Improve energy levels', 'Build sustainable habits'],
             preferences: {
@@ -727,11 +728,41 @@ const ProfilePage: React.FC = () => {
                 <Box sx={{ flex: { xs: 1, sm: '0 0 calc(50% - 12px)' } }}>
                   <TextField
                     fullWidth
-                    label="Age"
-                    type="number"
-                    value={profileData.age}
-                    onChange={(e) => setProfileData({ ...profileData, age: parseInt(e.target.value) || 0 })}
+                    label="Date of Birth"
+                    type="date"
+                    value={(() => {
+                      if (!profileData.dateOfBirth) return '';
+                      try {
+                        // Handle both Firestore Timestamp and regular Date objects
+                        const date = profileData.dateOfBirth.toDate ? 
+                          profileData.dateOfBirth.toDate() : 
+                          new Date(profileData.dateOfBirth.seconds * 1000);
+                        return date.toISOString().split('T')[0];
+                      } catch (error) {
+                        console.warn('Error converting date of birth:', error);
+                        return '';
+                      }
+                    })()}
+                    onChange={(e) => {
+                      const date = e.target.value ? new Date(e.target.value) : null;
+                      setProfileData({ 
+                        ...profileData, 
+                        dateOfBirth: toFirestoreTimestamp(date) || undefined
+                      });
+                    }}
                     disabled={!isEditing || saving}
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    helperText={(() => {
+                      if (!profileData.dateOfBirth) return '';
+                      try {
+                        return `Age: ${calculateAge(profileData.dateOfBirth)} years old`;
+                      } catch (error) {
+                        console.warn('Error calculating age:', error);
+                        return '';
+                      }
+                    })()}
                     sx={{ 
                       mb: 2,
                       pointerEvents: isEditing ? 'auto' : 'none',

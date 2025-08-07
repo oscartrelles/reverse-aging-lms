@@ -227,7 +227,11 @@ const AuthModal: React.FC = () => {
             startIcon={<Google />}
             onClick={() => handleSocialSignIn('google')}
             disabled={loading}
-            sx={{ py: 0.75 }}
+            sx={{ 
+              py: 0.75,
+              px: { xs: 1, sm: 2 },
+              fontSize: { xs: '0.875rem', sm: '1rem' },
+            }}
           >
             Continue with Google
           </Button>
@@ -241,8 +245,10 @@ const AuthModal: React.FC = () => {
             onClick={() => handleSocialSignIn('facebook')}
             sx={{
               mb: 2,
+              px: { xs: 1, sm: 2 },
               borderColor: '#1877f2',
               color: '#1877f2',
+              fontSize: { xs: '0.875rem', sm: '1rem' },
               '&:hover': {
                 borderColor: '#166fe5',
                 backgroundColor: 'rgba(24, 119, 242, 0.04)',

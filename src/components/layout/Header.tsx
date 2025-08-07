@@ -306,9 +306,9 @@ const Header: React.FC = () => {
             <Box
               sx={{
                 position: 'relative',
-                mr: 2,
-                width: 40,
-                height: 40,
+                mr: { xs: 1, sm: 2 },
+                width: { xs: 32, sm: 40 },
+                height: { xs: 32, sm: 40 },
                 borderRadius: '50%',
                 overflow: 'hidden',
                 '&::after': {
@@ -342,11 +342,13 @@ const Header: React.FC = () => {
               variant="h6"
               sx={{
                 fontWeight: 700,
+                fontSize: { xs: '1rem', sm: '1.25rem' },
                 background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
                 backgroundClip: 'text',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 transition: 'all 0.3s ease',
+                whiteSpace: 'nowrap',
               }}
             >
               The Reverse Aging Academy
@@ -454,12 +456,10 @@ const Header: React.FC = () => {
                   color="inherit"
                   sx={{
                     transition: 'all 0.3s ease',
-                    border: `2px solid transparent`,
                     width: 44,
                     height: 44,
                     '&:hover': {
                       backgroundColor: `${theme.palette.primary.main}20`,
-                      borderColor: theme.palette.primary.main,
                       transform: 'scale(1.05)',
                       width: 48,
                       height: 48,
@@ -471,23 +471,23 @@ const Header: React.FC = () => {
                       src={currentUser.photoURL}
                       alt={currentUser.name}
                       sx={{ 
-                        width: 36, 
-                        height: 36,
-                        border: `2px solid ${theme.palette.primary.main}30`,
+                        width: 40, 
+                        height: 40,
+                        border: `2px solid ${theme.palette.primary.main}`,
                         transition: 'all 0.3s ease',
                         '&:hover': {
-                          width: 40,
-                          height: 40,
+                          width: 44,
+                          height: 44,
                           border: `2px solid ${theme.palette.primary.main}`,
                         }
                       }}
                     />
                   ) : (
                     <AccountCircle sx={{ 
-                      fontSize: 36,
+                      fontSize: 40,
                       transition: 'all 0.3s ease',
                       '&:hover': {
-                        fontSize: 40,
+                        fontSize: 44,
                       }
                     }} />
                   )}
@@ -502,7 +502,7 @@ const Header: React.FC = () => {
               color="inherit"
               onClick={() => showAuthModal('signin', 'Welcome back!')}
               sx={{ 
-                mr: 2,
+                mr: { xs: 1, sm: 2 },
                 transition: 'all 0.3s ease',
                 '&:hover': {
                   backgroundColor: `${theme.palette.primary.main}20`,

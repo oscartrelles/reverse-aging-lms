@@ -23,7 +23,7 @@ export interface User {
   firstName?: string;
   lastName?: string;
   bio?: string;
-  age?: number;
+  dateOfBirth?: Timestamp;
   location?: string;
   goals?: string[];
   // Enhanced notification preferences

@@ -63,7 +63,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAdmin: false,
         isModerator: false,
         bio: '',
-        age: 0,
         location: '',
         goals: ['Improve energy levels', 'Build sustainable habits'],
         notificationPreferences: {
@@ -214,7 +213,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           isAdmin: false,
           isModerator: false,
           bio: '',
-          age: 0,
           location: '',
           goals: ['Improve energy levels', 'Build sustainable habits'],
           notificationPreferences: {

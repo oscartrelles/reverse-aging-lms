@@ -9,6 +9,7 @@ import {
   query, 
   where, 
   orderBy, 
+  limit,
   Timestamp,
   writeBatch,
   onSnapshot
@@ -576,5 +577,47 @@ export const courseManagementService = {
       } as Cohort));
       callback(cohorts);
     });
+  },
+
+  async getNextUpcomingCohort(courseId?: string): Promise<Cohort | null> {
+    try {
+      const now = new Date();
+      let cohortsQuery;
+      
+      if (courseId) {
+        // Get next upcoming cohort for specific course
+        cohortsQuery = query(
+          collection(db, 'cohorts'),
+          where('courseId', '==', courseId),
+          where('startDate', '>', Timestamp.fromDate(now)),
+          orderBy('startDate', 'asc'),
+          limit(1)
+        );
+      } else {
+        // Get next upcoming cohort across all courses
+        cohortsQuery = query(
+          collection(db, 'cohorts'),
+          where('startDate', '>', Timestamp.fromDate(now)),
+          orderBy('startDate', 'asc'),
+          limit(1)
+        );
+      }
+      
+      const snapshot = await getDocs(cohortsQuery);
+      
+      if (snapshot.empty) {
+        return null;
+      }
+      
+      const cohort = {
+        ...snapshot.docs[0].data(),
+        id: snapshot.docs[0].id
+      } as Cohort;
+      
+      return cohort;
+    } catch (error) {
+      console.error('Error getting next upcoming cohort:', error);
+      return null;
+    }
   },
 }; 
