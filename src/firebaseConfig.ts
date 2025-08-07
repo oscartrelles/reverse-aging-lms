@@ -19,13 +19,15 @@ const firebaseConfig = {
   appId: process.env.REACT_APP_FIREBASE_APP_ID
 };
 
-// Log environment info for debugging
-console.log('🌍 Firebase Environment:', {
-  isProduction,
-  hostname: window.location.hostname,
-  projectId: firebaseConfig.projectId,
-  authDomain: firebaseConfig.authDomain
-});
+// Log environment info for debugging (development only)
+if (process.env.NODE_ENV === 'development') {
+  console.log('🌍 Firebase Environment:', {
+    isProduction,
+    hostname: window.location.hostname,
+    projectId: firebaseConfig.projectId,
+    authDomain: firebaseConfig.authDomain
+  });
+}
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);

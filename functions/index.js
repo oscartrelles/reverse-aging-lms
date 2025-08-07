@@ -279,7 +279,11 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
     });
 
     console.log('Checkout Session created successfully:', session.id);
-    console.log('Checkout URL:', session.url);
+    // Don't log sensitive URLs in production
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('Checkout URL:', session.url);
+      console.log('Success URL:', `${process.env.REACT_APP_FRONTEND_URL || 'https://academy.7weekreverseagingchallenge.com'}/payment-success?session_id={CHECKOUT_SESSION_ID}`);
+    }
 
     // Store checkout session reference in Firestore
     await admin.firestore().collection('checkoutSessions').doc(session.id).set({

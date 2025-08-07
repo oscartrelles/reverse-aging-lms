@@ -18,9 +18,51 @@
 .env.test.local
 .env.production.local
 
-# Environment files
+# Environment files and secrets
 .env
 .env.example
+.env.local
+.env.development
+.env.test
+.env.production
+*.env
+
+# API Keys and Secrets
+*.key
+*.pem
+*.p12
+*.crt
+*.pem
+*secret*
+*credential*
+*password*
+*api_key*
+*private*
+
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+firebase-credentials.json
+service-account.json
+google-credentials.json
+
+# Stripe
+stripe-keys.json
+stripe-secret.json
+
+# MailerSend
+mailersend-keys.json
+mailersend-secret.json
+
+# Google Analytics
+google-analytics-credentials.json
+ga-credentials.json
+
+# Temporary/Replacement files
+replace_api_key.txt
+*replace*
+*removed*
 
 # Firebase
 .firebase/

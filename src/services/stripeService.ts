@@ -18,6 +18,20 @@ const functions = getFunctions(getApp());
 // Checkout Session creation using Firebase Functions
 export const createCheckoutSession = async (amount: number, courseId: string, courseTitle: string, cohortId: string) => {
   try {
+    // Input validation
+    if (!amount || amount <= 0) {
+      throw new Error('Invalid amount: must be greater than 0');
+    }
+    if (!courseId || typeof courseId !== 'string') {
+      throw new Error('Invalid courseId: must be a non-empty string');
+    }
+    if (!courseTitle || typeof courseTitle !== 'string') {
+      throw new Error('Invalid courseTitle: must be a non-empty string');
+    }
+    if (!cohortId || typeof cohortId !== 'string') {
+      throw new Error('Invalid cohortId: must be a non-empty string');
+    }
+    
     const createCheckoutSessionFunction = httpsCallable(functions, 'createCheckoutSession');
     
     const result = await createCheckoutSessionFunction({

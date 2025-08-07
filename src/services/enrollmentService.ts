@@ -46,7 +46,16 @@ export const enrollmentService = {
    */
   async createEnrollment(options: CreateEnrollmentOptions): Promise<string> {
     try {
-      console.log('Creating enrollment:', options);
+      // Input validation
+      if (!options.userId || !options.courseId || !options.cohortId) {
+        throw new Error('Missing required fields: userId, courseId, cohortId');
+      }
+      
+      if (typeof options.userId !== 'string' || typeof options.courseId !== 'string' || typeof options.cohortId !== 'string') {
+        throw new Error('Invalid field types: userId, courseId, cohortId must be strings');
+      }
+      
+      console.log('Creating enrollment for user:', options.userId, 'course:', options.courseId);
       
       // Validate required fields
       if (!options.userId || !options.courseId || !options.cohortId) {
@@ -99,19 +108,26 @@ export const enrollmentService = {
           stripeSubscriptionId: options.stripeSubscriptionId || null,
       };
 
-        transaction.set(enrollmentRef, enrollmentData);
-      
-        // Update cohort student count if status is active
+        // Get cohort data first (READ operation)
+        let currentCount = 0;
         if (status === 'active') {
           const cohortRef = doc(db, 'cohorts', options.cohortId);
           const cohortDoc = await transaction.get(cohortRef);
-      if (cohortDoc.exists()) {
-        const currentCount = cohortDoc.data().currentStudents || 0;
-        const newCount = Math.max(0, currentCount + 1);
-        transaction.update(cohortRef, { currentStudents: newCount });
-        console.log('Cohort student count updated:', newCount);
+          if (cohortDoc.exists()) {
+            currentCount = cohortDoc.data().currentStudents || 0;
           }
-      }
+        }
+
+        // Create enrollment (WRITE operation)
+        transaction.set(enrollmentRef, enrollmentData);
+      
+        // Update cohort student count if status is active (WRITE operation)
+        if (status === 'active') {
+          const cohortRef = doc(db, 'cohorts', options.cohortId);
+          const newCount = Math.max(0, currentCount + 1);
+          transaction.update(cohortRef, { currentStudents: newCount });
+          console.log('Cohort student count updated:', newCount);
+        }
       
       return { id: enrollmentRef.id, created: true };
     });
@@ -134,7 +150,7 @@ export const enrollmentService = {
    */
   async updateEnrollment(enrollmentId: string, updates: UpdateEnrollmentOptions): Promise<void> {
     try {
-      console.log('Updating enrollment:', enrollmentId, updates);
+      console.log('Updating enrollment:', enrollmentId, 'fields:', Object.keys(updates));
       
     const enrollmentRef = doc(db, 'enrollments', enrollmentId);
       const enrollmentDoc = await getDoc(enrollmentRef);

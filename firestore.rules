@@ -79,15 +79,12 @@ service cloud.firestore {
       allow list: if request.auth != null;
     }
     
-    // Cohorts - public read, admin write, but allow authenticated users to update currentStudents
+    // Cohorts - public read, admin write, authenticated users can update for enrollment
     match /cohorts/{cohortId} {
       allow read: if true;
       allow create, delete: if request.auth != null && 
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
-      allow update: if request.auth != null && 
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true ||
-         // Allow users to update only currentStudents field for enrollment purposes
-         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['currentStudents'])));
+      allow update: if request.auth != null;
     }
     
     // Lesson progress - users can read/write their own
