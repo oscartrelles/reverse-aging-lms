@@ -47,6 +47,7 @@ import LessonQA from '../components/LessonQA';
 import CommunityPulse from '../components/CommunityPulse';
 import { communityService, CommunityStats } from '../services/communityService';
 import { scientificUpdateService } from '../services/scientificUpdateService';
+import { dashboardSettingsService, DashboardSettings } from '../services/dashboardSettingsService';
 import { useAnalytics } from '../hooks/useAnalytics';
 import { ScientificUpdate } from '../types';
 
@@ -138,6 +139,13 @@ const Dashboard: React.FC = () => {
   });
   const [latestStudies, setLatestStudies] = useState<ScientificUpdate[]>([]);
   const [loadingEvidence, setLoadingEvidence] = useState(false);
+  
+  // Dashboard Settings
+  const [dashboardSettings, setDashboardSettings] = useState<DashboardSettings>({
+    showHeroVideo: true,
+    heroVideoUrl: 'https://www.youtube.com/embed/tIPKZeevwy8',
+    heroVideoTitle: 'Latest Live Q&A Session - The Reverse Aging Challenge'
+  });
 
   const testimonials = [
     {
@@ -222,6 +230,20 @@ const Dashboard: React.FC = () => {
     fetchCommunityStats();
     fetchUnreadCount();
   }, [resolvedCurrentCohort?.id, currentUser?.id]);
+
+  // Load dashboard settings
+  useEffect(() => {
+    const loadDashboardSettings = async () => {
+      try {
+        const settings = await dashboardSettingsService.getDashboardSettings();
+        setDashboardSettings(settings);
+      } catch (error) {
+        console.error('Error loading dashboard settings:', error);
+      }
+    };
+
+    loadDashboardSettings();
+  }, []);
 
   // Fetch evidence data independently (for all users, including unenrolled)
   useEffect(() => {
@@ -1125,26 +1147,28 @@ const Dashboard: React.FC = () => {
     <Container maxWidth="lg">
       <Box sx={{ py: 4 }}>
         {/* YouTube Video Hero Section */}
-        <Card sx={{ mb: 4, overflow: 'hidden' }}>
-          <CardContent sx={{ p: 0 }}>
-            <Box sx={{ position: 'relative', paddingTop: '56.25%' }}>
-              <iframe
-                src="https://www.youtube.com/embed/tIPKZeevwy8"
-                title="Latest Live Q&A Session - The Reverse Aging Challenge"
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  border: 0
-                }}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </Box>
-          </CardContent>
-        </Card>
+        {dashboardSettings.showHeroVideo && (
+          <Card sx={{ mb: 4, overflow: 'hidden' }}>
+            <CardContent sx={{ p: 0 }}>
+              <Box sx={{ position: 'relative', paddingTop: '56.25%' }}>
+                <iframe
+                  src={dashboardSettings.heroVideoUrl}
+                  title={dashboardSettings.heroVideoTitle}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    border: 0
+                  }}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </Box>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Mission Statement - Two Column Layout */}
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 4, mb: 6, alignItems: 'flex-start' }}>
@@ -1240,21 +1264,26 @@ const Dashboard: React.FC = () => {
             ) : latestStudies.length > 0 ? (
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 3 }}>
                 {latestStudies.map((study, index) => (
-                  <Card key={study.id} sx={{ 
-                    p: 4, 
-                    border: '1px solid', 
-                    borderColor: 'grey.200',
-                    backgroundColor: 'white',
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    '&:hover': {
-                      borderColor: 'primary.light',
-                      boxShadow: 3,
-                      transform: 'translateY(-2px)',
-                      transition: 'all 0.2s ease-in-out'
-                    }
-                  }}>
+                  <Card 
+                    key={study.id} 
+                    sx={{ 
+                      p: 4, 
+                      border: '1px solid', 
+                      borderColor: 'grey.200',
+                      backgroundColor: 'white',
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        borderColor: 'primary.light',
+                        boxShadow: 3,
+                        transform: 'translateY(-2px)',
+                        transition: 'all 0.2s ease-in-out'
+                      }
+                    }}
+                    onClick={() => navigate(`/evidence/${study.id}`)}
+                  >
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
                       <Typography variant="h6" sx={{ 
                         fontWeight: 700, 
@@ -1269,12 +1298,17 @@ const Dashboard: React.FC = () => {
                         label={study.category} 
                         size="small" 
                         variant="filled"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/evidence?category=${encodeURIComponent(study.category)}`);
+                        }}
                         sx={{ 
                           ml: 2,
                           fontWeight: 600,
                           fontSize: '0.75rem',
                           backgroundColor: '#2E7D32',
                           color: 'white',
+                          cursor: 'pointer',
                           '&:hover': {
                             backgroundColor: '#1B5E20'
                           }
@@ -1302,11 +1336,16 @@ const Dashboard: React.FC = () => {
                             label={tag} 
                             size="small" 
                             variant="outlined"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/evidence?tag=${encodeURIComponent(tag)}`);
+                            }}
                             sx={{ 
                               fontSize: '0.7rem',
                               borderColor: '#4CAF50',
                               color: '#2E7D32',
                               fontWeight: 500,
+                              cursor: 'pointer',
                               '&:hover': {
                                 backgroundColor: '#4CAF50',
                                 color: 'white',

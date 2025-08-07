@@ -25,6 +25,9 @@ import {
   Book,
   Visibility,
   Email,
+  Settings,
+  PlayArrow,
+  Stop,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -35,6 +38,7 @@ import { scientificUpdateService } from '../../services/scientificUpdateService'
 import { userManagementService } from '../../services/userManagementService';
 import { enrollmentService } from '../../services/enrollmentService';
 import { studentManagementService } from '../../services/studentManagementService';
+import { dashboardSettingsService, DashboardSettings } from '../../services/dashboardSettingsService';
 import EmailTestPanel from '../../components/admin/EmailTestPanel';
 
 // Helper function to check user permissions
@@ -91,10 +95,46 @@ const AdminDashboard: React.FC = () => {
     topPerformers: 0,
   });
 
+  // State for dashboard settings
+  const [dashboardSettings, setDashboardSettings] = useState<DashboardSettings>({
+    showHeroVideo: true,
+    heroVideoUrl: 'https://www.youtube.com/embed/tIPKZeevwy8',
+    heroVideoTitle: 'Latest Live Q&A Session - The Reverse Aging Challenge'
+  });
+  const [settingsLoading, setSettingsLoading] = useState(false);
+
   // Load dashboard data
   useEffect(() => {
     loadDashboardData();
+    loadDashboardSettings();
   }, []);
+
+  const loadDashboardSettings = async () => {
+    try {
+      setSettingsLoading(true);
+      const settings = await dashboardSettingsService.getDashboardSettings();
+      setDashboardSettings(settings);
+    } catch (error) {
+      console.error('Error loading dashboard settings:', error);
+      setError('Failed to load dashboard settings');
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
+
+  const handleToggleHeroVideo = async () => {
+    try {
+      setSettingsLoading(true);
+      const newShowVideo = !dashboardSettings.showHeroVideo;
+      await dashboardSettingsService.toggleHeroVideo(newShowVideo);
+      setDashboardSettings(prev => ({ ...prev, showHeroVideo: newShowVideo }));
+    } catch (error) {
+      console.error('Error toggling hero video:', error);
+      setError('Failed to update video visibility');
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
 
   const loadDashboardData = async () => {
     try {
@@ -453,6 +493,42 @@ const AdminDashboard: React.FC = () => {
             </Box>
           </CardContent>
         </Card>
+
+        {/* Dashboard Settings */}
+        {hasPermission(currentUser, 'full') && (
+          <Card sx={{ mt: 3 }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Settings color="primary" />
+                Dashboard Settings
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Control the visibility and content of the main dashboard
+              </Typography>
+              
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                  Hero Video Visibility:
+                </Typography>
+                <Button
+                  variant={dashboardSettings.showHeroVideo ? "contained" : "outlined"}
+                  color={dashboardSettings.showHeroVideo ? "success" : "inherit"}
+                  startIcon={dashboardSettings.showHeroVideo ? <PlayArrow /> : <Stop />}
+                  onClick={handleToggleHeroVideo}
+                  disabled={settingsLoading}
+                  sx={{ minWidth: 120 }}
+                >
+                  {dashboardSettings.showHeroVideo ? 'Visible' : 'Hidden'}
+                </Button>
+                {settingsLoading && <CircularProgress size={20} />}
+              </Box>
+              
+              <Typography variant="body2" color="text.secondary">
+                Current video: {dashboardSettings.heroVideoTitle}
+              </Typography>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Email System Test */}
         {hasPermission(currentUser, 'full') && (

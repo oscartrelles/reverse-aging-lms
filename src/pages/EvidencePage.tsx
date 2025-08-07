@@ -98,6 +98,28 @@ const EvidencePage: React.FC = () => {
     'meditation'
   ];
 
+  // Handle URL parameters for filtering
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const categoryParam = searchParams.get('category');
+    const tagParam = searchParams.get('tag');
+    
+    if (categoryParam && categoryParam !== selectedCategory) {
+      setSelectedCategory(categoryParam);
+    }
+    
+    if (tagParam && !selectedTags.includes(tagParam)) {
+      setSelectedTags([tagParam]);
+    }
+  }, [location.search]);
+
+  // Load updates when filters change
+  useEffect(() => {
+    if (!updateId) {
+      loadUpdates();
+    }
+  }, [selectedCategory, selectedTags, searchTerm]);
+
   // Load updates on mount and update last evidence check
   useEffect(() => {
     loadUpdates();
@@ -140,6 +162,25 @@ const EvidencePage: React.FC = () => {
       return () => clearTimeout(timer);
     }
   }, [updateId, currentUser, showAuthModal]);
+
+  const updateURL = () => {
+    const searchParams = new URLSearchParams();
+    
+    if (selectedCategory !== 'all') {
+      searchParams.set('category', selectedCategory);
+    }
+    
+    if (selectedTags.length > 0) {
+      searchParams.set('tag', selectedTags[0]); // For simplicity, use the first tag
+    }
+    
+    const newURL = searchParams.toString() ? `/evidence?${searchParams.toString()}` : '/evidence';
+    
+    // Only navigate if we're not already on the evidence page or if the URL is different
+    if (location.pathname !== '/evidence' || location.search !== `?${searchParams.toString()}`) {
+      navigate(newURL, { replace: true });
+    }
+  };
 
   const loadUpdates = async () => {
     try {
@@ -449,6 +490,7 @@ const EvidencePage: React.FC = () => {
                           onClick={() => {
                             setSelectedTags([tag]);
                             setSelectedUpdate(null);
+                            updateURL();
                           }}
                         />
                       ))}
@@ -549,7 +591,10 @@ const EvidencePage: React.FC = () => {
                   <InputLabel>Category</InputLabel>
                   <Select
                     value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedCategory(e.target.value);
+                      updateURL();
+                    }}
                     label="Category"
                   >
                     {categories.map((category) => (
@@ -592,6 +637,7 @@ const EvidencePage: React.FC = () => {
                             ? prev.filter(t => t !== tag)
                             : [...prev, tag]
                         );
+                        updateURL();
                       }}
                       size="small"
                     />
