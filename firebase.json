@@ -6,7 +6,9 @@
       "ignore": [
         "firebase.json",
         "**/.*",
-        "**/node_modules/**"
+        "**/node_modules/**",
+        "**/*.map",
+        "**/*.log"
       ],
       "rewrites": [
         {
@@ -49,7 +51,9 @@
       "ignore": [
         "firebase.json",
         "**/.*",
-        "**/node_modules/**"
+        "**/node_modules/**",
+        "**/*.map",
+        "**/*.log"
       ],
       "rewrites": [
         {
