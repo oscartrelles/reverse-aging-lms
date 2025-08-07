@@ -7,7 +7,7 @@ import {
   Button,
   useTheme,
 } from '@mui/material';
-import { ArrowForward } from '@mui/icons-material';
+import { ArrowForward, Star } from '@mui/icons-material';
 import TrustIndicators from './TrustIndicators';
 import { courseManagementService } from '../services/courseManagementService';
 
@@ -73,22 +73,18 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
       // Load course information first
       courseManagementService.getCourse(courseId)
         .then((course) => {
-          console.log('🔍 ProgramCard - Course data loaded:', course);
           if (course) {
             setCourseInfo(course);
             // Set dynamic special offer with course price and specialOffer
             if (course.price) {
-              console.log('🔍 ProgramCard - Course price:', course.price, 'Special offer:', course.specialOffer);
               // Only show special offer if course.specialOffer exists and is greater than 0
               if (course.specialOffer && course.specialOffer > 0) {
-                console.log('🔍 ProgramCard - Setting special offer:', course.specialOffer);
                 setDynamicSpecialOffer({
                   regularPrice: `€${course.price}`,
                   specialPrice: `€${course.specialOffer}`,
                   offerText: 'Special Offer'
                 });
               } else {
-                console.log('🔍 ProgramCard - No special offer, clearing dynamic offer');
                 // No special offer - clear the dynamic special offer
                 setDynamicSpecialOffer(undefined);
               }
@@ -102,7 +98,6 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
       // Load upcoming cohort
       courseManagementService.getNextUpcomingCohort(courseId)
         .then((cohort) => {
-          console.log('🔍 ProgramCard - Cohort data loaded:', cohort);
           if (cohort) {
             setUpcomingCohort(cohort);
             const cohortDate = cohort.startDate.toDate().toLocaleDateString('en-US', { 
@@ -110,10 +105,7 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
               day: 'numeric',
               year: 'numeric' 
             });
-            console.log('🔍 ProgramCard - Setting dynamic subtitle:', `Next cohort starts: ${cohortDate}`);
             setDynamicSubtitle(`Next cohort starts: ${cohortDate}`);
-          } else {
-            console.log('🔍 ProgramCard - No upcoming cohort found');
           }
         })
         .catch((error) => {
@@ -163,6 +155,14 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
         },
         '100%': {
           left: '100%',
+        },
+      },
+      '@keyframes float': {
+        '0%, 100%': {
+          transform: 'translateY(0px) rotate(0deg)',
+        },
+        '50%': {
+          transform: 'translateY(-10px) rotate(1deg)',
         },
       },
     }}>
@@ -236,81 +236,116 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
                   Regular Price: {(dynamicSpecialOffer || specialOffer)?.regularPrice}
                 </Typography>
               
-              {/* Special Offer Box */}
+              {/* Special Offer Box - Nature-Inspired Glassmorphism */}
               <Box sx={{
-                background: 'linear-gradient(135deg, #2A2D35 0%, #1C1F26 100%)',
-                border: '2px solid #50EB97',
-                borderRadius: 3,
-                p: 2.5,
+                background: 'linear-gradient(135deg, rgba(80, 235, 151, 0.08) 0%, rgba(172, 255, 34, 0.04) 50%, rgba(80, 235, 151, 0.06) 100%)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(80, 235, 151, 0.2)',
+                borderRadius: '24px 8px 24px 8px', // Organic, asymmetric shape
+                p: 3,
                 textAlign: 'center',
                 position: 'relative',
                 overflow: 'hidden',
-                boxShadow: '0 8px 32px rgba(80, 235, 151, 0.15)',
-                transition: 'all 0.3s ease',
+                boxShadow: '0 8px 32px rgba(80, 235, 151, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                 '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 12px 40px rgba(80, 235, 151, 0.25)',
-                  borderColor: '#4CAF50',
+                  transform: 'translateY(-3px) scale(1.02)',
+                  boxShadow: '0 16px 48px rgba(80, 235, 151, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
+                  borderColor: 'rgba(80, 235, 151, 0.3)',
                 },
                 '&::before': {
                   content: '""',
                   position: 'absolute',
+                  top: '-50%',
+                  left: '-50%',
+                  width: '200%',
+                  height: '200%',
+                  background: 'radial-gradient(circle, rgba(80, 235, 151, 0.03) 0%, transparent 70%)',
+                  animation: 'float 6s ease-in-out infinite',
+                },
+                '&::after': {
+                  content: '""',
+                  position: 'absolute',
                   top: 0,
-                  left: '-100%',
-                  width: '100%',
-                  height: '100%',
-                  background: 'linear-gradient(90deg, transparent, rgba(80, 235, 151, 0.1), transparent)',
-                  animation: 'shimmer 2s infinite',
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  background: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%2350EB97" fill-opacity="0.02"%3E%3Ccircle cx="30" cy="30" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+                  opacity: 0.5,
+                  pointerEvents: 'none',
                 }
               }}>
-                {/* Offer Title */}
+                {/* Offer Title - Nature-Inspired */}
                 <Typography 
                   variant="body1" 
                   sx={{ 
-                    color: '#fff', 
-                    fontWeight: 700, 
-                    mb: 1,
-                    fontSize: '1rem',
-                    textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                    color: 'rgba(255, 255, 255, 0.95)', 
+                    fontWeight: 600, 
+                    mb: 1.5,
+                    fontSize: '0.95rem',
+                    letterSpacing: '0.5px',
+                    textTransform: 'uppercase',
                     position: 'relative',
-                    zIndex: 1
+                    zIndex: 1,
+                    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif'
                   }}
                 >
                   <Box component="span" sx={{ 
-                    display: 'inline-block',
-                    animation: 'pulse 2s infinite',
-                    '@keyframes pulse': {
-                      '0%, 100%': { transform: 'scale(1)' },
-                      '50%': { transform: 'scale(1.05)' }
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    animation: 'gentleGlow 3s ease-in-out infinite',
+                    '@keyframes gentleGlow': {
+                      '0%, 100%': { 
+                        textShadow: '0 0 8px rgba(80, 235, 151, 0.3)',
+                        opacity: 0.9
+                      },
+                      '50%': { 
+                        textShadow: '0 0 16px rgba(80, 235, 151, 0.5)',
+                        opacity: 1
+                      }
                     }
-                  }}>
-                    🎉 {(dynamicSpecialOffer || specialOffer)?.offerText || 'Special Launch Offer'}
-                  </Box>
+                                      }}>
+                      <Star sx={{ 
+                        fontSize: 16, 
+                        color: 'rgba(80, 235, 151, 0.9)',
+                        filter: 'drop-shadow(0 0 4px rgba(80, 235, 151, 0.3))'
+                      }} />
+                      {(dynamicSpecialOffer || specialOffer)?.offerText || 'Founder\'s Circle Access'}
+                    </Box>
                 </Typography>
                 
-                {/* Special Price */}
+                {/* Special Price - Elegant Typography */}
                 <Typography 
                   variant="h4" 
                   sx={{ 
-                    color: '#fff', 
+                    color: 'rgba(255, 255, 255, 0.98)', 
                     fontWeight: 700, 
-                    mb: 1,
-                    fontSize: '2rem'
+                    mb: 1.5,
+                    fontSize: '2.2rem',
+                    letterSpacing: '-0.5px',
+                    textShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                    position: 'relative',
+                    zIndex: 1
                   }}
                 >
                   {(dynamicSpecialOffer || specialOffer)?.specialPrice}
                 </Typography>
                 
-                {/* Limited Time Text */}
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    color: theme.palette.text.secondary, 
-                    fontSize: '0.75rem'
-                  }}
-                >
-                  Limited time offer
-                </Typography>
+                                  {/* Limited Time Text - Nature-Inspired */}
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      color: 'rgba(255, 255, 255, 0.7)', 
+                      fontSize: '0.75rem',
+                      fontStyle: 'italic',
+                      letterSpacing: '0.3px',
+                      position: 'relative',
+                      zIndex: 1
+                    }}
+                  >
+                    Limited to founding members
+                  </Typography>
               </Box>
             </Box>
           )}

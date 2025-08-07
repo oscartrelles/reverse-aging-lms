@@ -15,9 +15,6 @@ import {
 } from '@mui/material';
 
 import {
-  Schedule,
-  People,
-  Science,
   Close,
   Flag,
   School,
@@ -29,6 +26,9 @@ import {
   Restaurant,
   Group,
   VerifiedUser,
+  Schedule,
+  People,
+  Science,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { useCourse } from '../contexts/CourseContext';
@@ -56,6 +56,7 @@ import FAQ from '../components/FAQ';
 import ProgramCard from '../components/ProgramCard';
 import TransformationJourney from '../components/TransformationJourney';
 import TrustIndicators from '../components/TrustIndicators';
+import ApproachWorks from '../components/ApproachWorks';
 
 const Dashboard: React.FC = () => {
   const { currentUser } = useAuth();
@@ -385,23 +386,12 @@ const Dashboard: React.FC = () => {
   const course = courses.find(c => c.id === courseId);
   const courseLessons = courseId ? getLessonsByCourse(courseId) : [];
 
-  // Find the next upcoming cohort for unenrolled users
-  const nextUpcomingCohort = cohorts
-    .filter(cohort => cohort.status === 'upcoming')
-    .sort((a, b) => a.startDate.toDate().getTime() - b.startDate.toDate().getTime())[0];
-
   // Memoize event handlers
   const handleLessonClick = useCallback((lessonId: string) => {
     if (!currentEnrollment) return;
     navigate(`/course/${currentEnrollment.courseId}/lesson/${lessonId}`);
     trackEvent.trackEvent('lesson_click', { lessonId, courseId: currentEnrollment.courseId });
   }, [currentEnrollment, navigate, trackEvent]);
-
-  const handleEnrollClick = useCallback(() => {
-    if (!nextUpcomingCohort) return;
-    navigate(`/payment/${nextUpcomingCohort.courseId}`);
-    trackEvent.ctaClick('enroll_next_cohort', '/dashboard');
-  }, [nextUpcomingCohort, navigate, trackEvent]);
 
   const handleEvidenceClick = useCallback(() => {
     navigate('/evidence');
@@ -1492,278 +1482,10 @@ const Dashboard: React.FC = () => {
 
           {/* Transformation Journey */}
           <TransformationJourney />
-            </Box>
-
-        {/* Why Our Approach Works & Next Cohort - Two Columns */}
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 4, mb: 6, alignItems: 'stretch' }}>
-          {/* Why Our Approach Works */}
-          <Box sx={{ flex: { lg: '0 0 60%' }, display: 'flex', flexDirection: 'column' }}>
-            <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 4, color: 'primary.main' }}>
-              Why Our Approach Works
-            </Typography>
-            
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3, flex: 1 }}>
-              <Card sx={{ 
-                p: 4, 
-                background: 'linear-gradient(135deg, rgba(80, 235, 151, 0.05) 0%, rgba(172, 255, 34, 0.02) 100%)',
-                border: '1px solid rgba(80, 235, 151, 0.2)',
-                borderRadius: 3,
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
-                }
-              }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                  <Box sx={{ 
-                    width: 48, 
-                    height: 48, 
-                    borderRadius: '12px', 
-                    background: 'linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%)',
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    boxShadow: '0 2px 8px rgba(76, 175, 80, 0.3)'
-                  }}>
-                    <Science sx={{ fontSize: 24, color: '#ffffff' }} />
-                  </Box>
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#ffffff' }}>
-                    Evidence-Based Science
-                </Typography>
-                </Box>
-                <Typography variant="body1" sx={{ color: '#e0e0e0', lineHeight: 1.7, fontSize: '1rem' }}>
-                  All protocols are backed by the latest research in longevity, cellular biology, and anti-aging science.
-                </Typography>
-              </Card>
-              
-              <Card sx={{ 
-                p: 4, 
-                background: 'linear-gradient(135deg, rgba(80, 235, 151, 0.05) 0%, rgba(172, 255, 34, 0.02) 100%)',
-                border: '1px solid rgba(80, 235, 151, 0.2)',
-                borderRadius: 3,
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
-                }
-              }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                  <Box sx={{ 
-                    width: 48, 
-                    height: 48, 
-                    borderRadius: '12px', 
-                    background: 'linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%)',
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    boxShadow: '0 2px 8px rgba(76, 175, 80, 0.3)'
-                  }}>
-                    <People sx={{ fontSize: 24, color: '#ffffff' }} />
-              </Box>
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#ffffff' }}>
-                    Community Support
-                </Typography>
-                </Box>
-                <Typography variant="body1" sx={{ color: '#e0e0e0', lineHeight: 1.7, fontSize: '1rem' }}>
-                  Join a community of like-minded individuals on the same transformation journey.
-                </Typography>
-              </Card>
-              
-              <Card sx={{ 
-                p: 4, 
-                background: 'linear-gradient(135deg, rgba(80, 235, 151, 0.05) 0%, rgba(172, 255, 34, 0.02) 100%)',
-                border: '1px solid rgba(80, 235, 151, 0.2)',
-                borderRadius: 3,
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
-                }
-              }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                  <Box sx={{ 
-                    width: 48, 
-                    height: 48, 
-                    borderRadius: '12px', 
-                    background: 'linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%)',
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    boxShadow: '0 2px 8px rgba(76, 175, 80, 0.3)'
-                  }}>
-                    <Schedule sx={{ fontSize: 24, color: '#ffffff' }} />
-              </Box>
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#ffffff' }}>
-                    Sustainable Integration
-                </Typography>
-                </Box>
-                <Typography variant="body1" sx={{ color: '#e0e0e0', lineHeight: 1.7, fontSize: '1rem' }}>
-                  Designed to fit seamlessly into your daily life with sustainable habits that become part of your lifestyle.
-                </Typography>
-              </Card>
-              
-              <Card sx={{ 
-                p: 4, 
-                background: 'linear-gradient(135deg, rgba(80, 235, 151, 0.05) 0%, rgba(172, 255, 34, 0.02) 100%)',
-                border: '1px solid rgba(80, 235, 151, 0.2)',
-                borderRadius: 3,
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
-                }
-              }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                  <Box sx={{ 
-                    width: 48, 
-                    height: 48, 
-                    borderRadius: '12px', 
-                    background: 'linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%)',
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    boxShadow: '0 2px 8px rgba(76, 175, 80, 0.3)'
-                  }}>
-                    <VerifiedUser sx={{ fontSize: 24, color: '#ffffff' }} />
-              </Box>
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#ffffff' }}>
-                    Proven Results
-                </Typography>
-                </Box>
-                <Typography variant="body1" sx={{ color: '#e0e0e0', lineHeight: 1.7, fontSize: '1rem' }}>
-                  Join hundreds of students who have already transformed their health and vitality.
-                </Typography>
-              </Card>
-            </Box>
-          </Box>
-
-          {/* Next Cohort */}
-          <Box sx={{ flex: { lg: '0 0 40%' }, display: 'flex', flexDirection: 'column' }}>
-            <Card sx={{ border: '1px solid', borderColor: 'primary.light', backgroundColor: 'rgba(80, 235, 151, 0.02)', height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <CardContent sx={{ p: 4 }}>
-                <Typography variant="h5" gutterBottom sx={{ color: 'primary.main', fontWeight: 700, mb: 2 }}>
-                  Next Cohort Starting
-                </Typography>
-                {nextUpcomingCohort && (
-                  <Typography variant="h6" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
-                    {nextUpcomingCohort.name}
-                </Typography>
-                )}
-                <Typography variant="h4" color="primary.main" sx={{ mb: 1, fontWeight: 700 }}>
-                  {nextUpcomingCohort ? 
-                    nextUpcomingCohort.startDate.toDate().toLocaleDateString('en-US', { 
-                      month: 'long', 
-                      year: 'numeric' 
-                    }) : 
-                    'Coming Soon'
-                  }
-                </Typography>
-                {nextUpcomingCohort && (
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                    {nextUpcomingCohort.maxStudents - nextUpcomingCohort.currentStudents} spots available
-                  </Typography>
-                )}
-                  
-                {/* Pricing */}
-                <Box sx={{ mb: 4 }}>
-                  <Box sx={{ opacity: 0.7, mb: 2 }}>
-                    <Typography variant="body1" color="text.secondary" sx={{ textDecoration: 'line-through' }}>
-                      Regular Price: €499
-                    </Typography>
-                  </Box>
-                  
-                  <Box sx={{ p: 3, backgroundColor: 'rgba(76, 175, 80, 0.1)', borderRadius: 2, border: '2px solid', borderColor: '#4CAF50', textAlign: 'center' }}>
-                    <Typography variant="h6" color="#ffffff" sx={{ fontWeight: 700, mb: 1 }}>
-                      🎉 Special Launch Offer
-                    </Typography>
-                    <Typography variant="h3" color="#ffffff" sx={{ fontWeight: 700, mb: 1 }}>
-                      €299
-                    </Typography>
-                    <Typography variant="body2" color="#e0e0e0" sx={{ fontWeight: 600 }}>
-                      {nextUpcomingCohort?.enrollmentDeadline ? 
-                        `Enroll before ${nextUpcomingCohort.enrollmentDeadline.toDate().toLocaleDateString('en-US', { 
-                          month: 'short', 
-                          day: 'numeric' 
-                        })}` : 
-                        'Limited time offer'
-                      }
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <Button 
-                  variant="contained" 
-                  fullWidth
-                  size="large"
-                  onClick={() => {
-                    if (nextUpcomingCohort) {
-                      // Navigate to payment with cohort info
-                      const course = courses.find(c => c.id === nextUpcomingCohort.courseId);
-                      if (course) {
-                        navigate(`/payment/${course.id}?cohortId=${nextUpcomingCohort.id}`);
-                      } else {
-                        navigate('/payment/reverse-aging-challenge');
-                      }
-                    } else {
-                      // Fallback to general payment page
-                    const course = courses.find(c => c.title === 'The Reverse Aging Challenge');
-                    if (course) {
-                      navigate(`/payment/${course.id}`);
-                    } else {
-                      navigate('/payment/reverse-aging-challenge');
-                      }
-                    }
-                  }}
-                  sx={{
-                    backgroundColor: 'primary.main',
-                    color: '#000',
-                    fontWeight: 700,
-                    fontSize: '1.1rem',
-                    py: 2,
-                    mb: 3,
-                    '&:hover': {
-                      backgroundColor: 'primary.light',
-                    }
-                  }}
-                >
-                  Join the Challenge
-                </Button>
-
-                {/* Trust Badges */}
-                <TrustIndicators sx={{ mb: 3 }} />
-
-                {/* In-Person CTA */}
-                <Box sx={{ textAlign: 'center', mt: 'auto' }}>
-                  <Typography variant="body1" sx={{ mb: 2, color: '#e0e0e0', fontStyle: 'italic' }}>
-                Can't wait until November?
-              </Typography>
-              <Button
-                variant="outlined"
-                size="medium"
-                href="https://7weekreverseagingchallenge.com/#apply"
-                target="_blank"
-                rel="noopener noreferrer"
-                sx={{
-                      borderColor: '#2E7D32',
-                      color: '#2E7D32',
-                  fontWeight: 600,
-                  '&:hover': {
-                        borderColor: '#1B5E20',
-                        backgroundColor: 'rgba(46, 125, 50, 0.1)',
-                  }
-                }}
-              >
-                    Apply for In-Person Cohort in Spain
-              </Button>
-            </Box>
-              </CardContent>
-            </Card>
-          </Box>
         </Box>
+
+        {/* Why Our Approach Works */}
+        <ApproachWorks />
 
         <Testimonials />
 
