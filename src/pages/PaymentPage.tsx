@@ -152,6 +152,7 @@ const PaymentPage: React.FC = () => {
             courseId={courseId || ''}
             courseTitle={course.title}
             price={course.price}
+            specialOffer={course.specialOffer}
             onSuccess={handlePaymentSuccess}
             onError={handlePaymentError}
           />

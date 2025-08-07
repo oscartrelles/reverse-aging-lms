@@ -38,6 +38,7 @@ const CourseEditor: React.FC<CourseEditorProps> = ({
     title: courseData?.title || '',
     description: courseData?.description || '',
     price: courseData?.price || 299,
+    specialOffer: courseData?.specialOffer || 0,
     duration: courseData?.duration || 7,
     maxStudents: courseData?.maxStudents || 100,
     status: courseData?.status || 'active',
@@ -143,13 +144,23 @@ const CourseEditor: React.FC<CourseEditorProps> = ({
 
               <TextField
                 fullWidth
-                label="Duration (weeks)"
+                label="Special Offer Price (€) - 0 for no offer"
                 type="number"
-                value={formData.duration}
-                onChange={(e) => handleInputChange('duration', Number(e.target.value))}
-                required
+                value={formData.specialOffer}
+                onChange={(e) => handleInputChange('specialOffer', Number(e.target.value))}
+                disabled={formData.isFree}
+                helperText="Set to 0 to disable special offer, or enter a price lower than regular price"
               />
             </Box>
+
+            <TextField
+              fullWidth
+              label="Duration (weeks)"
+              type="number"
+              value={formData.duration}
+              onChange={(e) => handleInputChange('duration', Number(e.target.value))}
+              required
+            />
 
             <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
               <TextField

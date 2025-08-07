@@ -47,6 +47,7 @@ export interface Course {
   title: string;
   description: string;
   price: number;
+  specialOffer?: number; // Special offer price (if greater than 0, use instead of price)
   isFree: boolean;
   maxStudents: number;
   duration: number; // weeks

@@ -9,9 +9,6 @@ import {
   Button,
   Chip,
   IconButton,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   useTheme,
   CircularProgress,
   Divider,
@@ -20,14 +17,18 @@ import {
 import {
   Schedule,
   People,
-  ChevronLeft,
-  ChevronRight,
-  ExpandMore,
-  Security,
-  VerifiedUser,
-  Support,
   Science,
   Close,
+  Flag,
+  School,
+  Spa,
+  Build,
+  Public,
+  FitnessCenter,
+  Psychology,
+  Restaurant,
+  Group,
+  VerifiedUser,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { useCourse } from '../contexts/CourseContext';
@@ -50,6 +51,11 @@ import { scientificUpdateService } from '../services/scientificUpdateService';
 import { dashboardSettingsService, DashboardSettings } from '../services/dashboardSettingsService';
 import { useAnalytics } from '../hooks/useAnalytics';
 import { ScientificUpdate } from '../types';
+import Testimonials from '../components/Testimonials';
+import FAQ from '../components/FAQ';
+import ProgramCard from '../components/ProgramCard';
+import TransformationJourney from '../components/TransformationJourney';
+import TrustIndicators from '../components/TrustIndicators';
 
 const Dashboard: React.FC = () => {
   const { currentUser } = useAuth();
@@ -139,7 +145,7 @@ const Dashboard: React.FC = () => {
   });
   const [latestStudies, setLatestStudies] = useState<ScientificUpdate[]>([]);
   const [loadingEvidence, setLoadingEvidence] = useState(false);
-  
+
   // Dashboard Settings
   const [dashboardSettings, setDashboardSettings] = useState<DashboardSettings>({
     showHeroVideo: true,
@@ -147,32 +153,7 @@ const Dashboard: React.FC = () => {
     heroVideoTitle: 'Latest Live Q&A Session - The Reverse Aging Challenge'
   });
 
-  const testimonials = [
-    {
-      text: "Oscar has a calm confidence and genuine passion for what he teaches. His guidance was clear and supportive, making the experience accessible even for beginners. I left feeling invigorated and with tools I can use every day.",
-      author: "Pablo L."
-    },
-    {
-      text: "Since the first moment I met Oscar, I knew I had met someone special. He transmits a positive energy that makes you feel safe and confident to explore new practices. Thank you for such a transformative experience.",
-      author: "Spencer F."
-    },
-    {
-      text: "Oscar is a fantastic instructor who creates memorable and engaging experiences. His ability to explain concepts and hold space is truly special.",
-      author: "Abbie G."
-    },
-    {
-      text: "What I valued most was how Oscar helped me unlock internal blocks that were holding me back. As a result, I'm able to live out my potential more fully and confidently.",
-      author: "Viyan N."
-    },
-    {
-      text: "Oscar has a way of guiding you to celebrate your journey and recognize the abundance in your life. His approach is compassionate, non-judgmental, and deeply grounding.",
-      author: "Lucy Y."
-    },
-    {
-      text: "Working with Oscar has been transformative. He helped me gain clarity, define my vision, and most importantly, believe in myself and my capabilities.",
-      author: "Adina D."
-    }
-  ];
+
 
   // Track user activity for community stats
   useEffect(() => {
@@ -364,13 +345,13 @@ const Dashboard: React.FC = () => {
 
 
 
-  const [currentTestimonial, setCurrentTestimonial] = useState(0);
+
 
   // Calculate progress and timing
   const progressData = useMemo(() => {
-    const totalLessons = activeCourseLessons.length;
-    const completedLessons = lessonProgress.filter(p => p.isCompleted).length;
-    const progressPercentage = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
+  const totalLessons = activeCourseLessons.length;
+  const completedLessons = lessonProgress.filter(p => p.isCompleted).length;
+  const progressPercentage = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
     
     return {
       totalLessons,
@@ -432,7 +413,7 @@ const Dashboard: React.FC = () => {
   if (loading) {
     return (
       <Container maxWidth="lg">
-        <Box sx={{ py: 4, textAlign: 'center' }}>
+        <Box sx={{ py: 4, textAlign: 'center', backgroundColor: theme.palette.background.default }}>
           <CircularProgress size={40} sx={{ mb: 2 }} />
           <Typography variant="h6">Loading your dashboard...</Typography>
         </Box>
@@ -444,7 +425,7 @@ const Dashboard: React.FC = () => {
   if (currentEnrollment && cohorts.length === 0) {
     return (
       <Container maxWidth="lg">
-        <Box sx={{ py: 4, textAlign: 'center' }}>
+        <Box sx={{ py: 4, textAlign: 'center', backgroundColor: theme.palette.background.default }}>
           <CircularProgress size={40} sx={{ mb: 2 }} />
           <Typography variant="h6">Loading cohort information...</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
@@ -461,7 +442,7 @@ const Dashboard: React.FC = () => {
     
     return (
       <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
+        <Box sx={{ py: 4, backgroundColor: theme.palette.background.default }}>
           {/* Hero Section - Matching Landing Page Style */}
           <Card sx={{ 
             mb: 4, 
@@ -711,7 +692,7 @@ const Dashboard: React.FC = () => {
   if (hasEnrollmentButNoCohort) {
     return (
       <Container maxWidth="lg">
-        <Box sx={{ py: 4, textAlign: 'center' }}>
+        <Box sx={{ py: 4, textAlign: 'center', backgroundColor: theme.palette.background.default }}>
           <Typography variant="h4" component="h1" gutterBottom sx={{ color: 'error.main' }}>
             Cohort Data Not Found
           </Typography>
@@ -730,7 +711,7 @@ const Dashboard: React.FC = () => {
   if (isActiveStudent) {
     return (
       <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
+        <Box sx={{ py: 4, backgroundColor: theme.palette.background.default }}>
           {/* Progress Header */}
           <Box sx={{ mb: 4 }}>
             <Typography variant="h4" component="h1" gutterBottom>
@@ -1145,102 +1126,45 @@ const Dashboard: React.FC = () => {
   // State 3: Not enrolled
   return (
     <Container maxWidth="lg">
-      <Box sx={{ py: 4 }}>
+      <Box sx={{ py: 4, backgroundColor: theme.palette.background.default }}>
         {/* YouTube Video Hero Section */}
         {dashboardSettings.showHeroVideo && (
-          <Card sx={{ mb: 4, overflow: 'hidden' }}>
-            <CardContent sx={{ p: 0 }}>
-              <Box sx={{ position: 'relative', paddingTop: '56.25%' }}>
-                <iframe
+        <Card sx={{ mb: 4, overflow: 'hidden' }}>
+          <CardContent sx={{ p: 0 }}>
+            <Box sx={{ position: 'relative', paddingTop: '56.25%' }}>
+              <iframe
                   src={dashboardSettings.heroVideoUrl}
                   title={dashboardSettings.heroVideoTitle}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    border: 0
-                  }}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              </Box>
-            </CardContent>
-          </Card>
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  border: 0
+                }}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </Box>
+          </CardContent>
+        </Card>
         )}
 
-        {/* Mission Statement - Two Column Layout */}
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 4, mb: 6, alignItems: 'flex-start' }}>
-          {/* Mission Text - 70% */}
-          <Box sx={{ flex: { lg: '0 0 70%' } }}>
-            <Typography variant="h4" gutterBottom sx={{ color: 'primary.main', fontWeight: 700, mb: 3 }}>
-              Our Mission: Reverse Aging Through Science
+        {/* Welcome & Mission Statement - Reorganized for Free Account Users */}
+        <Box sx={{ mb: 6 }}>
+          {/* Welcome Header */}
+          <Box sx={{ textAlign: 'center', mb: 4 }}>
+            <Typography variant="h3" component="h1" gutterBottom sx={{ color: 'primary.main', fontWeight: 700, mb: 2 }}>
+              Welcome to The Reverse Aging Academy
             </Typography>
-            
-            <Typography variant="h6" sx={{ mb: 3, color: 'text.primary', fontWeight: 600 }}>
-              We're on a mission to help people live longer, healthier lives by unlocking the body's natural anti-aging mechanisms through evidence-based protocols.
-            </Typography>
-            
-            <Typography variant="body1" sx={{ mb: 4, color: 'text.secondary', lineHeight: 1.7, fontSize: '1.1rem' }}>
-              The latest research shows that aging is not inevitable. Through targeted interventions in nutrition, movement, breathwork, and lifestyle optimization, 
-              we can activate cellular regeneration pathways and optimize our biological age. Our comprehensive approach combines cutting-edge science with 
-              practical, sustainable practices that fit into your daily life.
+            <Typography variant="h6" sx={{ color: 'text.secondary', fontWeight: 500, maxWidth: 600, mx: 'auto' }}>
+              You now have access to our evolving library of healthspan science and a community of like-minded individuals
             </Typography>
           </Box>
 
-          {/* Mission Badges - 30% */}
-          <Box sx={{ flex: { lg: '0 0 30%' }, display: 'flex', flexDirection: 'column', gap: 3, width: '100%' }}>
-            {/* Evidence-Based Badge */}
-            <Box sx={{ textAlign: 'center' }}>
-              <Box sx={{ 
-                width: 48, 
-                height: 48, 
-                borderRadius: '50%', 
-                backgroundColor: 'primary.main', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                mx: 'auto',
-                mb: 2
-              }}>
-                <Science sx={{ fontSize: 24, color: '#000' }} />
-              </Box>
-              <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary', mb: 1 }}>
-                Evidence-Based
-            </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Backed by latest longevity research
-              </Typography>
-            </Box>
-            
-            {/* Community-Driven Badge */}
-            <Box sx={{ textAlign: 'center' }}>
-                <Box sx={{ 
-                width: 48, 
-                height: 48, 
-                  borderRadius: '50%', 
-                  backgroundColor: 'primary.main', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                mx: 'auto',
-                mb: 2
-              }}>
-                <People sx={{ fontSize: 24, color: '#000' }} />
-              </Box>
-              <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary', mb: 1 }}>
-                Community-Driven
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Learn alongside like-minded individuals
-                  </Typography>
-                </Box>
-          </Box>
-        </Box>
-
-        {/* Latest Scientific Evidence - Panel with 3 Latest Studies */}
-        <Card sx={{ mb: 6, border: '1px solid', borderColor: 'primary.light', backgroundColor: 'rgba(80, 235, 151, 0.02)' }}>
+                    {/* Latest Scientific Evidence - Moved to top */}
+          <Card sx={{ mb: 6, border: '1px solid', borderColor: 'rgba(80, 235, 151, 0.3)', backgroundColor: 'rgba(80, 235, 151, 0.02)' }}>
           <CardContent sx={{ p: 4 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
               <Science sx={{ fontSize: 32, color: 'primary.main' }} />
@@ -1264,27 +1188,27 @@ const Dashboard: React.FC = () => {
             ) : latestStudies.length > 0 ? (
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 3 }}>
                 {latestStudies.map((study, index) => (
-                  <Card 
-                    key={study.id} 
-                    sx={{ 
-                      p: 4, 
-                      border: '1px solid', 
-                      borderColor: 'grey.200',
-                      backgroundColor: 'white',
-                      height: '100%',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      cursor: 'pointer',
-                      '&:hover': {
-                        borderColor: 'primary.light',
-                        boxShadow: 3,
-                        transform: 'translateY(-2px)',
-                        transition: 'all 0.2s ease-in-out'
-                      }
-                    }}
-                    onClick={() => navigate(`/evidence/${study.id}`)}
-                  >
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+                    <Card 
+                      key={study.id} 
+                      sx={{ 
+                        p: 3, 
+                    border: '1px solid', 
+                    borderColor: 'grey.200',
+                    backgroundColor: 'white',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                        cursor: 'pointer',
+                    '&:hover': {
+                      borderColor: 'primary.light',
+                      boxShadow: 3,
+                      transform: 'translateY(-2px)',
+                      transition: 'all 0.2s ease-in-out'
+                    }
+                      }}
+                      onClick={() => navigate(`/evidence/${study.id}`)}
+                    >
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                       <Typography variant="h6" sx={{ 
                         fontWeight: 700, 
                         color: '#1a1a1a', 
@@ -1298,17 +1222,17 @@ const Dashboard: React.FC = () => {
                         label={study.category} 
                         size="small" 
                         variant="filled"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/evidence?category=${encodeURIComponent(study.category)}`);
-                        }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/evidence?category=${encodeURIComponent(study.category)}`);
+                          }}
                         sx={{ 
                           ml: 2,
                           fontWeight: 600,
                           fontSize: '0.75rem',
                           backgroundColor: '#2E7D32',
                           color: 'white',
-                          cursor: 'pointer',
+                            cursor: 'pointer',
                           '&:hover': {
                             backgroundColor: '#1B5E20'
                           }
@@ -1317,35 +1241,35 @@ const Dashboard: React.FC = () => {
               </Box>
               
                     <Typography variant="body1" sx={{ 
-                      mb: 3, 
+                        mb: 2, 
                       lineHeight: 1.7,
                       fontSize: '0.95rem',
                       flex: 1,
                       color: '#333333'
                     }}>
-                      {study.summary.length > 250 
-                        ? `${study.summary.substring(0, 250)}...` 
-                        : study.summary}
+                        {study.summary.length > 200 
+                          ? `${study.summary.substring(0, 200)}...` 
+                          : study.summary}
                     </Typography>
                     
                     <Box sx={{ mt: 'auto' }}>
-                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1 }}>
                         {study.tags.slice(0, 3).map((tag, tagIndex) => (
                           <Chip 
                             key={tagIndex} 
                             label={tag} 
                             size="small" 
                             variant="outlined"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/evidence?tag=${encodeURIComponent(tag)}`);
-                            }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/evidence?tag=${encodeURIComponent(tag)}`);
+                              }}
                             sx={{ 
                               fontSize: '0.7rem',
                               borderColor: '#4CAF50',
                               color: '#2E7D32',
                               fontWeight: 500,
-                              cursor: 'pointer',
+                                cursor: 'pointer',
                               '&:hover': {
                                 backgroundColor: '#4CAF50',
                                 borderColor: '#4CAF50'
@@ -1386,33 +1310,18 @@ const Dashboard: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Divider between sections */}
-        <Divider sx={{ my: 6, borderColor: 'primary.light', borderWidth: 2 }} />
-
-        {/* Program Overview Section */}
-        <Box sx={{ mb: 6 }}>
-          <Typography variant="h4" gutterBottom sx={{ color: 'primary.main', fontWeight: 700, mb: 3 }}>
-            The Reverse Aging Challenge
-          </Typography>
-          
-                      <Typography variant="h6" sx={{ mb: 3, color: '#ffffff', fontWeight: 600, fontSize: '1.2rem' }}>
-              Transform Your Health & Vitality in Just 7 Weeks
-            </Typography>
-            
-            <Typography variant="body1" sx={{ mb: 4, color: '#e0e0e0', lineHeight: 1.7, fontSize: '1.1rem' }}>
-              Join 47 students around the world already transforming their lives through our evidence-based, comprehensive 7-week program. 
-              Start your journey today and unlock the secrets to reverse aging naturally through proven scientific protocols.
-            </Typography>
-
-            {/* Program Journey */}
-            <Box sx={{ mb: 5 }}>
-              <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 4, color: 'primary.main' }}>
-                Your Complete Transformation Journey
-              </Typography>
-              
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 3 }}>
-                <Card sx={{ p: 3, border: '1px solid', borderColor: 'grey.200', backgroundColor: 'white', height: '100%' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+          {/* Mission & Principles - Three Column Layout */}
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 4, mb: 4 }}>
+            {/* Mission Statement */}
+            <Card sx={{ 
+              p: 4, 
+              border: '1px solid', 
+              borderColor: 'rgba(80, 235, 151, 0.3)', 
+              backgroundColor: 'rgba(80, 235, 151, 0.02)',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column'
+            }}>
                 <Box sx={{ 
                       width: 48, 
                       height: 48, 
@@ -1421,28 +1330,28 @@ const Dashboard: React.FC = () => {
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center',
-                      flexShrink: 0
+                mb: 3
                 }}>
-                      <Typography variant="h6" sx={{ color: '#000', fontWeight: 'bold' }}>
-                        1
-                  </Typography>
+                <Flag sx={{ fontSize: 24, color: '#000' }} />
                 </Box>
-                    <Typography variant="h6" sx={{ fontWeight: 600, color: '#1a1a1a' }}>
-                      Foundation & Mindset
+              <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary', mb: 2 }}>
+                Our Mission
                   </Typography>
-                  </Box>
-                  <Typography variant="body1" sx={{ color: '#333333', lineHeight: 1.6, mb: 2 }}>
-                    Build your transformation foundation with proven mindset techniques, goal setting strategies, and understanding the science behind reverse aging.
+              <Typography variant="body1" sx={{ color: 'text.secondary', lineHeight: 1.6, flex: 1 }}>
+                Help people live longer, healthier lives by unlocking the body's natural anti-aging mechanisms through evidence-based protocols.
                   </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {['Mindset', 'Goal Setting', 'Science'].map((tag, index) => (
-                      <Chip key={index} label={tag} size="small" variant="outlined" sx={{ fontSize: '0.7rem', borderColor: '#4CAF50', color: '#2E7D32' }} />
-                    ))}
-                  </Box>
                 </Card>
 
-                <Card sx={{ p: 3, border: '1px solid', borderColor: 'grey.200', backgroundColor: 'white', height: '100%' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+            {/* Evidence-Based Principle */}
+            <Card sx={{ 
+              p: 4, 
+              border: '1px solid', 
+              borderColor: 'rgba(80, 235, 151, 0.3)', 
+              backgroundColor: 'rgba(80, 235, 151, 0.02)',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column'
+            }}>
                     <Box sx={{ 
                       width: 48, 
                       height: 48, 
@@ -1451,28 +1360,28 @@ const Dashboard: React.FC = () => {
                       display: 'flex', 
                       alignItems: 'center', 
                       justifyContent: 'center',
-                      flexShrink: 0
+                mb: 3
                     }}>
-                      <Typography variant="h6" sx={{ color: '#000', fontWeight: 'bold' }}>
-                        2
-                  </Typography>
+                <Science sx={{ fontSize: 24, color: '#000' }} />
                 </Box>
-                    <Typography variant="h6" sx={{ fontWeight: 600, color: '#1a1a1a' }}>
-                      Health Mastery
+              <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary', mb: 2 }}>
+                Evidence-Based
                     </Typography>
-              </Box>
-                  <Typography variant="body1" sx={{ color: '#333333', lineHeight: 1.6, mb: 2 }}>
-                    Dive deep into nutrition optimization, movement patterns, breathwork techniques, and cold exposure protocols.
+              <Typography variant="body1" sx={{ color: 'text.secondary', lineHeight: 1.6, flex: 1 }}>
+                Every practice and protocol is backed by the latest longevity research and peer-reviewed studies.
                   </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {['Nutrition', 'Movement', 'Breathwork'].map((tag, index) => (
-                      <Chip key={index} label={tag} size="small" variant="outlined" sx={{ fontSize: '0.7rem', borderColor: '#4CAF50', color: '#2E7D32' }} />
-                    ))}
-                  </Box>
                 </Card>
 
-                <Card sx={{ p: 3, border: '1px solid', borderColor: 'grey.200', backgroundColor: 'white', height: '100%' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+            {/* Community-Driven Principle */}
+            <Card sx={{ 
+              p: 4, 
+              border: '1px solid', 
+              borderColor: 'rgba(80, 235, 151, 0.3)', 
+              backgroundColor: 'rgba(80, 235, 151, 0.02)',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column'
+            }}>
                 <Box sx={{ 
                       width: 48, 
                       height: 48, 
@@ -1481,27 +1390,108 @@ const Dashboard: React.FC = () => {
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center',
-                      flexShrink: 0
+                mb: 3
                 }}>
-                                              <Typography variant="h6" sx={{ color: '#000', fontWeight: 'bold' }}>
-                          ∞
-                  </Typography>
+                <People sx={{ fontSize: 24, color: '#000' }} />
                 </Box>
-                    <Typography variant="h6" sx={{ fontWeight: 600, color: '#1a1a1a' }}>
-                      Lifestyle Integration
+              <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary', mb: 2 }}>
+                Community-Driven
                   </Typography>
-                  </Box>
-                  <Typography variant="body1" sx={{ color: '#333333', lineHeight: 1.6, mb: 2 }}>
-                    Develop a comprehensive daily routine and integrate these practices seamlessly into your lifestyle for lasting transformation.
+              <Typography variant="body1" sx={{ color: 'text.secondary', lineHeight: 1.6, flex: 1 }}>
+                Learn alongside like-minded individuals who share your passion for healthspan optimization.
                   </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {['Daily Routine', 'Habits', 'Integration'].map((tag, index) => (
-                      <Chip key={index} label={tag} size="small" variant="outlined" sx={{ fontSize: '0.7rem', borderColor: '#4CAF50', color: '#2E7D32' }} />
-                    ))}
-                  </Box>
                 </Card>
                 </Box>
+
               </Box>
+
+        {/* Divider between sections */}
+        <Divider sx={{ my: 6, borderColor: 'primary.light', borderWidth: 2 }} />
+
+        {/* Program Overview Section */}
+        <Box sx={{ mb: 6 }}>
+          <Typography
+            variant="h2"
+            component="h2"
+            gutterBottom
+            sx={{
+              fontWeight: 700,
+              color: theme.palette.text.primary,
+              mb: 1.5,
+              textAlign: 'center'
+            }}
+          >
+            The Reverse Aging Challenge
+          </Typography>
+          
+          <Typography variant="body1" sx={{ mb: 4, color: 'text.secondary', lineHeight: 1.7, fontSize: '1.1rem', textAlign: 'center', maxWidth: 800, mx: 'auto' }}>
+            The latest research shows that aging is not inevitable. Through targeted interventions in nutrition, movement, breathwork, and lifestyle optimization, 
+            we can activate cellular regeneration pathways and optimize our biological age. Join students around the world already transforming their lives through our evidence-based, comprehensive 7-week program. 
+            Start your journey today and unlock the secrets to reverse aging naturally through proven scientific protocols.
+          </Typography>
+
+          {/* Program Cards */}
+          <Box sx={{ mb: 6 }}>
+            <Typography variant="h5" sx={{ fontWeight: 700, mb: 4, color: theme.palette.text.primary, textAlign: 'center' }}>
+              Choose Your Path
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 4 }}>
+              <ProgramCard
+                title="The 7-Week Reverse Aging Challenge"
+                description="Our flagship online course is a guided, 7-week experience that teaches you how to integrate the seven core pillars of the Academy: breath, movement, cold, heat, nourish, mindset, and community."
+                features={[
+                  {
+                    icon: <Science />,
+                    text: "<strong>Science you can use:</strong> Weekly modules break down the research in plain language."
+                  },
+                  {
+                    icon: <Build />,
+                    text: "<strong>Step‑by‑step practices:</strong> Small daily actions stack into lasting change."
+                  },
+                  {
+                    icon: <Public />,
+                    text: "<strong>Flexible & accessible:</strong> Join from anywhere, on your own schedule, with lifetime access."
+                  }
+                ]}
+                buttonText="Enroll in Online Course"
+                icon={<School />}
+                iconColor="primary"
+                courseId="hTLj9Lx1MAkBks0INzxS"
+              />
+
+              <ProgramCard
+                title="The 7-Day Reverse Aging Reset"
+                subtitle="Next retreat: October 25-31, 2024"
+                description="For those ready to go all in, our 7‑day retreat in the Málaga countryside is an immersive reset."
+                features={[
+                  {
+                    icon: <FitnessCenter />,
+                    text: "<strong>Breathwork, cold, and heat exposure</strong> every day, guided by certified instructors"
+                  },
+                  {
+                    icon: <Psychology />,
+                    text: "<strong>Movement and mindset training</strong> designed to rewire how your body responds to stress"
+                  },
+                  {
+                    icon: <Restaurant />,
+                    text: "<strong>Chef‑prepared, metabolically aligned meals</strong> to fuel the transformation"
+                  },
+                  {
+                    icon: <Group />,
+                    text: "<strong>A small, supportive group</strong> creating breakthroughs that last long after you leave"
+                  }
+                ]}
+                buttonText="Apply for In-Person Reset"
+                buttonVariant="outlined"
+                icon={<Spa />}
+                iconColor="secondary"
+                externalUrl="https://7weekreverseagingchallenge.com"
+              />
+            </Box>
+          </Box>
+
+          {/* Transformation Journey */}
+          <TransformationJourney />
             </Box>
 
         {/* Why Our Approach Works & Next Cohort - Two Columns */}
@@ -1661,7 +1651,7 @@ const Dashboard: React.FC = () => {
                 {nextUpcomingCohort && (
                   <Typography variant="h6" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
                     {nextUpcomingCohort.name}
-                  </Typography>
+                </Typography>
                 )}
                 <Typography variant="h4" color="primary.main" sx={{ mb: 1, fontWeight: 700 }}>
                   {nextUpcomingCohort ? 
@@ -1720,11 +1710,11 @@ const Dashboard: React.FC = () => {
                       }
                     } else {
                       // Fallback to general payment page
-                      const course = courses.find(c => c.title === 'The Reverse Aging Challenge');
-                      if (course) {
-                        navigate(`/payment/${course.id}`);
-                      } else {
-                        navigate('/payment/reverse-aging-challenge');
+                    const course = courses.find(c => c.title === 'The Reverse Aging Challenge');
+                    if (course) {
+                      navigate(`/payment/${course.id}`);
+                    } else {
+                      navigate('/payment/reverse-aging-challenge');
                       }
                     }
                   }}
@@ -1744,31 +1734,7 @@ const Dashboard: React.FC = () => {
                 </Button>
 
                 {/* Trust Badges */}
-                <Box sx={{ textAlign: 'center', mb: 3 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mb: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <Security sx={{ fontSize: 16, color: '#4CAF50' }} />
-                      <Typography variant="caption" color="#e0e0e0">
-                    Secure
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <VerifiedUser sx={{ fontSize: 16, color: '#4CAF50' }} />
-                      <Typography variant="caption" color="#e0e0e0">
-                    Verified
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <Support sx={{ fontSize: 16, color: '#4CAF50' }} />
-                      <Typography variant="caption" color="#e0e0e0">
-                    Support
-                  </Typography>
-                </Box>
-              </Box>
-                  <Typography variant="body2" color="#4CAF50" sx={{ fontWeight: 600 }}>
-                ✓ 30-Day Money-Back Guarantee
-              </Typography>
-            </Box>
+                <TrustIndicators sx={{ mb: 3 }} />
 
                 {/* In-Person CTA */}
                 <Box sx={{ textAlign: 'center', mt: 'auto' }}>
@@ -1799,122 +1765,11 @@ const Dashboard: React.FC = () => {
           </Box>
         </Box>
 
-        {/* Testimonials Section */}
-        <Box sx={{ mb: 6 }}>
-          <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 4, color: 'primary.main' }}>
-            What Our Students Say
-          </Typography>
-          
-          <Card sx={{ 
-            maxWidth: 800, 
-            mx: 'auto', 
-            position: 'relative',
-            background: 'linear-gradient(135deg, rgba(80, 235, 151, 0.05) 0%, rgba(172, 255, 34, 0.02) 100%)',
-            border: '1px solid rgba(80, 235, 151, 0.2)'
-          }}>
-            <CardContent sx={{ p: 4, textAlign: 'center', position: 'relative' }}>
-              <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 600, mb: 3, fontStyle: 'italic' }}>
-                  "{testimonials[currentTestimonial].text}"
-                </Typography>
-              <Typography variant="body1" sx={{ color: '#4CAF50', fontWeight: 600 }}>
-                  — {testimonials[currentTestimonial].author}
-                </Typography>
-
-              {/* Navigation Dots */}
-              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mt: 3 }}>
-                {testimonials.map((_, index) => (
-                  <Box
-                    key={index}
-                    sx={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: '50%',
-                      backgroundColor: index === currentTestimonial ? 'primary.main' : 'grey.300',
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => setCurrentTestimonial(index)}
-                  />
-                ))}
-              </Box>
-            </CardContent>
-          </Card>
-        </Box>
+        <Testimonials />
 
 
 
-        {/* FAQ Section */}
-        <Box sx={{ py: 6 }}>
-          <Typography variant="h4" component="h2" align="center" gutterBottom sx={{ mb: 4, color: 'primary.main', fontWeight: 600 }}>
-            Frequently Asked Questions
-          </Typography>
-          
-          <Box sx={{ maxWidth: 800, mx: 'auto' }}>
-            <Accordion>
-              <AccordionSummary expandIcon={<ExpandMore />}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  What if I'm not satisfied with the program?
-                </Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Typography variant="body1" sx={{ lineHeight: 1.6 }}>
-                  We offer a 30-day money-back guarantee. If you're not completely satisfied with the program within the first 30 days, we'll refund your full investment, no questions asked.
-                </Typography>
-              </AccordionDetails>
-            </Accordion>
-
-            <Accordion>
-              <AccordionSummary expandIcon={<ExpandMore />}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Do I need any special equipment or experience?
-                </Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Typography variant="body1" sx={{ lineHeight: 1.6 }}>
-                  No special equipment is required! The program is designed for all fitness levels and can be adapted to your current lifestyle. We'll guide you through everything step-by-step.
-                </Typography>
-              </AccordionDetails>
-            </Accordion>
-
-            <Accordion>
-              <AccordionSummary expandIcon={<ExpandMore />}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  How much time do I need to commit each day?
-                </Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Typography variant="body1" sx={{ lineHeight: 1.6 }}>
-                  Most daily practices take 15-30 minutes. The program is designed to fit into busy schedules, and you can start with as little as 10 minutes per day and gradually increase.
-                </Typography>
-              </AccordionDetails>
-            </Accordion>
-
-            <Accordion>
-              <AccordionSummary expandIcon={<ExpandMore />}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  What if I have more questions?
-                </Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Typography variant="body1" sx={{ lineHeight: 1.6 }}>
-                  Join our next Live Q&A session on August 12th where you can ask Oscar directly! You'll also have access to our community forum and support team throughout the program.
-                </Typography>
-              </AccordionDetails>
-            </Accordion>
-
-            <Accordion>
-              <AccordionSummary expandIcon={<ExpandMore />}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Can I access the materials after the program ends?
-                </Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Typography variant="body1" sx={{ lineHeight: 1.6 }}>
-                  Yes! You get lifetime access to all program materials, updates, and community support. You can revisit the content anytime and continue your transformation journey.
-                </Typography>
-              </AccordionDetails>
-            </Accordion>
-          </Box>
-        </Box>
+        <FAQ />
       </Box>
     </Container>
   );

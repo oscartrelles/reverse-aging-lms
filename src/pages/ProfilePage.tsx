@@ -181,7 +181,7 @@ const ProfilePage: React.FC = () => {
       
       if (nameChanged || timezoneChanged) {
         const updates: any = {};
-        if (nameChanged) {
+      if (nameChanged) {
           updates.name = `${profileData.firstName} ${profileData.lastName}`.trim();
         }
         if (timezoneChanged) {

@@ -30,6 +30,7 @@ interface PaymentFormProps {
   courseId: string;
   courseTitle: string;
   price: number;
+  specialOffer?: number;
   onSuccess: (paymentId: string) => void;
   onError: (error: string) => void;
 }
@@ -45,6 +46,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   courseId,
   courseTitle,
   price,
+  specialOffer,
   onSuccess,
   onError,
 }) => {
@@ -91,13 +93,15 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
 
 
   const calculatePrice = () => {
-    let finalPrice = price;
+    // Use special offer price if available and greater than 0
+    let basePrice = (specialOffer && specialOffer > 0) ? specialOffer : price;
+    let finalPrice = basePrice;
     
     if (appliedDiscount) {
       if (appliedDiscount.type === 'fixed') {
-        finalPrice = Math.max(0, price - appliedDiscount.value);
+        finalPrice = Math.max(0, basePrice - appliedDiscount.value);
       } else {
-        finalPrice = price * (1 - appliedDiscount.value / 100);
+        finalPrice = basePrice * (1 - appliedDiscount.value / 100);
       }
     }
     
@@ -208,9 +212,22 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
           </Typography>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
             <Typography variant="body1">{courseTitle}</Typography>
-            <Typography variant="body1" fontWeight="medium">
-              €{price}
-            </Typography>
+            <Box sx={{ textAlign: 'right' }}>
+              {specialOffer && specialOffer > 0 ? (
+                <>
+                  <Typography variant="body2" sx={{ textDecoration: 'line-through', color: 'text.secondary' }}>
+                    €{price}
+                  </Typography>
+                  <Typography variant="body1" fontWeight="medium" color="success.main">
+                    €{specialOffer}
+                  </Typography>
+                </>
+              ) : (
+                <Typography variant="body1" fontWeight="medium">
+                  €{price}
+                </Typography>
+              )}
+            </Box>
           </Box>
           
           {appliedDiscount && (

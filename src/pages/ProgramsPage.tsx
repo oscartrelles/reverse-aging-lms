@@ -28,6 +28,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAuthModal } from '../contexts/AuthModalContext';
+import ProgramCard from '../components/ProgramCard';
 
 const ProgramsPage: React.FC = () => {
   const theme = useTheme();
@@ -129,160 +130,58 @@ const ProgramsPage: React.FC = () => {
 
         {/* Programs Grid */}
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 4, mb: 6 }}>
-          {/* Online Course */}
-          <Box sx={{ flex: { xs: 1, md: '0 0 calc(50% - 16px)' } }}>
-            <Card
-              elevation={0}
-              sx={{
-                backgroundColor: theme.palette.background.paper,
-                borderRadius: 3,
-                height: '100%',
-                border: `1px solid ${theme.palette.divider}`,
-                boxShadow: `0 8px 32px rgba(0,0,0,0.1)`,
-                transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: `0 12px 40px rgba(0,0,0,0.15)`,
-                }
-              }}
-            >
-              <CardContent sx={{ p: { xs: 3, md: 4 }, height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                  <School sx={{ fontSize: 32, color: theme.palette.primary.main }} />
-                  <Typography variant="h4" component="h3" sx={{ fontWeight: 700, color: theme.palette.text.primary }}>
-                    The 7-Week Reverse Aging Challenge
-                  </Typography>
-                </Box>
-                <Typography variant="subtitle1" sx={{ mb: 3, color: theme.palette.text.secondary, fontWeight: 600 }}>
-                  Our flagship online course is a guided, 7-week experience that teaches you how to integrate the seven core pillars of the Academy: breath, movement, cold, heat, nourish, mindset, and community.
-                </Typography>
-
-                <Box sx={{ mb: 4, flex: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
-                    <Science sx={{ color: theme.palette.primary.main, mt: 0.5 }} />
-                    <Typography variant="body1">
-                      <strong>Science you can use:</strong> Weekly modules break down the research in plain language.
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
-                    <Build sx={{ color: theme.palette.primary.main, mt: 0.5 }} />
-                    <Typography variant="body1">
-                      <strong>Step‑by‑step practices:</strong> Small daily actions stack into lasting change.
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
-                    <Public sx={{ color: theme.palette.primary.main, mt: 0.5 }} />
-                    <Typography variant="body1">
-                      <strong>Flexible & accessible:</strong> Join from anywhere, on your own schedule, with lifetime access.
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <Typography variant="body1" sx={{ mb: 4, fontStyle: 'italic', color: theme.palette.text.secondary }}>
-                  👉 This is your blueprint for building habits that reverse the damage of modern life and help you feel stronger, sharper, and more resilient at any age.
-                </Typography>
-
-                <Button
-                  variant="contained"
-                  size="large"
+          <ProgramCard
+            title="The 7-Week Reverse Aging Challenge"
+            description="Our flagship online course is a guided, 7-week experience that teaches you how to integrate the seven core pillars of the Academy: breath, movement, cold, heat, nourish, mindset, and community."
+            features={[
+              {
+                icon: <Science />,
+                text: "<strong>Science you can use:</strong> Weekly modules break down the research in plain language."
+              },
+              {
+                icon: <Build />,
+                text: "<strong>Step‑by‑step practices:</strong> Small daily actions stack into lasting change."
+              },
+              {
+                icon: <Public />,
+                text: "<strong>Flexible & accessible:</strong> Join from anywhere, on your own schedule, with lifetime access."
+              }
+            ]}
+            buttonText="Enroll in Online Course"
+            icon={<School />}
+            iconColor="primary"
                   onClick={handleEnrollCourse}
-                  endIcon={<ArrowForward />}
-                  sx={{
-                    backgroundColor: theme.palette.primary.main,
-                    color: '#000',
-                    fontWeight: 600,
-                    py: 1.5,
-                    '&:hover': {
-                      backgroundColor: theme.palette.primary.dark,
-                    }
-                  }}
-                >
-                  Enroll in Online Course
-                </Button>
-              </CardContent>
-            </Card>
-          </Box>
+            additionalText="👉 This is your blueprint for building habits that reverse the damage of modern life and help you feel stronger, sharper, and more resilient at any age."
+          />
 
-          {/* In-Person Retreat */}
-          <Box sx={{ flex: { xs: 1, md: '0 0 calc(50% - 16px)' } }}>
-            <Card
-              elevation={0}
-              sx={{
-                backgroundColor: theme.palette.background.paper,
-                borderRadius: 3,
-                height: '100%',
-                border: `1px solid ${theme.palette.divider}`,
-                boxShadow: `0 8px 32px rgba(0,0,0,0.1)`,
-                transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: `0 12px 40px rgba(0,0,0,0.15)`,
-                }
-              }}
-            >
-              <CardContent sx={{ p: { xs: 3, md: 4 }, height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                  <Spa sx={{ fontSize: 32, color: theme.palette.secondary.main }} />
-                  <Typography variant="h4" component="h3" sx={{ fontWeight: 700, color: theme.palette.text.primary }}>
-                    The 7-Day Reverse Aging Reset
-                  </Typography>
-                </Box>
-                <Typography variant="subtitle1" sx={{ mb: 3, color: theme.palette.text.secondary, fontWeight: 600 }}>
-                  For those ready to go all in, our 7‑day retreat in the Málaga countryside is an immersive reset.
-                </Typography>
-
-                <Box sx={{ mb: 4, flex: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
-                    <FitnessCenter sx={{ color: theme.palette.secondary.main, mt: 0.5 }} />
-                    <Typography variant="body1">
-                      <strong>Breathwork, cold, and heat exposure</strong> every day, guided by certified instructors
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
-                    <Psychology sx={{ color: theme.palette.secondary.main, mt: 0.5 }} />
-                    <Typography variant="body1">
-                      <strong>Movement and mindset training</strong> designed to rewire how your body responds to stress
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
-                    <Restaurant sx={{ color: theme.palette.secondary.main, mt: 0.5 }} />
-                    <Typography variant="body1">
-                      <strong>Chef‑prepared, metabolically aligned meals</strong> to fuel the transformation
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
-                    <Group sx={{ color: theme.palette.secondary.main, mt: 0.5 }} />
-                    <Typography variant="body1">
-                      <strong>A small, supportive group</strong> creating breakthroughs that last long after you leave
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <Typography variant="body1" sx={{ mb: 4, fontStyle: 'italic', color: theme.palette.text.secondary }}>
-                  👉 This isn't a "wellness escape." It's a reset for your nervous system, your habits, and your health.
-                </Typography>
-
-                <Button
-                  variant="outlined"
-                  size="large"
+          <ProgramCard
+            title="The 7-Day Reverse Aging Reset"
+            description="For those ready to go all in, our 7‑day retreat in the Málaga countryside is an immersive reset."
+            features={[
+              {
+                icon: <FitnessCenter />,
+                text: "<strong>Breathwork, cold, and heat exposure</strong> every day, guided by certified instructors"
+              },
+              {
+                icon: <Psychology />,
+                text: "<strong>Movement and mindset training</strong> designed to rewire how your body responds to stress"
+              },
+              {
+                icon: <Restaurant />,
+                text: "<strong>Chef‑prepared, metabolically aligned meals</strong> to fuel the transformation"
+              },
+              {
+                icon: <Group />,
+                text: "<strong>A small, supportive group</strong> creating breakthroughs that last long after you leave"
+              }
+            ]}
+            buttonText="Apply for In-Person Reset"
+            buttonVariant="outlined"
+            icon={<Spa />}
+            iconColor="secondary"
                   onClick={handleApplyRetreat}
-                  endIcon={<ArrowForward />}
-                  sx={{
-                    borderColor: theme.palette.secondary.main,
-                    color: theme.palette.secondary.main,
-                    fontWeight: 600,
-                    py: 1.5,
-                    '&:hover': {
-                      borderColor: theme.palette.secondary.dark,
-                      backgroundColor: `${theme.palette.secondary.main}10`,
-                    }
-                  }}
-                >
-                  Apply for In-Person Reset
-                </Button>
-              </CardContent>
-            </Card>
-          </Box>
+            additionalText="👉 This isn't a 'wellness escape.' It's a reset for your nervous system, your habits, and your health."
+          />
         </Box>
 
         {/* Which Path Section */}
