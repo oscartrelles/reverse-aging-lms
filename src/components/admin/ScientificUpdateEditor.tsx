@@ -18,9 +18,6 @@ import {
   FormHelperText,
 } from '@mui/material';
 import { Save, Cancel, Add, Delete } from '@mui/icons-material';
-import { doc, updateDoc, addDoc, collection } from 'firebase/firestore';
-import { db } from '../../firebaseConfig';
-import { Timestamp } from 'firebase/firestore';
 import { CreateScientificUpdateData } from '../../services/scientificUpdateService';
 
 interface ScientificUpdateEditorProps {
@@ -178,30 +175,7 @@ const ScientificUpdateEditor: React.FC<ScientificUpdateEditorProps> = ({
         publishedDate: new Date(formData.publishedDate),
       };
 
-      if (updateId) {
-        // Update existing update
-        const updateRef = doc(db, 'scientificUpdates', updateId);
-        await updateDoc(updateRef, {
-          ...updateDataToSave,
-          updatedAt: Timestamp.now(),
-        });
-        console.log('Scientific update updated successfully');
-      } else {
-        // Create new update
-        const updateDataToSaveWithCreated = {
-          ...updateDataToSave,
-          createdAt: Timestamp.now(),
-          updatedAt: Timestamp.now(),
-          votes: 0,
-          votedBy: [],
-          readCount: 0,
-          shareCount: 0,
-        };
-        const updateRef = await addDoc(collection(db, 'scientificUpdates'), updateDataToSaveWithCreated);
-        console.log('Scientific update created successfully:', updateRef.id);
-      }
-
-      setSuccess(updateId ? 'Scientific update updated successfully!' : 'Scientific update created successfully!');
+      // Always call onSave to let the parent component handle the database operation
       onSave(updateDataToSave);
     } catch (error) {
       console.error('Error saving scientific update:', error);
