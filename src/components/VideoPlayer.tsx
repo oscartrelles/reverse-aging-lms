@@ -21,7 +21,7 @@ declare global {
   }
 }
 
-const VideoPlayer: React.FC<VideoPlayerProps> = ({
+const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(({
   videoUrl,
   lessonId,
   courseId,
@@ -543,6 +543,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       )}
     </Box>
   );
-};
+});
 
 export default VideoPlayer; 

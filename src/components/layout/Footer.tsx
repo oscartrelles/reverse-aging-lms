@@ -13,6 +13,7 @@ import {
   LinkedIn,
   Facebook,
   WhatsApp,
+  YouTube,
   ArrowUpward,
 } from '@mui/icons-material';
 import { useContactModal } from '../../contexts/ContactModalContext';
@@ -57,6 +58,13 @@ const Footer: React.FC = () => {
       followers: '3.8K'
     },
     {
+      name: 'YouTube',
+      icon: YouTube,
+      url: 'https://youtube.com/@BreathingFlameTV',
+      color: '#FF0000',
+      followers: 'Subscribe'
+    },
+    {
       name: 'WhatsApp',
       icon: WhatsApp,
       url: 'https://chat.whatsapp.com/ENDOITwgM22Js1C3N1iO2T',
@@ -85,8 +93,8 @@ const Footer: React.FC = () => {
         <Box sx={{ py: 6 }}>
           <Box sx={{
             display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: '2fr 1fr 1fr' },
-            gap: 4,
+            gridTemplateColumns: { xs: '1fr', md: '2fr 1fr 1.2fr' },
+            gap: { xs: 4, md: 3 },
             alignItems: 'start'
           }}>
             {/* Brand Section */}
@@ -102,10 +110,10 @@ const Footer: React.FC = () => {
                   mb: 2
                 }}
               >
-                The Reverse Aging Challenge
+                The Reverse Aging Academy
               </Typography>
               <Typography variant="body1" color="text.secondary" sx={{ mb: 3, lineHeight: 1.6, maxWidth: 400 }}>
-                Transform your health and vitality through our comprehensive 7-week program and join a global movement reclaiming healthspan through evidence‑based, nature‑powered practices and a supportive community.
+                Your premier destination for evidence-based health optimization and longevity education. Join our academy to access cutting-edge research, expert-led programs, and a global community dedicated to reclaiming healthspan through science-backed, nature-powered practices.
               </Typography>
             </Box>
 
@@ -150,7 +158,7 @@ const Footer: React.FC = () => {
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                 Follow our journey and connect with a global community of health enthusiasts
               </Typography>
-              <Box sx={{ display: 'flex', gap: 2, justifyContent: { xs: 'center', md: 'flex-start' }, flexWrap: 'wrap' }}>
+              <Box sx={{ display: 'flex', gap: 1.5, justifyContent: { xs: 'center', md: 'flex-start' }, flexWrap: 'wrap' }}>
                 {socialLinks.map((social) => {
                   const IconComponent = social.icon;
                   return (
@@ -160,11 +168,14 @@ const Footer: React.FC = () => {
                       href={social.url}
                       target="_blank"
                       rel="noopener noreferrer"
+                      size="small"
                       sx={{
                         backgroundColor: `${theme.palette.background.default}80`,
                         border: `1px solid ${theme.palette.divider}`,
                         color: theme.palette.text.secondary,
                         transition: 'all 0.3s ease',
+                        width: 36,
+                        height: 36,
                         '&:hover': {
                           backgroundColor: `${social.color}20`,
                           color: social.color,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -46,6 +46,22 @@ const LandingPage: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [searchParams] = useSearchParams();
+
+  // Memoize scientific updates to prevent unnecessary re-renders
+  const memoizedScientificUpdates = useMemo(() => scientificUpdates, [scientificUpdates]);
+
+  // Memoize carousel navigation handlers
+  const handlePrevUpdate = useCallback(() => {
+    setCurrentUpdateIndex(prev => 
+      prev === 0 ? memoizedScientificUpdates.length - 1 : prev - 1
+    );
+  }, [memoizedScientificUpdates.length]);
+
+  const handleNextUpdate = useCallback(() => {
+    setCurrentUpdateIndex(prev => 
+      prev === memoizedScientificUpdates.length - 1 ? 0 : prev + 1
+    );
+  }, [memoizedScientificUpdates.length]);
 
   // Testimonials data
   const testimonials = [
@@ -329,7 +345,7 @@ const LandingPage: React.FC = () => {
                           zIndex: 2
                         }}>
                           <IconButton
-                            onClick={() => setCurrentUpdateIndex(prev => prev === 0 ? scientificUpdates.length - 1 : prev - 1)}
+                            onClick={handlePrevUpdate}
                             sx={{
                               backgroundColor: `${theme.palette.background.paper}CC`,
                               backdropFilter: 'blur(10px)',
@@ -348,7 +364,7 @@ const LandingPage: React.FC = () => {
                             <ChevronLeft />
                           </IconButton>
                           <IconButton
-                            onClick={() => setCurrentUpdateIndex(prev => prev === scientificUpdates.length - 1 ? 0 : prev + 1)}
+                            onClick={handleNextUpdate}
                             sx={{
                               backgroundColor: `${theme.palette.background.paper}CC`,
                               backdropFilter: 'blur(10px)',
@@ -479,7 +495,22 @@ const LandingPage: React.FC = () => {
                   )}
 
                   <Typography variant="body2" sx={{ mt: 2.5, textAlign: 'center', color: theme.palette.text.secondary, fontWeight: 500, fontSize: '0.85rem' }}>
-                    <strong style={{ color: theme.palette.primary.main }}>Free accounts</strong> get access to all scientific evidence
+                    <strong 
+                      style={{ 
+                        color: theme.palette.primary.main,
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        transition: 'color 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => (e.target as HTMLElement).style.color = theme.palette.primary.dark}
+                      onMouseLeave={(e) => (e.target as HTMLElement).style.color = theme.palette.primary.main}
+                      onClick={() => {
+                        trackEvent.ctaClick('free_account_evidence_box', '/');
+                        showAuthModal('signup', 'Create Your Account', 'Create a free account to access weekly evidence reports on healthspan and other exclusive content.');
+                      }}
+                    >
+                      Free accounts
+                    </strong> get access to all scientific evidence
                   </Typography>
                 </CardContent>
               </Card>
@@ -710,7 +741,7 @@ const LandingPage: React.FC = () => {
               size="large"
               onClick={() => {
                 trackEvent.ctaClick('start_journey_footer', '/');
-                showAuthModal('signup', 'Create Your Account', 'Create a free account to access weekly evidence reports on healthspan and other exclusive content.');
+                navigate('/programs');
               }}
               sx={{
                 px: 4,

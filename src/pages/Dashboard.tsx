@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Container,
   Box,
@@ -72,12 +72,13 @@ const Dashboard: React.FC = () => {
   const isEnrolled = !!currentEnrollment;
   
   // Try to find the current cohort, with fallback logic
-  let resolvedCurrentCohort: any = null;
-  if (currentEnrollment) {
-    resolvedCurrentCohort = cohorts.find(c => c.id === currentEnrollment.cohortId) || null;
+  const resolvedCurrentCohort = useMemo(() => {
+    if (!currentEnrollment) return null;
+    
+    let cohort = cohorts.find(c => c.id === currentEnrollment.cohortId) || null;
     
     // If no cohort found but user is enrolled, create a fallback cohort
-    if (!resolvedCurrentCohort && isEnrolled) {
+    if (!cohort && isEnrolled) {
       console.warn('⚠️ No cohort found for enrollment:', {
         enrollmentId: currentEnrollment.id,
         cohortId: currentEnrollment.cohortId,
@@ -85,7 +86,7 @@ const Dashboard: React.FC = () => {
       });
       
       // Create a fallback cohort for immediate use
-      resolvedCurrentCohort = {
+      cohort = {
         id: currentEnrollment.cohortId,
         courseId: currentEnrollment.courseId,
         name: 'Fallback Cohort',
@@ -97,13 +98,24 @@ const Dashboard: React.FC = () => {
         weeklyReleaseTime: '08:00'
       };
     }
-  }
+    
+    return cohort;
+  }, [currentEnrollment, cohorts, isEnrolled]);
   
-  const cohortHasStarted = resolvedCurrentCohort && new Date() >= resolvedCurrentCohort.startDate.toDate();
-  const isActiveStudent = isEnrolled && cohortHasStarted;
+  const cohortHasStarted = useMemo(() => 
+    resolvedCurrentCohort && new Date() >= resolvedCurrentCohort.startDate.toDate(), 
+    [resolvedCurrentCohort]
+  );
+  
+  const isActiveStudent = useMemo(() => 
+    isEnrolled && cohortHasStarted, 
+    [isEnrolled, cohortHasStarted]
+  );
 
-  // Additional safety check - if enrolled but no cohort found, show error state
-  const hasEnrollmentButNoCohort = isEnrolled && !resolvedCurrentCohort;
+  const hasEnrollmentButNoCohort = useMemo(() => 
+    isEnrolled && !resolvedCurrentCohort, 
+    [isEnrolled, resolvedCurrentCohort]
+  );
   
   // Trigger profile completion for new social users
   
@@ -258,8 +270,7 @@ const Dashboard: React.FC = () => {
     fetchEvidenceData();
   }, []); // Run only once on mount
 
-  // Function to refresh unread count (can be called when returning from evidence page)
-  const refreshUnreadCount = async () => {
+  const refreshUnreadCount = useCallback(async () => {
     if (!currentUser?.id) return;
     
     setLoadingUnreadCount(true);
@@ -271,16 +282,6 @@ const Dashboard: React.FC = () => {
     } finally {
       setLoadingUnreadCount(false);
     }
-  };
-
-  // Refresh unread count when user returns to the dashboard tab
-  useEffect(() => {
-    const handleFocus = () => {
-      refreshUnreadCount();
-    };
-
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
   }, [currentUser?.id]);
 
   // Reset notification dismissed state when new unread items arrive
@@ -292,11 +293,16 @@ const Dashboard: React.FC = () => {
 
   // Use real data from Firestore
   const activeCohort = resolvedCurrentCohort;
-  const activeCourseLessons = currentEnrollment ? getLessonsByCourse(currentEnrollment.courseId) : [];
+  const activeCourseLessons = useMemo(() => 
+    currentEnrollment ? getLessonsByCourse(currentEnrollment.courseId) : [], 
+    [currentEnrollment, getLessonsByCourse]
+  );
   const currentWeek = activeCohort ? getCurrentWeek(activeCohort) : 0;
   
-  // Get the current course data
-  const currentCourse = courses.find(course => course.id === currentEnrollment?.courseId);
+  const currentCourse = useMemo(() => 
+    courses.find(course => course.id === currentEnrollment?.courseId), 
+    [courses, currentEnrollment?.courseId]
+  );
 
   const availableLessons = activeCohort && currentEnrollment ? getAvailableLessons(activeCourseLessons, activeCohort, currentEnrollment) : [];
   const upcomingLessons = activeCohort && currentEnrollment ? getUpcomingLessons(activeCourseLessons, activeCohort, currentEnrollment) : [];
@@ -339,9 +345,17 @@ const Dashboard: React.FC = () => {
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
 
   // Calculate progress and timing
-  const totalLessons = activeCourseLessons.length;
-  const completedLessons = lessonProgress.filter(p => p.isCompleted).length;
-  const progressPercentage = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
+  const progressData = useMemo(() => {
+    const totalLessons = activeCourseLessons.length;
+    const completedLessons = lessonProgress.filter(p => p.isCompleted).length;
+    const progressPercentage = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
+    
+    return {
+      totalLessons,
+      completedLessons,
+      progressPercentage
+    };
+  }, [activeCourseLessons, lessonProgress]);
 
 
 
@@ -372,6 +386,24 @@ const Dashboard: React.FC = () => {
   const nextUpcomingCohort = cohorts
     .filter(cohort => cohort.status === 'upcoming')
     .sort((a, b) => a.startDate.toDate().getTime() - b.startDate.toDate().getTime())[0];
+
+  // Memoize event handlers
+  const handleLessonClick = useCallback((lessonId: string) => {
+    if (!currentEnrollment) return;
+    navigate(`/course/${currentEnrollment.courseId}/lesson/${lessonId}`);
+    trackEvent.trackEvent('lesson_click', { lessonId, courseId: currentEnrollment.courseId });
+  }, [currentEnrollment, navigate, trackEvent]);
+
+  const handleEnrollClick = useCallback(() => {
+    if (!nextUpcomingCohort) return;
+    navigate(`/payment/${nextUpcomingCohort.courseId}`);
+    trackEvent.ctaClick('enroll_next_cohort', '/dashboard');
+  }, [nextUpcomingCohort, navigate, trackEvent]);
+
+  const handleEvidenceClick = useCallback(() => {
+    navigate('/evidence');
+    trackEvent.ctaClick('view_evidence', '/dashboard');
+  }, [navigate, trackEvent]);
 
 
 
@@ -798,7 +830,7 @@ const Dashboard: React.FC = () => {
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                     <Typography variant="h6">Your Progress</Typography>
                     <Chip 
-                      label={`${completedLessons}/${totalLessons} lessons completed`}
+                      label={`${progressData.completedLessons}/${progressData.totalLessons} lessons completed`}
                       color="primary"
                       variant="outlined"
                     />
@@ -806,12 +838,12 @@ const Dashboard: React.FC = () => {
                   
                   <LinearProgress 
                     variant="determinate" 
-                    value={progressPercentage} 
+                    value={progressData.progressPercentage} 
                     sx={{ height: 12, borderRadius: 6, mb: 2 }}
                   />
                   
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                    {progressPercentage.toFixed(0)}% complete • {totalLessons - completedLessons} lessons remaining
+                    {progressData.progressPercentage.toFixed(0)}% complete • {progressData.totalLessons - progressData.completedLessons} lessons remaining
                   </Typography>
 
                   {/* Cohort Progress and Weekly Goals */}

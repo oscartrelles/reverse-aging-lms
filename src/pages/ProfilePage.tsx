@@ -480,18 +480,29 @@ const ProfilePage: React.FC = () => {
                 mb: 4,
               }}
             >
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Box 
+                sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  mb: 3
+                }}
+              >
                 <Typography variant="h5" component="h2" sx={{ fontWeight: 700, color: theme.palette.text.primary }}>
                   Personal Information
                 </Typography>
                 <IconButton
+                  className="edit-button"
                   onClick={() => setIsEditing(!isEditing)}
                   disabled={saving}
                   sx={{
                     backgroundColor: theme.palette.primary.main,
                     color: '#000',
+                    transition: 'all 0.2s ease',
+                    transform: 'scale(1)',
                     '&:hover': {
                       backgroundColor: theme.palette.primary.dark,
+                      transform: 'scale(1.3)',
                     }
                   }}
                 >
@@ -594,7 +605,39 @@ const ProfilePage: React.FC = () => {
                     value={profileData.firstName}
                     onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
                     disabled={!isEditing || saving}
-                    sx={{ mb: 2 }}
+                    sx={{ 
+                      mb: 2,
+                      pointerEvents: isEditing ? 'auto' : 'none',
+                      '& .MuiInputBase-root': {
+                        backgroundColor: 'transparent',
+                        '&:hover': {
+                          backgroundColor: isEditing ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
+                        },
+                        '&.Mui-focused': {
+                          backgroundColor: isEditing ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
+                        }
+                      },
+                      '& .MuiOutlinedInput-root': {
+                        '&:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: isEditing ? undefined : 'transparent',
+                        },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                          borderColor: isEditing ? undefined : 'transparent',
+                        }
+                      },
+                      '& .MuiInputLabel-root': {
+                        color: isEditing ? undefined : 'rgba(255, 255, 255, 0.7)',
+                        '&.Mui-focused': {
+                          color: isEditing ? undefined : 'rgba(255, 255, 255, 0.7)',
+                        }
+                      },
+                      '& .MuiInputBase-input': {
+                        cursor: isEditing ? 'text' : 'default',
+                        '&:hover': {
+                          cursor: isEditing ? 'text' : 'default',
+                        }
+                      }
+                    }}
                   />
                 </Box>
                 <Box sx={{ flex: { xs: 1, sm: '0 0 calc(50% - 12px)' } }}>
@@ -604,7 +647,39 @@ const ProfilePage: React.FC = () => {
                     value={profileData.lastName}
                     onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })}
                     disabled={!isEditing || saving}
-                    sx={{ mb: 2 }}
+                    sx={{ 
+                      mb: 2,
+                      pointerEvents: isEditing ? 'auto' : 'none',
+                      '& .MuiInputBase-root': {
+                        backgroundColor: 'transparent',
+                        '&:hover': {
+                          backgroundColor: isEditing ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
+                        },
+                        '&.Mui-focused': {
+                          backgroundColor: isEditing ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
+                        }
+                      },
+                      '& .MuiOutlinedInput-root': {
+                        '&:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: isEditing ? undefined : 'transparent',
+                        },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                          borderColor: isEditing ? undefined : 'transparent',
+                        }
+                      },
+                      '& .MuiInputLabel-root': {
+                        color: isEditing ? undefined : 'rgba(255, 255, 255, 0.7)',
+                        '&.Mui-focused': {
+                          color: isEditing ? undefined : 'rgba(255, 255, 255, 0.7)',
+                        }
+                      },
+                      '& .MuiInputBase-input': {
+                        cursor: isEditing ? 'text' : 'default',
+                        '&:hover': {
+                          cursor: isEditing ? 'text' : 'default',
+                        }
+                      }
+                    }}
                   />
                 </Box>
                 <Box sx={{ flex: '1 1 100%' }}>
@@ -613,7 +688,39 @@ const ProfilePage: React.FC = () => {
                     label="Email"
                     value={currentUser.email}
                     disabled
-                    sx={{ mb: 2 }}
+                    sx={{ 
+                      mb: 2,
+                      pointerEvents: 'none',
+                      '& .MuiInputBase-root': {
+                        backgroundColor: 'transparent',
+                        '&:hover': {
+                          backgroundColor: 'transparent',
+                        },
+                        '&.Mui-focused': {
+                          backgroundColor: 'transparent',
+                        }
+                      },
+                      '& .MuiOutlinedInput-root': {
+                        '&:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: 'transparent',
+                        },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                          borderColor: 'transparent',
+                        }
+                      },
+                      '& .MuiInputLabel-root': {
+                        color: 'rgba(255, 255, 255, 0.7)',
+                        '&.Mui-focused': {
+                          color: 'rgba(255, 255, 255, 0.7)',
+                        }
+                      },
+                      '& .MuiInputBase-input': {
+                        cursor: 'default',
+                        '&:hover': {
+                          cursor: 'default',
+                        }
+                      }
+                    }}
                     helperText="Email cannot be changed"
                   />
                 </Box>
@@ -625,7 +732,39 @@ const ProfilePage: React.FC = () => {
                     value={profileData.age}
                     onChange={(e) => setProfileData({ ...profileData, age: parseInt(e.target.value) || 0 })}
                     disabled={!isEditing || saving}
-                    sx={{ mb: 2 }}
+                    sx={{ 
+                      mb: 2,
+                      pointerEvents: isEditing ? 'auto' : 'none',
+                      '& .MuiInputBase-root': {
+                        backgroundColor: 'transparent',
+                        '&:hover': {
+                          backgroundColor: isEditing ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
+                        },
+                        '&.Mui-focused': {
+                          backgroundColor: isEditing ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
+                        }
+                      },
+                      '& .MuiOutlinedInput-root': {
+                        '&:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: isEditing ? undefined : 'transparent',
+                        },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                          borderColor: isEditing ? undefined : 'transparent',
+                        }
+                      },
+                      '& .MuiInputLabel-root': {
+                        color: isEditing ? undefined : 'rgba(255, 255, 255, 0.7)',
+                        '&.Mui-focused': {
+                          color: isEditing ? undefined : 'rgba(255, 255, 255, 0.7)',
+                        }
+                      },
+                      '& .MuiInputBase-input': {
+                        cursor: isEditing ? 'text' : 'default',
+                        '&:hover': {
+                          cursor: isEditing ? 'text' : 'default',
+                        }
+                      }
+                    }}
                   />
                 </Box>
                 <Box sx={{ flex: { xs: 1, sm: '0 0 calc(50% - 12px)' } }}>
@@ -635,16 +774,83 @@ const ProfilePage: React.FC = () => {
                     value={profileData.location}
                     onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
                     disabled={!isEditing || saving}
-                    sx={{ mb: 2 }}
+                    sx={{ 
+                      mb: 2,
+                      pointerEvents: isEditing ? 'auto' : 'none',
+                      '& .MuiInputBase-root': {
+                        backgroundColor: 'transparent',
+                        '&:hover': {
+                          backgroundColor: isEditing ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
+                        },
+                        '&.Mui-focused': {
+                          backgroundColor: isEditing ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
+                        }
+                      },
+                      '& .MuiOutlinedInput-root': {
+                        '&:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: isEditing ? undefined : 'transparent',
+                        },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                          borderColor: isEditing ? undefined : 'transparent',
+                        }
+                      },
+                      '& .MuiInputLabel-root': {
+                        color: isEditing ? undefined : 'rgba(255, 255, 255, 0.7)',
+                        '&.Mui-focused': {
+                          color: isEditing ? undefined : 'rgba(255, 255, 255, 0.7)',
+                        }
+                      },
+                      '& .MuiInputBase-input': {
+                        cursor: isEditing ? 'text' : 'default',
+                        '&:hover': {
+                          cursor: isEditing ? 'text' : 'default',
+                        }
+                      }
+                    }}
                   />
                 </Box>
                 <Box sx={{ flex: { xs: 1, sm: '0 0 calc(50% - 12px)' } }}>
-                  <TimezoneSelector
-                    value={profileData.timezone || detectUserTimezone()}
-                    onChange={(timezone) => setProfileData({ ...profileData, timezone })}
-                    disabled={!isEditing || saving}
-                    helperText="Lessons will be released at 8:00 AM in your timezone"
-                  />
+                  <Box sx={{
+                    pointerEvents: isEditing ? 'auto' : 'none',
+                    '& .MuiAutocomplete-root': {
+                      '& .MuiInputBase-root': {
+                        backgroundColor: 'transparent',
+                        '&:hover': {
+                          backgroundColor: isEditing ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
+                        },
+                        '&.Mui-focused': {
+                          backgroundColor: isEditing ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
+                        }
+                      },
+                      '& .MuiOutlinedInput-root': {
+                        '&:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: isEditing ? undefined : 'transparent',
+                        },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                          borderColor: isEditing ? undefined : 'transparent',
+                        }
+                      },
+                      '& .MuiInputLabel-root': {
+                        color: isEditing ? undefined : 'rgba(255, 255, 255, 0.7)',
+                        '&.Mui-focused': {
+                          color: isEditing ? undefined : 'rgba(255, 255, 255, 0.7)',
+                        }
+                      },
+                      '& .MuiInputBase-input': {
+                        cursor: isEditing ? 'text' : 'default',
+                        '&:hover': {
+                          cursor: isEditing ? 'text' : 'default',
+                        }
+                      }
+                    }
+                  }}>
+                    <TimezoneSelector
+                      value={profileData.timezone || detectUserTimezone()}
+                      onChange={(timezone) => setProfileData({ ...profileData, timezone })}
+                      disabled={!isEditing || saving}
+                      helperText="Lessons will be released at 8:00 AM in your timezone"
+                    />
+                  </Box>
                 </Box>
                 <Box sx={{ flex: '1 1 100%' }}>
                   <TextField
@@ -656,7 +862,39 @@ const ProfilePage: React.FC = () => {
                     onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
                     disabled={!isEditing || saving}
                     placeholder="Tell us about your health journey and goals..."
-                    sx={{ mb: 2 }}
+                    sx={{ 
+                      mb: 2,
+                      pointerEvents: isEditing ? 'auto' : 'none',
+                      '& .MuiInputBase-root': {
+                        backgroundColor: 'transparent',
+                        '&:hover': {
+                          backgroundColor: isEditing ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
+                        },
+                        '&.Mui-focused': {
+                          backgroundColor: isEditing ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
+                        }
+                      },
+                      '& .MuiOutlinedInput-root': {
+                        '&:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: isEditing ? undefined : 'transparent',
+                        },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                          borderColor: isEditing ? undefined : 'transparent',
+                        }
+                      },
+                      '& .MuiInputLabel-root': {
+                        color: isEditing ? undefined : 'rgba(255, 255, 255, 0.7)',
+                        '&.Mui-focused': {
+                          color: isEditing ? undefined : 'rgba(255, 255, 255, 0.7)',
+                        }
+                      },
+                      '& .MuiInputBase-input': {
+                        cursor: isEditing ? 'text' : 'default',
+                        '&:hover': {
+                          cursor: isEditing ? 'text' : 'default',
+                        }
+                      }
+                    }}
                   />
                 </Box>
                 
@@ -678,7 +916,39 @@ const ProfilePage: React.FC = () => {
                         }}
                         disabled={!isEditing || saving}
                         placeholder="Enter a health goal..."
-                        sx={{ mb: 1 }}
+                        sx={{ 
+                          mb: 1,
+                          pointerEvents: isEditing ? 'auto' : 'none',
+                          '& .MuiInputBase-root': {
+                            backgroundColor: 'transparent',
+                            '&:hover': {
+                              backgroundColor: isEditing ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
+                            },
+                            '&.Mui-focused': {
+                              backgroundColor: isEditing ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
+                            }
+                          },
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover .MuiOutlinedInput-notchedOutline': {
+                              borderColor: isEditing ? undefined : 'transparent',
+                            },
+                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                              borderColor: isEditing ? undefined : 'transparent',
+                            }
+                          },
+                          '& .MuiInputLabel-root': {
+                            color: isEditing ? undefined : 'rgba(255, 255, 255, 0.7)',
+                            '&.Mui-focused': {
+                              color: isEditing ? undefined : 'rgba(255, 255, 255, 0.7)',
+                            }
+                          },
+                          '& .MuiInputBase-input': {
+                            cursor: isEditing ? 'text' : 'default',
+                            '&:hover': {
+                              cursor: isEditing ? 'text' : 'default',
+                            }
+                          }
+                        }}
                       />
                       {isEditing && (
                         <IconButton

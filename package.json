@@ -19,6 +19,7 @@
     "@types/react-dom": "^19.1.7",
     "date-fns": "^4.1.0",
     "firebase": "^12.0.0",
+    "moment": "^2.30.1",
     "moment-timezone": "^0.6.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
@@ -30,6 +31,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "build:analyze": "GENERATE_SOURCEMAP=false npm run build && npx webpack-bundle-analyzer build/static/js/*.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "deploy:staging": "npm run build && firebase deploy --only hosting:staging",
@@ -56,5 +58,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@types/moment-timezone": "^0.5.13"
   }
 }

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { useAuth } from './AuthContext';
@@ -342,7 +342,8 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
     };
   }, [currentUser]);
 
-  const value: CourseContextType = {
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
     courses,
     enrollments,
     cohorts,
@@ -361,10 +362,29 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
     updateLessonProgress,
     completeLesson,
     loadStreakData,
-  };
+  }), [
+    courses,
+    enrollments,
+    cohorts,
+    lessons,
+    currentEnrollment,
+    currentCohort,
+    lessonProgress,
+    streakData,
+    loading,
+    getCourse,
+    getEnrollment,
+    getCohort,
+    getLessonProgress,
+    getLessonsByCourse,
+    refreshData,
+    updateLessonProgress,
+    completeLesson,
+    loadStreakData,
+  ]);
 
   return (
-    <CourseContext.Provider value={value}>
+    <CourseContext.Provider value={contextValue}>
       {children}
     </CourseContext.Provider>
   );

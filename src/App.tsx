@@ -1,33 +1,25 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import { Box, CircularProgress } from '@mui/material';
 import { AuthProvider } from './contexts/AuthContext';
 import { CourseProvider } from './contexts/CourseContext';
 import { AuthModalProvider } from './contexts/AuthModalContext';
 import { ContactModalProvider } from './contexts/ContactModalContext';
 import PrivateRoute from './components/auth/PrivateRoute';
 import AdminRoute from './components/auth/AdminRoute';
-
 import { initializeGA4 } from './services/analyticsService';
 import { AnalyticsWrapper } from './components/analytics/AnalyticsWrapper';
 import { initializeSPAAnalytics } from './utils/analytics';
 
-
-// Pages
+// Regular imports for frequently used components
 import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
 import CoursePage from './pages/CoursePage';
 import LessonPage from './pages/LessonPage';
 import ProfilePage from './pages/ProfilePage';
 import PaymentPage from './pages/PaymentPage';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import AdminStudentManagement from './pages/admin/AdminStudentManagement';
-import AdminUserManagement from './pages/admin/AdminUserManagement';
-import AdminScientificUpdates from './pages/admin/AdminScientificUpdates';
-import AdminQAManagement from './pages/admin/AdminQAManagement';
-import AdminCourseManagement from './pages/admin/AdminCourseManagement';
-import { GoogleAnalyticsDashboard } from './components/analytics/GoogleAnalyticsDashboard';
 import EvidencePage from './pages/EvidencePage';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
@@ -41,6 +33,22 @@ import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import AuthModal from './components/auth/AuthModal';
 import ContactModalWrapper from './components/ContactModalWrapper';
+
+// Lazy load heavy components
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const AdminStudentManagement = lazy(() => import('./pages/admin/AdminStudentManagement'));
+const AdminUserManagement = lazy(() => import('./pages/admin/AdminUserManagement'));
+const AdminScientificUpdates = lazy(() => import('./pages/admin/AdminScientificUpdates'));
+const AdminQAManagement = lazy(() => import('./pages/admin/AdminQAManagement'));
+const AdminCourseManagement = lazy(() => import('./pages/admin/AdminCourseManagement'));
+const GoogleAnalyticsDashboard = lazy(() => import('./components/analytics/GoogleAnalyticsDashboard').then(module => ({ default: module.GoogleAnalyticsDashboard })));
+
+// Loading component for lazy-loaded routes
+const LoadingFallback = () => (
+  <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+    <CircularProgress />
+  </Box>
+);
 
 // Create theme with your brand colors
 const theme = createTheme({
@@ -269,43 +277,57 @@ function App() {
                           {/* Admin routes */}
                           <Route path="/admin" element={
                             <AdminRoute>
-                              <AdminDashboard />
+                              <Suspense fallback={<LoadingFallback />}>
+                                <AdminDashboard />
+                              </Suspense>
                             </AdminRoute>
                           } />
                           
                           <Route path="/admin/students" element={
                             <AdminRoute>
-                              <AdminStudentManagement />
+                              <Suspense fallback={<LoadingFallback />}>
+                                <AdminStudentManagement />
+                              </Suspense>
                             </AdminRoute>
                           } />
                           
                           <Route path="/admin/users" element={
                             <AdminRoute>
-                              <AdminUserManagement />
+                              <Suspense fallback={<LoadingFallback />}>
+                                <AdminUserManagement />
+                              </Suspense>
                             </AdminRoute>
                           } />
                           
                           <Route path="/admin/analytics" element={
                             <AdminRoute>
-                              <GoogleAnalyticsDashboard />
+                              <Suspense fallback={<LoadingFallback />}>
+                                <GoogleAnalyticsDashboard />
+                              </Suspense>
                             </AdminRoute>
                           } />
                           
                           <Route path="/admin/scientific-updates" element={
                             <AdminRoute>
-                              <AdminScientificUpdates />
+                              <Suspense fallback={<LoadingFallback />}>
+                                <AdminScientificUpdates />
+                              </Suspense>
                             </AdminRoute>
                           } />
                           
                           <Route path="/admin/qa" element={
                             <AdminRoute>
-                              <AdminQAManagement />
+                              <Suspense fallback={<LoadingFallback />}>
+                                <AdminQAManagement />
+                              </Suspense>
                             </AdminRoute>
                           } />
                           
                           <Route path="/admin/courses" element={
                             <AdminRoute>
-                              <AdminCourseManagement />
+                              <Suspense fallback={<LoadingFallback />}>
+                                <AdminCourseManagement />
+                              </Suspense>
                             </AdminRoute>
                           } />
                           
