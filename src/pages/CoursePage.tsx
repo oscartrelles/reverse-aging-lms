@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -9,187 +9,100 @@ import {
   Button,
   Chip,
   LinearProgress,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemAvatar,
-  Avatar,
   Divider,
   Alert,
+  CircularProgress,
 } from '@mui/material';
 
 import {
   PlayCircle,
-  CheckCircle,
-  Lock,
-  Schedule,
   Description,
-  VideoLibrary,
-  Download,
-  School,
+  CalendarToday,
+  AcUnit,
+  LocalFireDepartment,
+  FitnessCenter,
+  Psychology,
+  Restaurant,
+  Group,
+  Spa,
+  SelfImprovement,
+  HealthAndSafety,
+  Air,
+  DirectionsRun,
 } from '@mui/icons-material';
 
-import { useCourse } from '../contexts/CourseContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useAuthModal } from '../contexts/AuthModalContext';
+import { courseManagementService } from '../services/courseManagementService';
 import { format, isAfter } from 'date-fns';
-import { Timestamp } from 'firebase/firestore';
+import { Lesson as DBLesson, Cohort, Course } from '../types';
+import Testimonials from '../components/Testimonials';
 
-interface Lesson {
-  id: string;
-  weekNumber: number;
-  title: string;
-  description: string;
-  videoUrl?: string;
-  videoDuration?: number;
-  resources: Array<{
-    id: string;
-    title: string;
-    type: 'pdf' | 'workbook' | 'link';
-    url: string;
-  }>;
-  isPublished: boolean;
+// Local interface that matches the database types
+interface Lesson extends Omit<DBLesson, 'releaseDate'> {
   releaseDate?: Date;
-  order: number;
 }
 
 const CoursePage: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
-  const { currentEnrollment, currentCohort, lessonProgress, getCourse } = useCourse();
+  const { currentUser } = useAuth();
+  const { showAuthModal } = useAuthModal();
 
-  // Mock course data - replace with real data from Firestore
-  const course = getCourse(courseId || '');
+  // State for data
+  const [course, setCourse] = useState<Course | null>(null);
+  const [courseLessons, setCourseLessons] = useState<Lesson[]>([]);
+  const [cohorts, setCohorts] = useState<Cohort[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingCohorts, setLoadingCohorts] = useState(false);
   
-  // Mock lessons data - replace with real data
-  const [lessons] = useState<Lesson[]>([
-    {
-      id: 'week1',
-      weekNumber: 1,
-      title: 'Foundation & Mindset',
-      description: 'Understanding the science of aging and setting your transformation foundation',
-      videoUrl: 'https://www.youtube.com/watch?v=example1',
-      videoDuration: 3600, // 60 minutes
-      resources: [
-        { id: 'r1', title: 'Week 1 Workbook', type: 'workbook', url: '#' },
-        { id: 'r2', title: 'Scientific Studies PDF', type: 'pdf', url: '#' },
-      ],
-      isPublished: true,
-      releaseDate: new Date('2024-01-15'),
-      order: 1,
-    },
-    {
-      id: 'week2',
-      weekNumber: 2,
-      title: 'Nutrition Fundamentals',
-      description: 'The role of nutrition in reversing aging and optimizing cellular function',
-      videoUrl: 'https://www.youtube.com/watch?v=example2',
-      videoDuration: 3300, // 55 minutes
-      resources: [
-        { id: 'r3', title: 'Week 2 Workbook', type: 'workbook', url: '#' },
-        { id: 'r4', title: 'Nutrition Guide PDF', type: 'pdf', url: '#' },
-      ],
-      isPublished: true,
-      releaseDate: new Date('2024-01-22'),
-      order: 2,
-    },
-    {
-      id: 'week3',
-      weekNumber: 3,
-      title: 'Exercise & Movement',
-      description: 'Movement protocols for longevity and vitality',
-      videoUrl: 'https://www.youtube.com/watch?v=example3',
-      videoDuration: 3000, // 50 minutes
-      resources: [
-        { id: 'r5', title: 'Week 3 Workbook', type: 'workbook', url: '#' },
-        { id: 'r6', title: 'Exercise Guide PDF', type: 'pdf', url: '#' },
-      ],
-      isPublished: true,
-      releaseDate: new Date('2024-01-29'),
-      order: 3,
-    },
-    {
-      id: 'week4',
-      weekNumber: 4,
-      title: 'Sleep & Recovery',
-      description: 'Optimizing sleep for cellular repair and regeneration',
-      videoUrl: 'https://www.youtube.com/watch?v=example4',
-      videoDuration: 2700, // 45 minutes
-      resources: [
-        { id: 'r7', title: 'Week 4 Workbook', type: 'workbook', url: '#' },
-        { id: 'r8', title: 'Sleep Guide PDF', type: 'pdf', url: '#' },
-      ],
-      isPublished: true,
-      releaseDate: new Date('2024-02-05'),
-      order: 4,
-    },
-    {
-      id: 'week5',
-      weekNumber: 5,
-      title: 'Stress Management',
-      description: 'Techniques for managing stress and optimizing hormone balance',
-      videoUrl: 'https://www.youtube.com/watch?v=example5',
-      videoDuration: 3000, // 50 minutes
-      resources: [
-        { id: 'r9', title: 'Week 5 Workbook', type: 'workbook', url: '#' },
-        { id: 'r10', title: 'Stress Management PDF', type: 'pdf', url: '#' },
-      ],
-      isPublished: true,
-      releaseDate: new Date('2024-02-12'),
-      order: 5,
-    },
-    {
-      id: 'week6',
-      weekNumber: 6,
-      title: 'Advanced Protocols',
-      description: 'Advanced techniques for maximum anti-aging benefits',
-      videoUrl: 'https://www.youtube.com/watch?v=example6',
-      videoDuration: 3600, // 60 minutes
-      resources: [
-        { id: 'r11', title: 'Week 6 Workbook', type: 'workbook', url: '#' },
-        { id: 'r12', title: 'Advanced Protocols PDF', type: 'pdf', url: '#' },
-      ],
-      isPublished: false,
-      releaseDate: new Date('2024-02-19'),
-      order: 6,
-    },
-    {
-      id: 'week7',
-      weekNumber: 7,
-      title: 'Integration & Maintenance',
-      description: 'Putting it all together and maintaining your results long-term',
-      videoUrl: 'https://www.youtube.com/watch?v=example7',
-      videoDuration: 3300, // 55 minutes
-      resources: [
-        { id: 'r13', title: 'Week 7 Workbook', type: 'workbook', url: '#' },
-        { id: 'r14', title: 'Maintenance Guide PDF', type: 'pdf', url: '#' },
-      ],
-      isPublished: false,
-      releaseDate: new Date('2024-02-26'),
-      order: 7,
-    },
-  ]);
+  // Load course data
+  useEffect(() => {
+    const loadCourseData = async () => {
+      if (!courseId) return;
+      
+      setLoading(true);
+      try {
+        // Load course
+        const courseData = await courseManagementService.getCourse(courseId);
+        setCourse(courseData);
+        
+        // Load lessons
+        const lessonsData = await courseManagementService.getCourseLessons(courseId);
+        const convertedLessons: Lesson[] = lessonsData.map((lesson: DBLesson) => ({
+          ...lesson,
+          releaseDate: lesson.releaseDate ? lesson.releaseDate.toDate() : undefined
+        }));
+        setCourseLessons(convertedLessons);
+      } catch (error) {
+        console.error('Error loading course data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Calculate overall progress
-  const totalLessons = lessons.length;
-  const completedLessons = lessonProgress.filter(p => p.isCompleted).length;
-  const progressPercentage = (completedLessons / totalLessons) * 100;
+    loadCourseData();
+  }, [courseId]);
 
-  // Check if user is enrolled and cohort has started
-  const isEnrolled = currentEnrollment && currentEnrollment.status === 'active';
-  const cohortHasStarted = currentCohort && new Date() >= currentCohort.startDate.toDate();
-  const canAccessContent = isEnrolled && cohortHasStarted;
+  // Load cohorts for this course
+  useEffect(() => {
+    if (courseId) {
+      setLoadingCohorts(true);
+      courseManagementService.getCourseCohorts(courseId)
+        .then((cohortsData) => {
+          setCohorts(cohortsData);
+        })
+        .catch((error) => {
+          console.error('Error loading cohorts:', error);
+        })
+        .finally(() => {
+          setLoadingCohorts(false);
+        });
+    }
+  }, [courseId]);
 
-  // Determine which lessons are accessible
-  const getLessonAccess = (lesson: Lesson) => {
-    if (!canAccessContent) return 'locked';
-    if (!lesson.isPublished) return 'locked';
-    if (lesson.releaseDate && isAfter(new Date(), lesson.releaseDate)) return 'locked';
-    return 'available';
-  };
-
-  // Get lesson progress
-  const getLessonProgress = (lessonId: string) => {
-    return lessonProgress.find(p => p.lessonId === lessonId);
-  };
+  // Calculate total lessons for display
+  const totalLessons = courseLessons.length;
 
   // Format video duration
   const formatDuration = (seconds: number) => {
@@ -198,18 +111,118 @@ const CoursePage: React.FC = () => {
     return `${hours}h ${minutes}m`;
   };
 
-  const handleLessonClick = (lesson: Lesson) => {
-    const access = getLessonAccess(lesson);
-    if (access === 'available') {
-      navigate(`/course/${courseId}/lesson/${lesson.id}`);
+  // Get lesson icon based on week number or content
+  const getLessonIcon = (lesson: Lesson) => {
+    const weekNumber = lesson.weekNumber;
+    const title = lesson.title.toLowerCase();
+    
+    // Check for specific keywords in title first
+    if (title.includes('cold') || title.includes('ice') || title.includes('cryo')) {
+      return { icon: <AcUnit />, color: '#4CAF50' }; // Green for cold
+    }
+    if (title.includes('heat') || title.includes('sauna') || title.includes('thermal')) {
+      return { icon: <LocalFireDepartment />, color: '#4CAF50' }; // Green for heat
+    }
+    if (title.includes('breath') || title.includes('breathing') || title.includes('respiratory')) {
+      return { icon: <Air />, color: '#4CAF50' }; // Green for breath (wind icon)
+    }
+    if (title.includes('movement') || title.includes('exercise') || title.includes('fitness')) {
+      return { icon: <FitnessCenter />, color: '#4CAF50' }; // Green for movement
+    }
+    if (title.includes('mindset') || title.includes('psychology') || title.includes('mental')) {
+      return { icon: <Psychology />, color: '#4CAF50' }; // Green for mindset
+    }
+    if (title.includes('nourish') || title.includes('nutrition') || title.includes('diet')) {
+      return { icon: <Restaurant />, color: '#4CAF50' }; // Green for nutrition
+    }
+    if (title.includes('community') || title.includes('social') || title.includes('connection')) {
+      return { icon: <Group />, color: '#4CAF50' }; // Green for community
+    }
+    
+    // Fallback to week-based icons
+    switch (weekNumber) {
+      case 1:
+        return { icon: <Air />, color: '#4CAF50' }; // Green for breath (wind icon)
+      case 2:
+        return { icon: <FitnessCenter />, color: '#4CAF50' }; // Green for movement
+      case 3:
+        return { icon: <DirectionsRun />, color: '#4CAF50' }; // Green for person moving
+      case 4:
+        return { icon: <LocalFireDepartment />, color: '#4CAF50' }; // Green for heat
+      case 5:
+        return { icon: <Restaurant />, color: '#4CAF50' }; // Green for nutrition
+      case 6:
+        return { icon: <Psychology />, color: '#4CAF50' }; // Green for mindset
+      case 7:
+        return { icon: <Group />, color: '#4CAF50' }; // Green for community
+      default:
+        return { icon: <Spa />, color: '#4CAF50' }; // Green for general wellness
     }
   };
+
+
+
+  // Helper functions for cohort management
+  const getCohortStatus = (cohort: Cohort) => {
+    const now = new Date();
+    const startDate = cohort.startDate.toDate();
+    const endDate = cohort.endDate.toDate();
+    
+    if (now < startDate) {
+      return 'upcoming';
+    } else if (now >= startDate && now <= endDate) {
+      return 'active';
+    } else {
+      return 'completed';
+    }
+  };
+
+  const formatCohortDate = (date: Date) => {
+    return format(date, 'MMMM d, yyyy');
+  };
+
+  const handleEnrollInCohort = (cohort: Cohort) => {
+    if (!currentUser) {
+      showAuthModal('signup', 'Create Your Account', 'A free account is required for enrollment');
+      return;
+    }
+    navigate(`/payment/${courseId}?cohortId=${cohort.id}`);
+  };
+
+  // Sort cohorts by start date
+  const sortedCohorts = cohorts.sort((a, b) => {
+    return a.startDate.toDate().getTime() - b.startDate.toDate().getTime();
+  });
+
+  // Show loading state
+  if (loading) {
+    return (
+      <Container maxWidth="lg">
+        <Box sx={{ py: 4, textAlign: 'center' }}>
+          <CircularProgress size={60} />
+          <Typography variant="h6" sx={{ mt: 2 }}>
+            Loading course content...
+          </Typography>
+        </Box>
+      </Container>
+    );
+  }
 
   if (!course) {
     return (
       <Container maxWidth="lg">
         <Box sx={{ py: 4, textAlign: 'center' }}>
           <Typography variant="h4">Course not found</Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
+            The course you're looking for doesn't exist or has been removed.
+          </Typography>
+          <Button 
+            variant="contained" 
+            sx={{ mt: 2 }}
+            onClick={() => navigate('/dashboard')}
+          >
+            Back to Dashboard
+          </Button>
         </Box>
       </Container>
     );
@@ -227,210 +240,292 @@ const CoursePage: React.FC = () => {
             {course.description}
           </Typography>
 
-          {isEnrolled && (
-            <Box sx={{ mb: 3 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6">Your Progress</Typography>
-                <Chip 
-                  label={`${completedLessons}/${totalLessons} weeks completed`}
-                  color="primary"
-                  variant="outlined"
-                />
-              </Box>
-              <LinearProgress 
-                variant="determinate" 
-                value={progressPercentage} 
-                sx={{ height: 8, borderRadius: 4 }}
-              />
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                {progressPercentage.toFixed(0)}% complete
-              </Typography>
-            </Box>
-          )}
 
-          {!isEnrolled && (
-            <Box sx={{ mb: 3 }}>
-              <Alert severity="info" sx={{ mb: 2 }}>
-                You need to enroll in this course to access the content.
-              </Alert>
-              <Button
-                variant="contained"
-                size="large"
-                onClick={() => navigate(`/payment/${courseId}`)}
-                sx={{ mr: 2 }}
-              >
-                Enroll Now - €{course.price}
-              </Button>
-              <Button
-                variant="outlined"
-                size="large"
-                onClick={() => navigate('/dashboard')}
-              >
-                Join Waitlist
-              </Button>
+
+          {/* Available Cohorts - Show for all users */}
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h5" gutterBottom sx={{ fontWeight: 600 }}>
+              Available Cohorts
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              {currentUser 
+                ? "Choose a cohort that fits your schedule and start your transformation journey."
+                : "Sign up to join a cohort and start your transformation journey."
+              }
+            </Typography>
+              
+              {loadingCohorts ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                  <CircularProgress />
+                </Box>
+              ) : sortedCohorts.length === 0 ? (
+                <Alert severity="info">
+                  No cohorts are currently available for this course. Please check back later.
+                </Alert>
+              ) : (
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 3 }}>
+                  {sortedCohorts.map((cohort) => {
+                    const status = getCohortStatus(cohort);
+                    const isUpcoming = status === 'upcoming';
+                    const isActive = status === 'active';
+                    
+                    return (
+                      <Box key={cohort.id}>
+                        <Card 
+                          sx={{ 
+                            height: '100%',
+                            border: '1px solid',
+                            borderColor: isUpcoming ? 'rgba(80, 235, 151, 0.3)' : 'divider',
+                            backgroundColor: isUpcoming ? 'rgba(80, 235, 151, 0.02)' : 'background.paper',
+                            position: 'relative',
+                            overflow: 'hidden'
+                          }}
+                        >
+                          {isUpcoming && (
+                            <Box
+                              sx={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                height: 4,
+                                backgroundColor: 'primary.main',
+                                zIndex: 1
+                              }}
+                            />
+                          )}
+                          
+                          <CardContent sx={{ p: 3, pt: isUpcoming ? 4 : 3 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                              <CalendarToday sx={{ fontSize: 20, color: 'primary.main' }} />
+                              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                {cohort.name}
+                              </Typography>
+                            </Box>
+                            
+                            <Box sx={{ mb: 2 }}>
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                <strong>Start Date:</strong> {formatCohortDate(cohort.startDate.toDate())}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                <strong>End Date:</strong> {formatCohortDate(cohort.endDate.toDate())}
+                              </Typography>
+                              <Box sx={{ mt: 2 }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                                  <Typography variant="body2" color="text.secondary">
+                                    <strong>Enrollment Progress</strong>
+                                  </Typography>
+                                  <Typography variant="body2" color="text.secondary">
+                                    {Math.round(((cohort.currentStudents || 0) / cohort.maxStudents) * 100)}%
+                                  </Typography>
+                                </Box>
+                                <LinearProgress 
+                                  variant="determinate" 
+                                  value={((cohort.currentStudents || 0) / cohort.maxStudents) * 100} 
+                                  sx={{ 
+                                    height: 6, 
+                                    borderRadius: 3,
+                                    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                                    '& .MuiLinearProgress-bar': {
+                                      backgroundColor: isUpcoming ? 'primary.main' : 'success.main'
+                                    }
+                                  }}
+                                />
+                              </Box>
+                            </Box>
+                            
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+                              <Chip 
+                                label={status === 'upcoming' ? 'Upcoming' : status === 'active' ? 'Active' : 'Completed'}
+                                color={status === 'upcoming' ? 'primary' : status === 'active' ? 'success' : 'default'}
+                                size="small"
+                              />
+                              {isUpcoming && (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <Chip 
+                                    label={`€${course.specialOffer && course.specialOffer > 0 ? course.specialOffer : course.price}`}
+                                    color="secondary"
+                                    size="small"
+                                  />
+                                  {course.specialOffer && course.specialOffer > 0 && (
+                                    <Typography 
+                                      variant="caption" 
+                                      sx={{ 
+                                        color: 'secondary.main',
+                                        fontWeight: 600,
+                                        fontSize: '0.7rem',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.5px'
+                                      }}
+                                    >
+                                      LIMITED TIME OFFER
+                                    </Typography>
+                                  )}
+                                </Box>
+                              )}
+                            </Box>
+                            
+                            {isUpcoming ? (
+                              <Button
+                                variant="contained"
+                                fullWidth
+                                onClick={() => handleEnrollInCohort(cohort)}
+                                sx={{ fontWeight: 600 }}
+                              >
+                                Enroll in This Cohort
+                              </Button>
+                            ) : isActive ? (
+                              <Button
+                                variant="outlined"
+                                fullWidth
+                                disabled
+                                sx={{ fontWeight: 600 }}
+                              >
+                                Cohort Full
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outlined"
+                                fullWidth
+                                disabled
+                                sx={{ fontWeight: 600 }}
+                              >
+                                Completed
+                              </Button>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              )}
             </Box>
-          )}
         </Box>
+
+        {/* Divider between cohorts and lessons */}
+        <Divider sx={{ my: 4, borderColor: 'rgba(80, 235, 151, 0.1)', borderWidth: 1 }} />
 
         {/* Lessons Grid */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 3 }}>
-          {lessons.map((lesson) => {
-            const access = getLessonAccess(lesson);
-            const progress = getLessonProgress(lesson.id);
-            const isCompleted = progress?.isCompleted || false;
-            const isLocked = access === 'locked';
+        {courseLessons.length === 0 ? (
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <Typography variant="h6" color="text.secondary">
+              No lessons available yet
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Course content will be available soon.
+            </Typography>
+          </Box>
+        ) : (
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 3 }}>
+            {courseLessons.map((lesson) => {
+              const lessonIcon = getLessonIcon(lesson);
 
-            return (
-              <Card 
-                key={lesson.id}
-                sx={{ 
-                  height: '100%',
-                  cursor: isLocked ? 'default' : 'pointer',
-                  transition: 'all 0.2s ease-in-out',
-                  '&:hover': {
-                    transform: isLocked ? 'none' : 'translateY(-2px)',
-                    boxShadow: isLocked ? 'default' : '0 4px 20px rgba(0,0,0,0.15)',
-                  },
-                  opacity: isLocked ? 0.7 : 1,
-                }}
-                onClick={() => handleLessonClick(lesson)}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  {/* Lesson Header */}
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                    <Box>
-                      <Typography variant="h6" gutterBottom>
-                        Week {lesson.weekNumber}: {lesson.title}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        {lesson.description}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {isCompleted ? (
-                        <CheckCircle sx={{ color: 'success.main', fontSize: 24 }} />
-                      ) : isLocked ? (
-                        <Lock sx={{ color: 'text.disabled', fontSize: 24 }} />
-                      ) : (
-                        <PlayCircle sx={{ color: 'primary.main', fontSize: 24 }} />
-                      )}
-                    </Box>
-                  </Box>
-
-                  {/* Lesson Details */}
-                  <Box sx={{ mb: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                      <VideoLibrary sx={{ fontSize: 16, color: 'text.secondary' }} />
-                      <Typography variant="body2" color="text.secondary">
-                        {lesson.videoDuration ? formatDuration(lesson.videoDuration) : 'Video lesson'}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Description sx={{ fontSize: 16, color: 'text.secondary' }} />
-                      <Typography variant="body2" color="text.secondary">
-                        {lesson.resources.length} resources
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  {/* Access Status */}
-                  {isLocked && (
-                    <Box sx={{ mb: 2 }}>
-                      <Chip 
-                        label={lesson.isPublished ? 'Available soon' : 'Coming soon'}
-                        color="default"
-                        size="small"
-                        icon={<Schedule />}
-                      />
-                      {lesson.releaseDate && (
-                        <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                          {format(lesson.releaseDate, 'MMM d, yyyy')}
+              return (
+                <Card 
+                  key={lesson.id}
+                  sx={{ 
+                    height: '100%',
+                    transition: 'all 0.2s ease-in-out',
+                  }}
+                >
+                  <CardContent sx={{ p: 3, display: 'flex', flexDirection: 'column', height: '100%' }}>
+                    {/* Lesson Header */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography 
+                          variant="caption" 
+                          sx={{ 
+                            color: 'primary.main',
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px',
+                            mb: 1,
+                            display: 'block'
+                          }}
+                        >
+                          Week {lesson.weekNumber}
                         </Typography>
-                      )}
-                    </Box>
-                  )}
-
-                  {/* Progress Bar */}
-                  {!isLocked && progress && (
-                    <Box sx={{ mb: 2 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                        <Typography variant="caption" color="text.secondary">
-                          Progress
+                        <Typography variant="h6" gutterBottom>
+                          {lesson.title}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {Math.round(progress.watchedPercentage)}%
-        </Typography>
+                        <Typography 
+                          variant="body2" 
+                          color="text.secondary" 
+                          sx={{ 
+                            mb: 2,
+                            whiteSpace: 'pre-line',
+                            lineHeight: 1.6
+                          }}
+                        >
+                          {lesson.description}
+                        </Typography>
                       </Box>
-                      <LinearProgress 
-                        variant="determinate" 
-                        value={progress.watchedPercentage} 
-                        sx={{ height: 4, borderRadius: 2 }}
-                      />
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 2 }}>
+                        <Box sx={{ 
+                          color: lessonIcon.color, 
+                          fontSize: 32,
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}>
+                          {lessonIcon.icon}
+                        </Box>
+                      </Box>
                     </Box>
-                  )}
 
-                  {/* Action Button */}
-                  <Button
-                    variant={isCompleted ? "outlined" : "contained"}
-                    fullWidth
-                    disabled={isLocked}
-                    startIcon={
-                      isCompleted ? <CheckCircle /> : 
-                      isLocked ? <Lock /> : <PlayCircle />
-                    }
-                  >
-                    {isCompleted ? 'Completed' : 
-                     isLocked ? 'Locked' : 'Start Lesson'}
-                  </Button>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </Box>
 
-        {/* Course Resources */}
-        {isEnrolled && (
-          <Box sx={{ mt: 6 }}>
-            <Typography variant="h5" gutterBottom>
-              Course Resources
-        </Typography>
-            <Card>
-              <CardContent>
-                <List>
-                  <ListItem>
-                    <ListItemAvatar>
-                      <Avatar sx={{ bgcolor: 'primary.main' }}>
-                        <Download />
-                      </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText 
-                      primary="Complete Course Workbook"
-                      secondary="Download the full workbook to use throughout the course"
-                    />
-                    <Button variant="outlined" size="small">
-                      Download
-                    </Button>
-                  </ListItem>
-                  <Divider />
-                  <ListItem>
-                    <ListItemAvatar>
-                      <Avatar sx={{ bgcolor: 'secondary.main' }}>
-                        <School />
-                      </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText 
-                      primary="Q&A Sessions"
-                      secondary="Access recorded Q&A sessions from previous cohorts"
-                    />
-                    <Button variant="outlined" size="small">
-                      View All
-                    </Button>
-                  </ListItem>
-                </List>
-              </CardContent>
-            </Card>
+
+
+
+                    {/* Spacer to push content to bottom */}
+                    <Box sx={{ flex: 1 }} />
+
+                    {/* Workbook Integration - Moved to bottom */}
+                    <Box sx={{ 
+                      mb: 1, 
+                      p: 2, 
+                      backgroundColor: 'rgba(80, 235, 151, 0.05)', 
+                      borderRadius: 1,
+                      border: '1px solid rgba(80, 235, 151, 0.1)'
+                    }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <Description sx={{ fontSize: 16, color: 'primary.main' }} />
+                        <Typography variant="body2" sx={{ color: 'primary.main', fontWeight: 500 }}>
+                          Key Practices and Integration Tasks
+                        </Typography>
+                      </Box>
+                      <Typography variant="caption" color="text.secondary">
+                        A workbook will be available for you to download at the start of the course. Use it to track your progress and complete exercises.
+                      </Typography>
+                    </Box>
+
+                    {/* Divider above lesson duration */}
+                    <Divider sx={{ mb: 1, borderColor: 'rgba(0, 0, 0, 0.08)', borderWidth: 1 }} />
+
+                    {/* Lesson Details */}
+                    <Box sx={{ mb: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <PlayCircle sx={{ fontSize: 16, color: 'text.secondary' }} />
+                        <Typography variant="body2" color="text.secondary">
+                          {lesson.videoDuration ? formatDuration(lesson.videoDuration) : 'Video lesson'}
+                        </Typography>
+                      </Box>
+                    </Box>
+
+
+                  </CardContent>
+                </Card>
+              );
+            })}
           </Box>
         )}
+
+
+
+        {/* Testimonials */}
+        <Box sx={{ mt: 6 }}>
+          <Testimonials />
+        </Box>
       </Box>
     </Container>
   );

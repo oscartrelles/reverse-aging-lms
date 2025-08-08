@@ -638,11 +638,6 @@ const LandingPage: React.FC = () => {
                 icon={<School />}
                 iconColor="primary"
                 courseId="hTLj9Lx1MAkBks0INzxS"
-                onClick={() => {
-                  if (!currentUser) {
-                    showAuthModal('signup', 'Create Your Account', 'You need a free account to enroll in a course.');
-                  }
-                }}
               />
 
               <ProgramCard

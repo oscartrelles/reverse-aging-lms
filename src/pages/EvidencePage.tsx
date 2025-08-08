@@ -110,6 +110,8 @@ const EvidencePage: React.FC = () => {
     
     if (tagParam && !selectedTags.includes(tagParam)) {
       setSelectedTags([tagParam]);
+      // Show filters when tags are present in URL
+      setShowFilters(true);
     }
   }, [location.search]);
 

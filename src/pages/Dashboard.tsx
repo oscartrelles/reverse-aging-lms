@@ -1396,7 +1396,7 @@ const Dashboard: React.FC = () => {
               </Box>
 
         {/* Divider between sections */}
-        <Divider sx={{ my: 6, borderColor: 'primary.light', borderWidth: 2 }} />
+        <Divider sx={{ my: 3, borderColor: 'rgba(80, 235, 151, 0.1)', borderWidth: 1 }} />
 
         {/* Program Overview Section */}
         <Box sx={{ mb: 6 }}>

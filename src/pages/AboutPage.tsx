@@ -8,11 +8,13 @@ import {
   useMediaQuery,
   Button,
 } from '@mui/material';
-import { Science, School, Psychology, ArrowForward } from '@mui/icons-material';
+import { Science, School, Psychology, ArrowForward, CheckCircle } from '@mui/icons-material';
+import { useAuth } from '../contexts/AuthContext';
 
 const AboutPage: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { currentUser } = useAuth();
 
   const handleJoinAcademy = () => {
     // Navigate to signup or show auth modal
@@ -433,32 +435,34 @@ const AboutPage: React.FC = () => {
             </Typography>
 
             <Button
-              variant="contained"
+              variant={currentUser ? "outlined" : "contained"}
               size="large"
-              onClick={handleJoinAcademy}
+              onClick={currentUser ? undefined : handleJoinAcademy}
+              disabled={!!currentUser}
               sx={{
-                backgroundColor: theme.palette.primary.main,
-                color: '#000',
+                backgroundColor: currentUser ? 'transparent' : theme.palette.primary.main,
+                color: currentUser ? theme.palette.success.main : '#000',
+                borderColor: currentUser ? theme.palette.success.main : 'transparent',
                 fontWeight: 700,
                 fontSize: '1.2rem',
                 px: 4,
                 py: 2,
                 borderRadius: 3,
                 textTransform: 'none',
-                boxShadow: `0 8px 32px ${theme.palette.primary.main}40`,
+                boxShadow: currentUser ? 'none' : `0 8px 32px ${theme.palette.primary.main}40`,
                 transition: 'all 0.3s ease',
                 '&:hover': {
-                  backgroundColor: theme.palette.primary.dark,
-                  transform: 'translateY(-2px)',
-                  boxShadow: `0 12px 40px ${theme.palette.primary.main}50`,
+                  backgroundColor: currentUser ? 'transparent' : theme.palette.primary.dark,
+                  transform: currentUser ? 'none' : 'translateY(-2px)',
+                  boxShadow: currentUser ? 'none' : `0 12px 40px ${theme.palette.primary.main}50`,
                 },
                 '&:active': {
-                  transform: 'translateY(0)',
+                  transform: currentUser ? 'none' : 'translateY(0)',
                 }
               }}
-              endIcon={<ArrowForward />}
+              endIcon={currentUser ? <CheckCircle /> : <ArrowForward />}
             >
-              Join the Academy
+              {currentUser ? 'You Are In!' : 'Join the Academy'}
             </Button>
 
             <Typography

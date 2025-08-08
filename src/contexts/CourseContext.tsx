@@ -59,7 +59,7 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
 
   async function loadCourses() {
     try {
-  
+      console.log('📚 Loading courses...');
       const coursesQuery = query(collection(db, 'courses'), where('status', '==', 'active'));
       const snapshot = await getDocs(coursesQuery);
       const coursesData = snapshot.docs.map(doc => ({
@@ -67,10 +67,10 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
         ...doc.data(),
       })) as Course[];
       
-
+      console.log('📚 Courses loaded:', coursesData.length);
       setCourses(coursesData);
     } catch (error) {
-      console.error('Error loading courses:', error);
+      console.error('❌ Error loading courses:', error);
     }
   }
 
@@ -155,7 +155,7 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
   }
 
   const refreshData = useCallback(async () => {
-
+    console.log('🔄 CourseContext: Starting data refresh...', { currentUser: !!currentUser });
     setLoading(true);
     try {
       await Promise.all([
@@ -171,10 +171,18 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
         await loadStreakData();
       }
       
+      console.log('✅ CourseContext: Data refresh completed', {
+        coursesCount: courses.length,
+        enrollmentsCount: enrollments.length,
+        cohortsCount: cohorts.length,
+        lessonsCount: lessons.length,
+        lessonProgressCount: lessonProgress.length
+      });
 
     } catch (error) {
-      console.error('CourseContext: Error refreshing data:', error);
+      console.error('❌ CourseContext: Error refreshing data:', error);
     } finally {
+      console.log('🏁 CourseContext: Setting loading to false');
       setLoading(false);
     }
   }, [currentUser, currentEnrollment]);

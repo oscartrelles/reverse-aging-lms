@@ -223,7 +223,7 @@ function App() {
                           } />
                           
                           <Route path="/course/:courseId" element={
-                            <PrivateRoute>
+                            <PrivateRoute allowUnauthenticated={true}>
                               <CoursePage />
                             </PrivateRoute>
                           } />

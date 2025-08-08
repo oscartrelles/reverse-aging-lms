@@ -1315,18 +1315,19 @@ const ProfilePage: React.FC = () => {
                   variant="contained"
                   fullWidth
                   size="large"
-                  onClick={() => navigate('/')}
+                  onClick={() => navigate('/course/hTLj9Lx1MAkBks0INzxS')}
+                  disabled={!!currentEnrollment}
                   sx={{
-                    backgroundColor: theme.palette.primary.main,
+                    backgroundColor: currentEnrollment ? theme.palette.grey[400] : theme.palette.primary.main,
                     color: '#000',
                     fontWeight: 600,
                     py: 1.5,
                     '&:hover': {
-                      backgroundColor: theme.palette.primary.dark,
+                      backgroundColor: currentEnrollment ? theme.palette.grey[400] : theme.palette.primary.dark,
                     }
                   }}
                 >
-                  View Upcoming Cohorts
+                  {currentEnrollment ? 'Already Enrolled' : 'View Upcoming Cohorts'}
                 </Button>
               </Paper>
             )}

@@ -39,21 +39,11 @@ const ProgramsPage: React.FC = () => {
 
   const handleJoinAcademy = () => {
     if (currentUser) {
-      // User is already signed in, do nothing
+      // User is already signed in, show success message
       return;
     }
     // Show auth modal with the same message as landing page
     showAuthModal('signup', 'Create Your Account', 'Get free access to our evolving library of healthspan science, plus weekly digests on the latest research.');
-  };
-
-  const handleEnrollCourse = () => {
-    if (currentUser) {
-      // User is signed in, navigate to enrollment page
-      navigate('/payment/7-week-reverse-aging-challenge');
-    } else {
-      // Show auth modal with course enrollment message
-      showAuthModal('signup', 'Create Your Account', 'You need a free account to enroll in a course.');
-    }
   };
 
   const handleApplyRetreat = () => {
@@ -150,7 +140,7 @@ const ProgramsPage: React.FC = () => {
             buttonText="Enroll in Online Course"
             icon={<School />}
             iconColor="primary"
-                  onClick={handleEnrollCourse}
+            courseId="hTLj9Lx1MAkBks0INzxS"
             additionalText="👉 This is your blueprint for building habits that reverse the damage of modern life and help you feel stronger, sharper, and more resilient at any age."
           />
 
@@ -249,7 +239,13 @@ const ProgramsPage: React.FC = () => {
                   </Typography>
                   <Button
                     variant="text"
-                    onClick={handleEnrollCourse}
+                    onClick={() => {
+                      if (currentUser) {
+                        navigate('/payment/hTLj9Lx1MAkBks0INzxS');
+                      } else {
+                        showAuthModal('signup', 'Create Your Account', 'You need a free account to enroll in a course.');
+                      }
+                    }}
                     endIcon={<ArrowForward />}
                     sx={{ 
                       fontWeight: 600,

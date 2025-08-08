@@ -8,6 +8,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { ArrowForward, Star } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import TrustIndicators from './TrustIndicators';
 import { courseManagementService } from '../services/courseManagementService';
 
@@ -59,16 +60,19 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
   sx = {}
 }) => {
   const theme = useTheme();
+  const navigate = useNavigate();
   const [upcomingCohort, setUpcomingCohort] = useState<any>(null);
   const [loadingCohort, setLoadingCohort] = useState(false);
   const [dynamicSubtitle, setDynamicSubtitle] = useState<string | undefined>(subtitle);
   const [courseInfo, setCourseInfo] = useState<any>(null);
   const [dynamicSpecialOffer, setDynamicSpecialOffer] = useState(specialOffer);
+  const [courseLoading, setCourseLoading] = useState(false);
 
   // Load course info and upcoming cohort if courseId is provided
   useEffect(() => {
     if (courseId) {
       setLoadingCohort(true);
+      setCourseLoading(true);
       
       // Load course information first
       courseManagementService.getCourse(courseId)
@@ -77,7 +81,7 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
             setCourseInfo(course);
             // Set dynamic special offer with course price and specialOffer
             if (course.price) {
-              // Only show special offer if course.specialOffer exists and is greater than 0
+              // Show special offer if course.specialOffer exists and is greater than 0
               if (course.specialOffer && course.specialOffer > 0) {
                 setDynamicSpecialOffer({
                   regularPrice: `€${course.price}`,
@@ -93,6 +97,9 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
         })
         .catch((error) => {
           console.error('Error loading course info:', error);
+        })
+        .finally(() => {
+          setCourseLoading(false);
         });
 
       // Load upcoming cohort
@@ -221,7 +228,7 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
           )}
 
           {/* Special Offer Callout */}
-          {(dynamicSpecialOffer || specialOffer) && (
+          {(dynamicSpecialOffer || specialOffer || (courseInfo?.specialOffer && courseInfo?.specialOffer > 0)) && (
             <Box sx={{ mb: 4 }}>
               {/* Regular Price (Crossed Out) */}
               <Typography 
@@ -233,7 +240,7 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
                   fontSize: '0.875rem'
                 }}
                               >
-                  Regular Price: {(dynamicSpecialOffer || specialOffer)?.regularPrice}
+                  Regular Price: {(dynamicSpecialOffer || specialOffer)?.regularPrice || (courseInfo?.price ? `€${courseInfo.price}` : '')}
                 </Typography>
               
               {/* Special Offer Box - Nature-Inspired Glassmorphism */}
@@ -311,7 +318,7 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
                         color: 'rgba(80, 235, 151, 0.9)',
                         filter: 'drop-shadow(0 0 4px rgba(80, 235, 151, 0.3))'
                       }} />
-                      {(dynamicSpecialOffer || specialOffer)?.offerText || 'Founder\'s Circle Access'}
+                      {(dynamicSpecialOffer || specialOffer)?.offerText || 'Special Offer'}
                     </Box>
                 </Typography>
                 
@@ -329,7 +336,7 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
                     zIndex: 1
                   }}
                 >
-                  {(dynamicSpecialOffer || specialOffer)?.specialPrice}
+                  {(dynamicSpecialOffer || specialOffer)?.specialPrice || (courseInfo?.specialOffer ? `€${courseInfo.specialOffer}` : '')}
                 </Typography>
                 
                                   {/* Limited Time Text - Nature-Inspired */}
@@ -358,18 +365,15 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
                 onClick();
               } else if (externalUrl) {
                 window.open(externalUrl, '_blank');
-              } else if (courseId && upcomingCohort) {
-                // Navigate to payment with cohort info
-                window.location.href = `/payment/${courseId}?cohortId=${upcomingCohort.id}`;
               } else if (courseId) {
-                // Navigate to payment without specific cohort
-                window.location.href = `/payment/${courseId}`;
+                // Navigate to course page to view available cohorts
+                navigate(`/course/${courseId}`);
               }
             }}
             endIcon={<ArrowForward />}
             sx={getButtonStyles()}
           >
-            {buttonText}
+            {courseId ? 'View Available Cohorts' : buttonText}
           </Button>
 
           {/* Trust Indicators */}
