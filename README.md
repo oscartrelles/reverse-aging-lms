@@ -5,19 +5,26 @@ A modern Learning Management System (LMS) built for "The Reverse Aging Challenge
 ## 🚀 Features
 
 ### For Students
-- **User Authentication** - Email, Google, and Facebook sign-in
+- **User Authentication** - Email, Google, and Facebook sign-in with redirect flows
 - **Course Dashboard** - Progress tracking and lesson management
 - **Video Learning** - YouTube integration with progress tracking
 - **Resource Access** - PDF downloads and course materials
-- **Community Features** - Q&A system and student interactions
+- **Community Features** - Q&A system, scientific evidence voting, and student interactions
 - **Mobile Responsive** - Optimized for all devices
 - **Progress Psychology** - Gamification and engagement features
+- **Cohort-Based Learning** - Join specific cohorts with tailored pricing and schedules
+- **Flexible Payments** - Support for installments, coupons, and early bird discounts
+- **Social Sharing** - Enhanced sharing capabilities for evidence and content
 
 ### For Administrators
-- **Course Management** - Create and manage lessons
-- **Student Management** - Track enrollments and progress
+- **Course Management** - Create and manage lessons with cohort organization
+- **Cohort Management** - Flexible pricing, coupons, and early bird discounts per cohort
+- **Student Management** - Track enrollments and progress across cohorts
 - **Content Upload** - Manage videos and resources
-- **Analytics** - Student engagement and completion metrics
+- **Analytics** - Student engagement, completion metrics, and business analytics
+- **Scientific Evidence** - Manage and curate scientific updates and research
+- **Email Integration** - Automated email campaigns with MailerSend
+- **Advanced Permissions** - Role-based access control (admin, moderator, full)
 
 ## 🛠️ Tech Stack
 
@@ -25,9 +32,13 @@ A modern Learning Management System (LMS) built for "The Reverse Aging Challenge
 - **UI Framework**: Material-UI (MUI)
 - **Authentication**: Firebase Auth
 - **Database**: Firestore (NoSQL)
+- **Cloud Functions**: Firebase Functions (TypeScript)
 - **Hosting**: Firebase Hosting
-- **Payments**: Stripe
+- **Payments**: Stripe with cohort-based pricing
+- **Email**: MailerSend integration
 - **Video**: YouTube API
+- **Analytics**: Google Analytics 4
+- **SEO**: Dynamic meta tags and structured data
 - **Styling**: Emotion (CSS-in-JS)
 
 ## 📦 Installation
@@ -59,6 +70,12 @@ A modern Learning Management System (LMS) built for "The Reverse Aging Challenge
 
    # YouTube API
    REACT_APP_YOUTUBE_API_KEY=your_youtube_api_key
+
+   # Google Analytics
+   REACT_APP_GA_MEASUREMENT_ID=G-XXXXXXXXXX
+
+   # MailerSend
+   REACT_APP_MAILERSEND_API_KEY=your_mailersend_api_key
    ```
 
 4. **Start the development server**
@@ -71,12 +88,20 @@ A modern Learning Management System (LMS) built for "The Reverse Aging Challenge
 ```
 src/
 ├── components/          # Reusable UI components
+│   ├── admin/          # Admin-specific components
+│   ├── analytics/      # Analytics and reporting components
 │   ├── auth/           # Authentication components
-│   └── layout/         # Layout components (Header, Footer)
-├── contexts/           # React contexts (Auth, Course)
+│   ├── layout/         # Layout components (Header, Footer)
+│   └── payment/        # Payment and checkout components
+├── contexts/           # React contexts (Auth, Course, Modal)
+├── hooks/              # Custom React hooks
 ├── pages/              # Page components
 │   └── admin/          # Admin pages
+├── services/           # Business logic and API services
 ├── types/              # TypeScript type definitions
+├── utils/              # Utility functions
+├── constants/          # Application constants
+├── config/             # Configuration files
 ├── firebaseConfig.ts   # Firebase configuration
 └── App.tsx            # Main application component
 ```
@@ -95,6 +120,7 @@ src/
 2. **Get your publishable key** from the dashboard
 3. **Set up webhook endpoints** for payment events
 4. **Configure payment methods** (cards, installments)
+5. **Set up cohort-based pricing** with flexible discount systems
 
 ## 🎥 YouTube Integration
 
@@ -145,6 +171,13 @@ The LMS is fully responsive and optimized for mobile devices:
 
 ## 🎯 Course Features
 
+### Cohort-Based Learning
+- **Flexible cohort scheduling** with custom start/end dates
+- **Cohort-specific pricing** with early bird discounts and special offers
+- **Coupon system** with usage limits and expiration dates
+- **Dynamic pricing display** showing all applicable discounts
+- **Cohort selection** during enrollment process
+
 ### Weekly Cadence
 - **Automatic lesson releases** at 8am local time
 - **Progress tracking** with visual indicators
@@ -153,15 +186,24 @@ The LMS is fully responsive and optimized for mobile devices:
 
 ### Community Features
 - **Q&A system** for student questions
+- **Scientific evidence voting** with upvote/downvote functionality
 - **Community stats** showing active students
-- **Discussion boards** for peer learning
+- **Social sharing** with platform-specific optimization
 - **Social proof** elements
 
 ### Content Management
 - **Video lessons** with YouTube integration
 - **PDF resources** for download
 - **Workbook access** at course level
+- **Scientific updates** with evidence-based content
 - **Additional content** (Q&A recordings, etc.)
+
+### SEO & Social Media
+- **Dynamic meta tags** for social media sharing
+- **Structured data** (JSON-LD) for search engines
+- **Open Graph** and Twitter Card optimization
+- **Dynamic sitemap** generation
+- **Social media analytics** tracking
 
 ## 🤝 Contributing
 

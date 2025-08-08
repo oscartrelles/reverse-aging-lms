@@ -41,6 +41,7 @@ import { studentManagementService } from '../../services/studentManagementServic
 import { dashboardSettingsService, DashboardSettings } from '../../services/dashboardSettingsService';
 import EmailTestPanel from '../../components/admin/EmailTestPanel';
 
+
 // Helper function to check user permissions
 const hasPermission = (user: any, permission: 'admin' | 'moderator' | 'full') => {
   if (!user) return false;
@@ -545,6 +546,8 @@ const AdminDashboard: React.FC = () => {
             </CardContent>
           </Card>
         )}
+
+
       </Box>
     </Container>
   );

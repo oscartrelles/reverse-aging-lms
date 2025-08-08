@@ -96,7 +96,7 @@ class EmailIntegrationService {
   }
 
   // Payment & Enrollment Emails
-  async sendPaymentConfirmation(user: User, course: Course, amount: number, currency: string = 'EUR'): Promise<void> {
+  async sendPaymentConfirmation(user: User, course: Course, amount: number, currency: string = 'EUR', cohort?: any): Promise<void> {
     if (!user.notificationPreferences?.email) return;
 
     const variables: EmailVariables = {
@@ -110,6 +110,9 @@ class EmailIntegrationService {
       courseTitle: course.title,
       enrollmentUrl: `/course/${course.id}`,
       supportEmail: 'support@reverseagingacademy.com',
+      // Add cohort information if available
+      cohortName: cohort?.name || 'Default Cohort',
+      cohortStartDate: cohort?.startDate?.toDate()?.toLocaleDateString() || 'TBD',
     };
 
     await mailerSendService.sendTransactional(EMAIL_TEMPLATES.PAYMENT_CONFIRMATION, user.email, variables);

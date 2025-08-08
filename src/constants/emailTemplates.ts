@@ -83,6 +83,8 @@ export const TEMPLATE_VARIABLES = {
     'courseTitle',
     'enrollmentUrl',
     'supportEmail',
+    'cohortName',
+    'cohortStartDate',
   ],
 
   // Course progress variables

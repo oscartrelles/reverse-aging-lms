@@ -362,10 +362,7 @@ const AdminCourseManagement: React.FC = () => {
           aValue = a.title.toLowerCase();
           bValue = b.title.toLowerCase();
           break;
-        case 'price':
-          aValue = a.price;
-          bValue = b.price;
-          break;
+
         case 'duration':
           aValue = a.duration;
           bValue = b.duration;
@@ -390,7 +387,8 @@ const AdminCourseManagement: React.FC = () => {
     const totalLessons = lessons.length;
     const totalCohorts = cohorts.length;
     const activeCohorts = cohorts.filter(c => c.status === 'active').length;
-    const totalRevenue = courses.reduce((sum, course) => sum + (course.price * course.maxStudents), 0);
+    // Revenue is now calculated at cohort level, not course level
+    const totalRevenue = 0; // TODO: Calculate from cohort pricing
     
     return { 
       totalCourses, 
@@ -531,7 +529,7 @@ const AdminCourseManagement: React.FC = () => {
                 >
                   <MenuItem value="createdAt">Date Created</MenuItem>
                   <MenuItem value="title">Title</MenuItem>
-                  <MenuItem value="price">Price</MenuItem>
+
                   <MenuItem value="duration">Duration</MenuItem>
                 </Select>
               </FormControl>
@@ -582,9 +580,7 @@ const AdminCourseManagement: React.FC = () => {
                             size="small" 
                             color={course.status === 'active' ? 'success' : course.status === 'draft' ? 'warning' : 'default'}
                           />
-                          {course.isFree && (
-                            <Chip label="Free" size="small" color="primary" variant="outlined" />
-                          )}
+                          <Chip label="Cohort Pricing" size="small" color="info" variant="outlined" />
                         </Box>
                         
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
@@ -593,9 +589,9 @@ const AdminCourseManagement: React.FC = () => {
                         
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <AttachMoney sx={{ fontSize: 16, color: 'success.main' }} />
+                            <AttachMoney sx={{ fontSize: 16, color: 'info.main' }} />
                             <Typography variant="caption" color="text.secondary">
-                              ${course.price}
+                              Cohort-based
                             </Typography>
                           </Box>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -771,7 +767,7 @@ const AdminCourseManagement: React.FC = () => {
                     
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                       <Chip label={selectedCourse.status} color={selectedCourse.status === 'active' ? 'success' : 'default'} />
-                      {selectedCourse.isFree && <Chip label="Free" color="primary" variant="outlined" />}
+                      <Chip label="Cohort Pricing" color="info" variant="outlined" />
                     </Box>
                     
                     <Typography variant="body1" sx={{ mb: 2 }}>
@@ -781,11 +777,11 @@ const AdminCourseManagement: React.FC = () => {
                     <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2 }}>
                       <Card>
                         <CardContent>
-                          <Typography variant="h6" color="primary.main">
-                            ${selectedCourse.price}
+                          <Typography variant="h6" color="info.main">
+                            Cohort-based
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            Course Price
+                            Pricing Model
                           </Typography>
                         </CardContent>
                       </Card>

@@ -32,7 +32,22 @@ This directory contains all documentation for the Reverse Aging LMS project.
 
 All documentation is now consolidated in this `docs/` directory for better organization and discoverability. Each file contains detailed information about its respective area of the application.
 
-## 🔄 **Recent Changes**
+## 🔄 **Recent Updates (December 2024)**
 
-- **Course Features Backlog**: Added support for multiple videos per lesson and course resource management
-- **Documentation Consolidation**: Moved all documentation files from root to `docs/` directory
+### ✅ **Completed Features**
+- **Cohort-Based Pricing System**: Migrated from course-level to cohort-level pricing with flexible discounts and coupons
+- **Enhanced SEO & Social Media**: Dynamic meta tags, structured data, and social sharing optimization
+- **Scientific Evidence Management**: Voting system, real-time updates, and social sharing for evidence items
+- **Payment System Improvements**: Cohort-aware pricing, dynamic discount display, and enhanced UX
+
+### 📚 **Documentation Updates**
+- **Course Features Backlog**: Updated with completed features and group discount planning
+- **README.md**: Enhanced with new tech stack and feature descriptions
+- **CHANGELOG.md**: New file tracking all version changes and migrations
+- **Service Documentation**: Updated to reflect cohort-based architecture
+
+### 🏗️ **Architecture Changes**
+- **Course Interface**: Removed pricing fields (now managed at cohort level)
+- **Payment Flow**: Enhanced with cohort selection and dynamic pricing
+- **Admin Interface**: Updated for cohort management and pricing control
+- **Database Schema**: Migrated to cohort-based pricing structure

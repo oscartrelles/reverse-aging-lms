@@ -24,11 +24,8 @@ import {
   FilterList,
   ThumbUp,
   ThumbUpOutlined,
-  Share,
   Science,
   AccessTime,
-  Category,
-  LocalOffer,
   Visibility,
   TrendingUp,
   Close,
@@ -39,7 +36,10 @@ import { useAuthModal } from '../contexts/AuthModalContext';
 import { scientificUpdateService } from '../services/scientificUpdateService';
 import { userProfileService } from '../services/userProfileService';
 import { ScientificUpdate } from '../types';
-import { differenceInDays, format } from 'date-fns';
+import { format } from 'date-fns';
+import { useEvidencePageSEO } from '../hooks/useSEO';
+import { seoService } from '../services/seoService';
+import SocialSharing from '../components/SocialSharing';
 
 const EvidencePage: React.FC = () => {
   const { currentUser } = useAuth();
@@ -48,12 +48,41 @@ const EvidencePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
+  // SEO setup
+  useEvidencePageSEO();
+  
   // State management
   const [updates, setUpdates] = useState<ScientificUpdate[]>([]);
   const [selectedUpdate, setSelectedUpdate] = useState<ScientificUpdate | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingUpdate, setLoadingUpdate] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // SEO for specific article
+  useEffect(() => {
+    if (selectedUpdate) {
+      seoService.setupPageSEO({
+        title: `${selectedUpdate.title} - Scientific Evidence`,
+        description: selectedUpdate.summary,
+        canonicalPath: `/evidence/${selectedUpdate.id}`,
+        type: 'article',
+        breadcrumbs: [
+          { name: 'Home', url: '/' },
+          { name: 'Scientific Evidence', url: '/evidence' },
+          { name: selectedUpdate.title, url: `/evidence/${selectedUpdate.id}` }
+        ]
+      });
+      
+      seoService.addArticleSchema({
+        title: selectedUpdate.title,
+        description: selectedUpdate.summary,
+        url: `/evidence/${selectedUpdate.id}`,
+        author: 'The Reverse Aging Academy',
+        datePublished: selectedUpdate.publishedDate.toDate().toISOString(),
+        dateModified: selectedUpdate.publishedDate.toDate().toISOString()
+      });
+    }
+  }, [selectedUpdate]);
   
   // Filtering and search
   const [searchTerm, setSearchTerm] = useState('');
@@ -218,31 +247,6 @@ const EvidencePage: React.FC = () => {
       if (update) {
         setSelectedUpdate(update);
         
-        // Update page title and meta tags for social sharing
-        document.title = `${update.title} - Scientific Evidence | Reverse Aging Challenge`;
-        
-        // Update meta tags for social sharing
-        const metaTags = [
-          { property: 'og:title', content: update.title },
-          { property: 'og:description', content: update.summary },
-          { property: 'og:type', content: 'article' },
-          { property: 'og:url', content: `${window.location.origin}/evidence/${update.id}` },
-          { name: 'twitter:title', content: update.title },
-          { name: 'twitter:description', content: update.summary },
-          { name: 'twitter:card', content: 'summary_large_image' },
-        ];
-        
-        metaTags.forEach(({ property, name, content }) => {
-          let meta = document.querySelector(`meta[${property ? 'property' : 'name'}="${property || name}"]`);
-          if (!meta) {
-            meta = document.createElement('meta');
-            if (property) meta.setAttribute('property', property);
-            if (name) meta.setAttribute('name', name);
-            document.head.appendChild(meta);
-          }
-          meta.setAttribute('content', content);
-        });
-        
         // Mark as read if user is authenticated
         if (currentUser) {
           await scientificUpdateService.markAsRead(id, currentUser.id);
@@ -258,19 +262,66 @@ const EvidencePage: React.FC = () => {
     }
   };
 
-  const handleVote = async (updateId: string, isUpvote: boolean) => {
+  const handleVote = async (updateId: string) => {
     if (!currentUser) {
       showAuthModal('signup', 'Join Our Community', 'Create a free account to vote on scientific evidence and track your progress.');
       return;
     }
 
     try {
+      // Find the update to determine current vote status
+      const update = updates.find(u => u.id === updateId) || selectedUpdate;
+      if (!update) return;
+
+      const hasVoted = update.votedBy?.includes(currentUser.id) || false;
+      const isUpvote = !hasVoted; // Toggle: if not voted, upvote; if voted, remove vote
+
       await scientificUpdateService.voteUpdate(updateId, currentUser.id, isUpvote);
-      // Refresh the updates to show new vote count
-      loadUpdates();
+      
+      // Update local state without page refresh
+      const updateLocalState = (updateToModify: ScientificUpdate) => {
+        const newVotedBy = [...(updateToModify.votedBy || [])];
+        let newVotes = updateToModify.votes || 0;
+        
+        if (isUpvote) {
+          // Adding vote
+          if (!newVotedBy.includes(currentUser.id)) {
+            newVotedBy.push(currentUser.id);
+            newVotes += 1;
+          }
+        } else {
+          // Removing vote
+          const index = newVotedBy.indexOf(currentUser.id);
+          if (index > -1) {
+            newVotedBy.splice(index, 1);
+            newVotes -= 1;
+          }
+        }
+        
+        return {
+          ...updateToModify,
+          votes: newVotes,
+          votedBy: newVotedBy
+        };
+      };
+
+      // Update the updates list
+      setUpdates(prevUpdates => 
+        prevUpdates.map(u => 
+          u.id === updateId ? updateLocalState(u) : u
+        )
+      );
+
+      // Update selected update if it's the same
       if (selectedUpdate?.id === updateId) {
-        loadSpecificUpdate(updateId);
+        setSelectedUpdate(prevSelected => 
+          prevSelected ? updateLocalState(prevSelected) : null
+        );
       }
+
+      // Show success message
+      setSnackbarMessage(isUpvote ? 'Vote added!' : 'Vote removed!');
+      setSnackbarOpen(true);
     } catch (error) {
       console.error('Error voting:', error);
       setSnackbarMessage('Failed to vote. Please try again.');
@@ -278,82 +329,7 @@ const EvidencePage: React.FC = () => {
     }
   };
 
-  const handleCopyLink = async (update: ScientificUpdate) => {
-    const shareUrl = `${window.location.origin}/evidence/${update.id}`;
-    
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(shareUrl);
-        setSnackbarMessage('Link copied to clipboard!');
-        setSnackbarOpen(true);
-      } else {
-        // Fallback for older browsers
-        const textArea = document.createElement('textarea');
-        textArea.value = shareUrl;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        setSnackbarMessage('Link copied to clipboard!');
-        setSnackbarOpen(true);
-      }
-      
-      // Increment share count
-      await scientificUpdateService.incrementShareCount(update.id);
-      loadUpdates();
-    } catch (error) {
-      console.error('Error copying link:', error);
-      setSnackbarMessage('Failed to copy link. Please try again.');
-      setSnackbarOpen(true);
-    }
-  };
 
-  const handleShare = async (update: ScientificUpdate) => {
-    const shareUrl = `${window.location.origin}/evidence/${update.id}`;
-    const shareText = `Check out this scientific evidence: ${update.title}`;
-    
-    try {
-      // Try native sharing first (mobile devices)
-      if (navigator.share && navigator.canShare) {
-        const shareData = {
-          title: update.title,
-          text: shareText,
-          url: shareUrl,
-        };
-        
-        if (navigator.canShare(shareData)) {
-          await navigator.share(shareData);
-        } else {
-          throw new Error('Native sharing not supported for this data');
-        }
-      } else {
-        // Fallback to clipboard
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(`${shareText}\n\n${shareUrl}`);
-          setSnackbarMessage('Link copied to clipboard!');
-          setSnackbarOpen(true);
-        } else {
-          // Fallback for older browsers
-          const textArea = document.createElement('textarea');
-          textArea.value = `${shareText}\n\n${shareUrl}`;
-          document.body.appendChild(textArea);
-          textArea.select();
-          document.execCommand('copy');
-          document.body.removeChild(textArea);
-          setSnackbarMessage('Link copied to clipboard!');
-          setSnackbarOpen(true);
-        }
-      }
-      
-      // Increment share count
-      await scientificUpdateService.incrementShareCount(update.id);
-      loadUpdates();
-    } catch (error) {
-      console.error('Error sharing:', error);
-      setSnackbarMessage('Failed to share. Please try again.');
-      setSnackbarOpen(true);
-    }
-  };
 
 
 
@@ -529,8 +505,8 @@ const EvidencePage: React.FC = () => {
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <IconButton
-                      onClick={() => handleVote(selectedUpdate.id, true)}
-                      color="primary"
+                      onClick={() => handleVote(selectedUpdate.id)}
+                      color={selectedUpdate.votedBy?.includes(currentUser?.id || '') ? "primary" : "default"}
                     >
                       {selectedUpdate.votedBy?.includes(currentUser?.id || '') ? (
                         <ThumbUp />
@@ -544,20 +520,14 @@ const EvidencePage: React.FC = () => {
                   </Box>
                   
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={() => handleCopyLink(selectedUpdate)}
-                      startIcon={<Link />}
-                    >
-                      Copy Link
-                    </Button>
-                    <IconButton
-                      onClick={() => handleShare(selectedUpdate)}
-                      color="primary"
-                    >
-                      <Share />
-                    </IconButton>
+                    <SocialSharing
+                      url={`${window.location.origin}/evidence/${selectedUpdate.id}`}
+                      title={selectedUpdate.title}
+                      description={selectedUpdate.summary}
+                      hashtags={['reverseaging', 'longevity', 'science', 'health']}
+                      size="medium"
+                      showLabels={false}
+                    />
                   </Box>
                 </Box>
               </CardContent>
@@ -745,12 +715,7 @@ const EvidencePage: React.FC = () => {
                       {update.summary}
                     </Typography>
 
-                    {/* Meta information */}
-                    <Box sx={{ mb: 2 }}>
-                      <Typography variant="caption" color="text.secondary">
-                        {format(update.publishedDate.toDate(), 'MMM dd, yyyy')}
-                      </Typography>
-                    </Box>
+
 
                     {/* Tags */}
                     {update.tags && update.tags.length > 0 && (
@@ -786,8 +751,9 @@ const EvidencePage: React.FC = () => {
                           size="small"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleVote(update.id, true);
+                            handleVote(update.id);
                           }}
+                          color={update.votedBy?.includes(currentUser?.id || '') ? "primary" : "default"}
                         >
                           {update.votedBy?.includes(currentUser?.id || '') ? (
                             <ThumbUp sx={{ fontSize: 16 }} />
@@ -801,26 +767,10 @@ const EvidencePage: React.FC = () => {
                       </Box>
                       
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCopyLink(update);
-                          }}
-                          sx={{ fontSize: '0.7rem', px: 1, py: 0.5 }}
-                        >
-                          Copy Link
-                        </Button>
-                        <IconButton
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleShare(update);
-                          }}
-                        >
-                          <Share sx={{ fontSize: 16 }} />
-                        </IconButton>
+                        <AccessTime sx={{ fontSize: 14, color: 'text.secondary' }} />
+                        <Typography variant="caption" color="text.secondary">
+                          {format(update.publishedDate.toDate(), 'MMM dd, yyyy')}
+                        </Typography>
                       </Box>
                     </Box>
                   </CardContent>

@@ -67,8 +67,8 @@ const PaymentPage: React.FC = () => {
     
     // Track successful payment analytics
     if (course) {
-      trackEvent.paymentCompleted(courseId || '', course.price, 'USD');
-      trackEvent.courseEnroll(courseId || '', course.title, course.price);
+      // Note: Payment amount is now tracked in the payment service with cohort pricing
+      trackEvent.courseEnroll(courseId || '', course.title, 0);
     }
     
 
@@ -151,8 +151,6 @@ const PaymentPage: React.FC = () => {
           <PaymentForm
             courseId={courseId || ''}
             courseTitle={course.title}
-            price={course.price}
-            specialOffer={course.specialOffer}
             onSuccess={handlePaymentSuccess}
             onError={handlePaymentError}
           />

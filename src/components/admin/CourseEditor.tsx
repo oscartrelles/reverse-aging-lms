@@ -37,12 +37,9 @@ const CourseEditor: React.FC<CourseEditorProps> = ({
   const [formData, setFormData] = useState({
     title: courseData?.title || '',
     description: courseData?.description || '',
-    price: courseData?.price || 299,
-    specialOffer: courseData?.specialOffer || 0,
     duration: courseData?.duration || 7,
     maxStudents: courseData?.maxStudents || 100,
     status: courseData?.status || 'active',
-    isFree: courseData?.isFree || false,
   });
 
   const [loading, setLoading] = useState(false);
@@ -132,26 +129,7 @@ const CourseEditor: React.FC<CourseEditorProps> = ({
               required
             />
 
-            <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-              <TextField
-                fullWidth
-                label="Price (€)"
-                type="number"
-                value={formData.price}
-                onChange={(e) => handleInputChange('price', Number(e.target.value))}
-                disabled={formData.isFree}
-              />
 
-              <TextField
-                fullWidth
-                label="Special Offer Price (€) - 0 for no offer"
-                type="number"
-                value={formData.specialOffer}
-                onChange={(e) => handleInputChange('specialOffer', Number(e.target.value))}
-                disabled={formData.isFree}
-                helperText="Set to 0 to disable special offer, or enter a price lower than regular price"
-              />
-            </Box>
 
             <TextField
               fullWidth
@@ -186,15 +164,7 @@ const CourseEditor: React.FC<CourseEditorProps> = ({
               </FormControl>
             </Box>
 
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={formData.isFree}
-                  onChange={(e) => handleInputChange('isFree', e.target.checked)}
-                />
-              }
-              label="Free Course"
-            />
+
           </Box>
 
           <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>

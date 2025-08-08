@@ -103,7 +103,15 @@ const Dashboard: React.FC = () => {
         maxStudents: 50,
         currentStudents: 1,
         status: 'active' as const,
-        weeklyReleaseTime: '08:00'
+        weeklyReleaseTime: '08:00',
+        // Add required pricing fields
+        pricing: {
+          basePrice: 0,
+          currency: 'EUR',
+          isFree: true,
+          tier: 'basic' as const
+        },
+        coupons: []
       };
     }
     

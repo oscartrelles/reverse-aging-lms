@@ -28,6 +28,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAuthModal } from '../contexts/AuthModalContext';
+import { useProgramsPageSEO } from '../hooks/useSEO';
 import ProgramCard from '../components/ProgramCard';
 
 const ProgramsPage: React.FC = () => {
@@ -36,6 +37,9 @@ const ProgramsPage: React.FC = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const { showAuthModal } = useAuthModal();
+  
+  // SEO setup
+  useProgramsPageSEO();
 
   const handleJoinAcademy = () => {
     if (currentUser) {

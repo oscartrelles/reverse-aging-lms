@@ -35,6 +35,9 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useAuthModal } from '../contexts/AuthModalContext';
 import { courseManagementService } from '../services/courseManagementService';
+import { cohortPricingService } from '../services/cohortPricingService';
+import { useSEO } from '../hooks/useSEO';
+import { seoService } from '../services/seoService';
 import { format, isAfter } from 'date-fns';
 import { Lesson as DBLesson, Cohort, Course } from '../types';
 import Testimonials from '../components/Testimonials';
@@ -50,11 +53,25 @@ const CoursePage: React.FC = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const { showAuthModal } = useAuthModal();
+  
+  // SEO setup - will be updated when course data loads
+  useSEO({
+    title: 'Course Details - Reverse Aging Academy',
+    description: 'Explore our comprehensive course on reverse aging and health optimization. Join our community and transform your healthspan.',
+    canonicalPath: `/course/${courseId || 'default'}`,
+    type: 'website',
+    breadcrumbs: [
+      { name: 'Home', url: '/' },
+      { name: 'Programs', url: '/programs' },
+      { name: 'Course Details', url: `/course/${courseId || 'default'}` }
+    ]
+  });
 
   // State for data
   const [course, setCourse] = useState<Course | null>(null);
   const [courseLessons, setCourseLessons] = useState<Lesson[]>([]);
   const [cohorts, setCohorts] = useState<Cohort[]>([]);
+  const [cohortPricing, setCohortPricing] = useState<{[key: string]: any}>({});
   const [loading, setLoading] = useState(true);
   const [loadingCohorts, setLoadingCohorts] = useState(false);
   
@@ -91,8 +108,29 @@ const CoursePage: React.FC = () => {
     if (courseId) {
       setLoadingCohorts(true);
       courseManagementService.getCourseCohorts(courseId)
-        .then((cohortsData) => {
+        .then(async (cohortsData) => {
           setCohorts(cohortsData);
+          
+          // Load pricing information for each cohort
+          const pricingPromises = cohortsData.map(async (cohort) => {
+            try {
+              const pricingDisplay = await cohortPricingService.getPricingDisplay(cohort.id);
+              return { cohortId: cohort.id, pricing: pricingDisplay };
+            } catch (error) {
+              console.error(`Error loading pricing for cohort ${cohort.id}:`, error);
+              return { cohortId: cohort.id, pricing: null };
+            }
+          });
+          
+          const pricingResults = await Promise.all(pricingPromises);
+          const pricingMap = pricingResults.reduce((acc, result) => {
+            if (result.pricing) {
+              acc[result.cohortId] = result.pricing;
+            }
+            return acc;
+          }, {} as {[key: string]: any});
+          
+          setCohortPricing(pricingMap);
         })
         .catch((error) => {
           console.error('Error loading cohorts:', error);
@@ -102,6 +140,32 @@ const CoursePage: React.FC = () => {
         });
     }
   }, [courseId]);
+  
+  // Update SEO when course data loads
+  useEffect(() => {
+    if (course) {
+      seoService.setupPageSEO({
+        title: `${course.title} - Reverse Aging Academy`,
+        description: course.description,
+        canonicalPath: `/course/${course.id}`,
+        type: 'website',
+        breadcrumbs: [
+          { name: 'Home', url: '/' },
+          { name: 'Programs', url: '/programs' },
+          { name: course.title, url: `/course/${course.id}` }
+        ]
+      });
+      
+      seoService.addCourseSchema({
+        name: course.title,
+        description: course.description,
+        url: `/course/${course.id}`,
+        provider: 'The Reverse Aging Academy',
+        duration: 'P7W',
+        educationalLevel: 'Beginner'
+      });
+    }
+  }, [course]);
 
   // Calculate total lessons for display
   const totalLessons = courseLessons.length;
@@ -297,13 +361,45 @@ const CoursePage: React.FC = () => {
                             />
                           )}
                           
-                          <CardContent sx={{ p: 3, pt: isUpcoming ? 4 : 3 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                              <CalendarToday sx={{ fontSize: 20, color: 'primary.main' }} />
-                              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                {cohort.name}
-                              </Typography>
+                          <CardContent sx={{ 
+                            p: 3, 
+                            pt: isUpcoming ? 4 : 3,
+                            height: '100%',
+                            display: 'flex',
+                            flexDirection: 'column'
+                          }}>
+                            {/* Top Section - Title and Description */}
+                            <Box sx={{ mb: 2 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                                <CalendarToday sx={{ fontSize: 20, color: 'primary.main' }} />
+                                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                  {cohort.name}
+                                </Typography>
+                              </Box>
+                              
+                              {/* Cohort Description */}
+                              {cohort.description && (
+                                <Box sx={{ mb: 2 }}>
+                                  <Typography variant="body2" color="text.secondary" sx={{ 
+                                    fontStyle: 'italic',
+                                    lineHeight: 1.4,
+                                    px: 1,
+                                    py: 0.5,
+                                    backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                                    borderRadius: 1,
+                                    border: '1px solid rgba(0, 0, 0, 0.08)'
+                                  }}>
+                                    {cohort.description}
+                                  </Typography>
+                                </Box>
+                              )}
                             </Box>
+
+                            {/* Spacer to push content to bottom */}
+                            <Box sx={{ flexGrow: 1 }} />
+
+                            {/* Bottom Section - All other content */}
+                            <Box>
                             
                             <Box sx={{ mb: 2 }}>
                               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
@@ -344,27 +440,88 @@ const CoursePage: React.FC = () => {
                               />
                               {isUpcoming && (
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  <Chip 
-                                    label={`€${course.specialOffer && course.specialOffer > 0 ? course.specialOffer : course.price}`}
-                                    color="secondary"
-                                    size="small"
-                                  />
-                                  {course.specialOffer && course.specialOffer > 0 && (
-                                    <Typography 
-                                      variant="caption" 
-                                      sx={{ 
-                                        color: 'secondary.main',
-                                        fontWeight: 600,
-                                        fontSize: '0.7rem',
-                                        textTransform: 'uppercase',
-                                        letterSpacing: '0.5px'
-                                      }}
-                                    >
-                                      LIMITED TIME OFFER
-              </Typography>
-                                  )}
-            </Box>
-          )}
+                                  {(() => {
+                                    const pricing = cohortPricing[cohort.id];
+                                    if (pricing) {
+                                      if (pricing.isFree) {
+                                        return (
+                                          <Chip 
+                                            label="FREE"
+                                            color="success"
+                                            size="small"
+                                          />
+                                        );
+                                      } else {
+                                        let displayPrice = pricing.specialOffer && pricing.specialOffer > 0 
+                                          ? pricing.specialOffer 
+                                          : pricing.basePrice;
+                                        
+                                        let chipColor: "secondary" | "primary" = "secondary";
+                                        let showSpecialOffer = !!(pricing.specialOffer && pricing.specialOffer > 0);
+                                        let showEarlyBird = false;
+                                        
+                                        // Apply early bird discount if valid
+                                        if (pricing.earlyBirdDiscount && pricing.earlyBirdDiscount.amount > 0 && new Date() < new Date(pricing.earlyBirdDiscount.validUntil)) {
+                                          if (pricing.earlyBirdDiscount.type === 'percentage') {
+                                            displayPrice = displayPrice - (displayPrice * pricing.earlyBirdDiscount.amount / 100);
+                                          } else {
+                                            displayPrice = displayPrice - pricing.earlyBirdDiscount.amount;
+                                          }
+                                          showEarlyBird = true;
+                                          chipColor = "primary"; // Use primary color for early bird
+                                        }
+                                        
+                                        return (
+                                          <>
+                                            <Chip 
+                                              label={`€${Math.round(displayPrice)}`}
+                                              color={chipColor}
+                                              size="small"
+                                            />
+                                            {showSpecialOffer && !showEarlyBird && (
+                                              <Typography 
+                                                variant="caption" 
+                                                sx={{ 
+                                                  color: 'secondary.main',
+                                                  fontWeight: 600,
+                                                  fontSize: '0.7rem',
+                                                  textTransform: 'uppercase',
+                                                  letterSpacing: '0.5px'
+                                                }}
+                                              >
+                                                SPECIAL OFFER
+                                              </Typography>
+                                            )}
+                                            {showEarlyBird && (
+                                              <Typography 
+                                                variant="caption" 
+                                                sx={{ 
+                                                  color: 'primary.main',
+                                                  fontWeight: 600,
+                                                  fontSize: '0.7rem',
+                                                  textTransform: 'uppercase',
+                                                  letterSpacing: '0.5px'
+                                                }}
+                                              >
+                                                EARLY BIRD
+                                              </Typography>
+                                            )}
+                                          </>
+                                        );
+                                      }
+                                    } else {
+                                      // No cohort pricing available
+                                      return (
+                                        <Chip 
+                                          label="Contact us"
+                                          color="secondary"
+                                          size="small"
+                                        />
+                                      );
+                                    }
+                                  })()}
+                                </Box>
+                              )}
                             </Box>
                             
                             {isUpcoming ? (
@@ -395,6 +552,7 @@ const CoursePage: React.FC = () => {
                                 Completed
               </Button>
                             )}
+                            </Box> {/* Close bottom section */}
                           </CardContent>
                         </Card>
                       </Box>

@@ -11,6 +11,7 @@ import { ArrowForward, Star } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import TrustIndicators from './TrustIndicators';
 import { courseManagementService } from '../services/courseManagementService';
+import { cohortPricingService } from '../services/cohortPricingService';
 
 interface ProgramFeature {
   icon: React.ReactNode;
@@ -79,20 +80,9 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
         .then((course) => {
           if (course) {
             setCourseInfo(course);
-            // Set dynamic special offer with course price and specialOffer
-            if (course.price) {
-              // Show special offer if course.specialOffer exists and is greater than 0
-              if (course.specialOffer && course.specialOffer > 0) {
-                setDynamicSpecialOffer({
-                  regularPrice: `€${course.price}`,
-                  specialPrice: `€${course.specialOffer}`,
-                  offerText: 'Special Offer'
-                });
-              } else {
-                // No special offer - clear the dynamic special offer
-                setDynamicSpecialOffer(undefined);
-              }
-            }
+            // Pricing is now handled by cohorts, not courses
+            // Clear any course-level special offers since we use cohort pricing
+            setDynamicSpecialOffer(undefined);
           }
         })
         .catch((error) => {
@@ -104,7 +94,7 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
 
       // Load upcoming cohort
       courseManagementService.getNextUpcomingCohort(courseId)
-        .then((cohort) => {
+        .then(async (cohort) => {
           if (cohort) {
             setUpcomingCohort(cohort);
             const cohortDate = cohort.startDate.toDate().toLocaleDateString('en-US', { 
@@ -113,6 +103,26 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
               year: 'numeric' 
             });
             setDynamicSubtitle(`Next cohort starts: ${cohortDate}`);
+            
+            // Get cohort pricing information
+            try {
+              const pricingDisplay = await cohortPricingService.getPricingDisplay(cohort.id);
+              
+              // Update special offer with cohort pricing
+              if (pricingDisplay.specialOffer && pricingDisplay.specialOffer > 0) {
+                setDynamicSpecialOffer({
+                  regularPrice: `€${pricingDisplay.basePrice}`,
+                  specialPrice: `€${pricingDisplay.specialOffer}`,
+                  offerText: 'Special Offer'
+                });
+              } else if (!pricingDisplay.isFree) {
+                // No special offer but not free - clear dynamic special offer
+                setDynamicSpecialOffer(undefined);
+              }
+            } catch (pricingError) {
+              console.error('Error loading cohort pricing:', pricingError);
+              // Fallback to course pricing if cohort pricing fails
+            }
           }
         })
         .catch((error) => {

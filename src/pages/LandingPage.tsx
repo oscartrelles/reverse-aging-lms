@@ -31,6 +31,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useAuthModal } from '../contexts/AuthModalContext';
 import { useSearchParams } from 'react-router-dom';
 import { useAnalytics } from '../hooks/useAnalytics';
+import { useLandingPageSEO } from '../hooks/useSEO';
 import { courseManagementService } from '../services/courseManagementService';
 import Testimonials from '../components/Testimonials';
 import FAQ from '../components/FAQ';
@@ -42,6 +43,9 @@ const LandingPage: React.FC = () => {
   const { showAuthModal } = useAuthModal();
   const navigate = useNavigate();
   const { trackEvent } = useAnalytics();
+  
+  // SEO setup
+  useLandingPageSEO();
   
   // Scientific Updates Preview
   const [scientificUpdates, setScientificUpdates] = useState<any[]>([]);

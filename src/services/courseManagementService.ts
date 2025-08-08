@@ -15,7 +15,7 @@ import {
   onSnapshot
 } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
-import { Course, Lesson, Cohort } from '../types';
+import { Course, Lesson, Cohort, CohortPricing, CohortCoupon } from '../types';
 
 export interface CreateCourseData {
   title: string;
@@ -96,6 +96,10 @@ export interface CreateCohortData {
   weeklyReleaseTime?: string;
   isActive?: boolean;
   enrollmentDeadline?: Date;
+  
+  // Pricing configuration
+  pricing: CohortPricing;
+  coupons?: CohortCoupon[];
 }
 
 export interface UpdateCohortData {
@@ -109,6 +113,10 @@ export interface UpdateCohortData {
   weeklyReleaseTime?: string;
   isActive?: boolean;
   enrollmentDeadline?: Date;
+  
+  // Pricing configuration
+  pricing?: CohortPricing;
+  coupons?: CohortCoupon[];
 }
 
 export const courseManagementService = {
@@ -365,6 +373,22 @@ export const courseManagementService = {
 
   async createCohort(cohortData: CreateCohortData): Promise<string> {
     try {
+      // Convert dates and process coupon timestamps
+      const processedCoupons = (cohortData.coupons || []).map(coupon => ({
+        ...coupon,
+        validFrom: Timestamp.fromDate(new Date(coupon.validFrom as any)),
+        validUntil: Timestamp.fromDate(new Date(coupon.validUntil as any)),
+      }));
+
+      // Process early bird discount if present
+      const processedPricing = {
+        ...cohortData.pricing,
+        earlyBirdDiscount: cohortData.pricing.earlyBirdDiscount ? {
+          ...cohortData.pricing.earlyBirdDiscount,
+          validUntil: Timestamp.fromDate(new Date(cohortData.pricing.earlyBirdDiscount.validUntil as any))
+        } : undefined
+      };
+
       const cohortDataWithTimestamps = {
         ...cohortData,
         startDate: Timestamp.fromDate(cohortData.startDate),
@@ -373,6 +397,8 @@ export const courseManagementService = {
         status: cohortData.status || 'upcoming',
         isActive: cohortData.isActive || false,
         enrollmentDeadline: cohortData.enrollmentDeadline ? Timestamp.fromDate(cohortData.enrollmentDeadline) : null,
+        pricing: processedPricing,
+        coupons: processedCoupons,
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       };
@@ -618,6 +644,231 @@ export const courseManagementService = {
     } catch (error) {
       console.error('Error getting next upcoming cohort:', error);
       return null;
+    }
+  },
+
+  // Pricing & Coupon Management Functions
+
+  // Calculate final price for a cohort with optional coupon
+  calculateCohortPrice(cohort: Cohort, couponCode?: string): { 
+    originalPrice: number;
+    finalPrice: number;
+    discount: number;
+    appliedCoupon?: CohortCoupon;
+    appliedEarlyBird?: boolean;
+    error?: string;
+  } {
+    try {
+      if (cohort.pricing.isFree) {
+        return {
+          originalPrice: 0,
+          finalPrice: 0,
+          discount: 0,
+        };
+      }
+
+      let basePrice = cohort.pricing.specialOffer && cohort.pricing.specialOffer > 0 
+        ? cohort.pricing.specialOffer 
+        : cohort.pricing.basePrice;
+
+      let finalPrice = basePrice;
+      let discount = 0;
+      let appliedCoupon: CohortCoupon | undefined;
+      let appliedEarlyBird = false;
+
+      // Apply early bird discount if valid
+      const now = new Date();
+      if (cohort.pricing.earlyBirdDiscount && 
+          cohort.pricing.earlyBirdDiscount.validUntil.toDate() > now) {
+        appliedEarlyBird = true;
+        if (cohort.pricing.earlyBirdDiscount.type === 'percentage') {
+          discount += (finalPrice * cohort.pricing.earlyBirdDiscount.amount / 100);
+        } else {
+          discount += cohort.pricing.earlyBirdDiscount.amount;
+        }
+      }
+
+      // Apply coupon if provided
+      if (couponCode) {
+        const coupon = cohort.coupons.find(c => 
+          c.code.toLowerCase() === couponCode.toLowerCase() && 
+          c.isActive &&
+          c.validFrom.toDate() <= now &&
+          c.validUntil.toDate() > now &&
+          c.currentUses < c.maxUses
+        );
+
+        if (!coupon) {
+          return {
+            originalPrice: basePrice,
+            finalPrice: Math.max(0, finalPrice - discount),
+            discount,
+            appliedEarlyBird,
+            error: 'Invalid or expired coupon code'
+          };
+        }
+
+        // Check minimum amount requirement
+        if (coupon.minAmount && finalPrice < coupon.minAmount) {
+          return {
+            originalPrice: basePrice,
+            finalPrice: Math.max(0, finalPrice - discount),
+            discount,
+            appliedEarlyBird,
+            error: `Minimum purchase amount of ${coupon.minAmount} ${cohort.pricing.currency} required for this coupon`
+          };
+        }
+
+        appliedCoupon = coupon;
+        if (coupon.type === 'percentage') {
+          discount += (finalPrice * coupon.value / 100);
+        } else {
+          discount += coupon.value;
+        }
+      }
+
+      finalPrice = Math.max(0, finalPrice - discount);
+
+      return {
+        originalPrice: basePrice,
+        finalPrice,
+        discount,
+        appliedCoupon,
+        appliedEarlyBird,
+      };
+    } catch (error) {
+      console.error('Error calculating cohort price:', error);
+      return {
+        originalPrice: cohort.pricing.basePrice,
+        finalPrice: cohort.pricing.basePrice,
+        discount: 0,
+        error: 'Error calculating price'
+      };
+    }
+  },
+
+  // Validate and apply coupon (increments usage)
+  async applyCoupon(cohortId: string, couponCode: string): Promise<{ success: boolean; message: string; coupon?: CohortCoupon }> {
+    try {
+      const cohortDoc = await getDoc(doc(db, 'cohorts', cohortId));
+      if (!cohortDoc.exists()) {
+        return { success: false, message: 'Cohort not found' };
+      }
+
+      const cohort = { id: cohortDoc.id, ...cohortDoc.data() } as Cohort;
+      const now = new Date();
+      
+      const couponIndex = cohort.coupons.findIndex(c => 
+        c.code.toLowerCase() === couponCode.toLowerCase() && 
+        c.isActive &&
+        c.validFrom.toDate() <= now &&
+        c.validUntil.toDate() > now &&
+        c.currentUses < c.maxUses
+      );
+
+      if (couponIndex === -1) {
+        return { success: false, message: 'Invalid or expired coupon code' };
+      }
+
+      // Increment coupon usage
+      const updatedCoupons = [...cohort.coupons];
+      updatedCoupons[couponIndex] = {
+        ...updatedCoupons[couponIndex],
+        currentUses: updatedCoupons[couponIndex].currentUses + 1
+      };
+
+      await updateDoc(doc(db, 'cohorts', cohortId), {
+        coupons: updatedCoupons,
+        updatedAt: Timestamp.now(),
+      });
+
+      return { 
+        success: true, 
+        message: 'Coupon applied successfully',
+        coupon: updatedCoupons[couponIndex]
+      };
+    } catch (error) {
+      console.error('Error applying coupon:', error);
+      return { success: false, message: 'Error applying coupon' };
+    }
+  },
+
+  // Add coupon to cohort
+  async addCouponToCohort(cohortId: string, coupon: Omit<CohortCoupon, 'currentUses'>): Promise<boolean> {
+    try {
+      const cohortDoc = await getDoc(doc(db, 'cohorts', cohortId));
+      if (!cohortDoc.exists()) {
+        throw new Error('Cohort not found');
+      }
+
+      const cohort = { id: cohortDoc.id, ...cohortDoc.data() } as Cohort;
+      const newCoupon: CohortCoupon = {
+        ...coupon,
+        currentUses: 0,
+        validFrom: Timestamp.fromDate(new Date(coupon.validFrom as any)),
+        validUntil: Timestamp.fromDate(new Date(coupon.validUntil as any)),
+      };
+
+      const updatedCoupons = [...cohort.coupons, newCoupon];
+
+      await updateDoc(doc(db, 'cohorts', cohortId), {
+        coupons: updatedCoupons,
+        updatedAt: Timestamp.now(),
+      });
+
+      console.log('✅ Coupon added to cohort successfully');
+      return true;
+    } catch (error) {
+      console.error('❌ Error adding coupon to cohort:', error);
+      throw error;
+    }
+  },
+
+  // Remove coupon from cohort
+  async removeCouponFromCohort(cohortId: string, couponCode: string): Promise<boolean> {
+    try {
+      const cohortDoc = await getDoc(doc(db, 'cohorts', cohortId));
+      if (!cohortDoc.exists()) {
+        throw new Error('Cohort not found');
+      }
+
+      const cohort = { id: cohortDoc.id, ...cohortDoc.data() } as Cohort;
+      const updatedCoupons = cohort.coupons.filter(c => c.code !== couponCode);
+
+      await updateDoc(doc(db, 'cohorts', cohortId), {
+        coupons: updatedCoupons,
+        updatedAt: Timestamp.now(),
+      });
+
+      console.log('✅ Coupon removed from cohort successfully');
+      return true;
+    } catch (error) {
+      console.error('❌ Error removing coupon from cohort:', error);
+      throw error;
+    }
+  },
+
+  // Update cohort pricing
+  async updateCohortPricing(cohortId: string, pricing: CohortPricing): Promise<boolean> {
+    try {
+      const processedPricing = {
+        ...pricing,
+        earlyBirdDiscount: pricing.earlyBirdDiscount ? {
+          ...pricing.earlyBirdDiscount,
+          validUntil: Timestamp.fromDate(new Date(pricing.earlyBirdDiscount.validUntil as any))
+        } : undefined
+      };
+
+      await updateDoc(doc(db, 'cohorts', cohortId), {
+        pricing: processedPricing,
+        updatedAt: Timestamp.now(),
+      });
+
+      console.log('✅ Cohort pricing updated successfully');
+      return true;
+    } catch (error) {
+      console.error('❌ Error updating cohort pricing:', error);
+      throw error;
     }
   },
 }; 

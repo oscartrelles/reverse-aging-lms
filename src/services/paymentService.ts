@@ -2,7 +2,7 @@ import { addDoc, collection, updateDoc, doc, Timestamp, getDoc } from 'firebase/
 import { db } from '../firebaseConfig';
 import { enrollmentService } from './enrollmentService';
 import { emailIntegrationService } from './emailIntegrationService';
-import { User, Course } from '../types';
+import { User, Course, Cohort } from '../types';
 
 export interface PaymentRecord {
   id?: string;
@@ -24,7 +24,8 @@ export interface PaymentRecord {
 export const recordPayment = async (
   paymentData: Omit<PaymentRecord, 'id' | 'createdAt' | 'updatedAt'>,
   user?: User,
-  course?: Course
+  course?: Course,
+  cohort?: Cohort
 ) => {
   try {
     console.log('Recording payment:', paymentData);
@@ -57,7 +58,8 @@ export const recordPayment = async (
             user, 
             course, 
             paymentData.amount, 
-            paymentData.currency || 'EUR'
+            paymentData.currency || 'EUR',
+            cohort // Pass cohort information for better email context
           );
         } catch (emailError) {
           console.warn('Failed to send payment confirmation email:', emailError);

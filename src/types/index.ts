@@ -46,9 +46,6 @@ export interface Course {
   id: string;
   title: string;
   description: string;
-  price: number;
-  specialOffer?: number; // Special offer price (if greater than 0, use instead of price)
-  isFree: boolean;
   maxStudents: number;
   duration: number; // weeks
   status: 'draft' | 'active' | 'archived';
@@ -104,6 +101,34 @@ export interface Enrollment {
   paymentId?: string;
 }
 
+// Coupon types
+export interface CohortCoupon {
+  code: string;
+  type: 'percentage' | 'fixed';
+  value: number;
+  validFrom: Timestamp;
+  validUntil: Timestamp;
+  maxUses: number;
+  currentUses: number;
+  isActive: boolean;
+  description?: string;
+  minAmount?: number; // Minimum purchase amount for coupon to apply
+}
+
+// Pricing types
+export interface CohortPricing {
+  basePrice: number;
+  currency: string;
+  specialOffer?: number; // Special offer price (if greater than 0, use instead of basePrice)
+  isFree: boolean;
+  tier: 'basic' | 'premium' | 'vip';
+  earlyBirdDiscount?: {
+    amount: number;
+    type: 'percentage' | 'fixed';
+    validUntil: Timestamp;
+  };
+}
+
 // Cohort types
 export interface Cohort {
   id: string;
@@ -118,6 +143,11 @@ export interface Cohort {
   weeklyReleaseTime?: string; // "08:00" for 8am
   isActive?: boolean;
   enrollmentDeadline?: Timestamp;
+  
+  // Pricing and coupons
+  pricing: CohortPricing;
+  coupons: CohortCoupon[];
+  
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }

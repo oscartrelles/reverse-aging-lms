@@ -10,11 +10,24 @@ import {
 } from '@mui/material';
 import { Science, School, Psychology, ArrowForward, CheckCircle } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
+import { useSEO } from '../hooks/useSEO';
 
 const AboutPage: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { currentUser } = useAuth();
+  
+  // SEO setup
+  useSEO({
+    title: 'About Us - The Reverse Aging Academy',
+    description: 'Learn about The Reverse Aging Academy, our mission to bring evidence-based longevity science to everyone, and the team behind the 7-Week Reverse Aging Challenge.',
+    canonicalPath: '/about',
+    type: 'website',
+    breadcrumbs: [
+      { name: 'Home', url: '/' },
+      { name: 'About', url: '/about' }
+    ]
+  });
 
   const handleJoinAcademy = () => {
     // Navigate to signup or show auth modal

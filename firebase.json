@@ -12,6 +12,22 @@
       ],
       "rewrites": [
         {
+          "source": "/evidence/**",
+          "function": "dynamicMetaTags"
+        },
+        {
+          "source": "/course/**",
+          "function": "dynamicMetaTags"
+        },
+        {
+          "source": "/programs",
+          "function": "dynamicMetaTags"
+        },
+        {
+          "source": "/about",
+          "function": "dynamicMetaTags"
+        },
+        {
           "source": "**",
           "destination": "/index.html"
         }
@@ -56,6 +72,22 @@
         "**/*.log"
       ],
       "rewrites": [
+        {
+          "source": "/evidence/**",
+          "function": "dynamicMetaTags"
+        },
+        {
+          "source": "/course/**",
+          "function": "dynamicMetaTags"
+        },
+        {
+          "source": "/programs",
+          "function": "dynamicMetaTags"
+        },
+        {
+          "source": "/about",
+          "function": "dynamicMetaTags"
+        },
         {
           "source": "**",
           "destination": "/index.html"
