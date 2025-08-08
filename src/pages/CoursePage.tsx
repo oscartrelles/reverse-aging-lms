@@ -29,6 +29,7 @@ import {
   HealthAndSafety,
   Air,
   DirectionsRun,
+  LocationOn,
 } from '@mui/icons-material';
 
 import { useAuth } from '../contexts/AuthContext';
@@ -37,6 +38,7 @@ import { courseManagementService } from '../services/courseManagementService';
 import { format, isAfter } from 'date-fns';
 import { Lesson as DBLesson, Cohort, Course } from '../types';
 import Testimonials from '../components/Testimonials';
+import ProgramCard from '../components/ProgramCard';
 
 // Local interface that matches the database types
 interface Lesson extends Omit<DBLesson, 'releaseDate'> {
@@ -318,9 +320,9 @@ const CoursePage: React.FC = () => {
                                   <Typography variant="body2" color="text.secondary">
                                     {Math.round(((cohort.currentStudents || 0) / cohort.maxStudents) * 100)}%
                                   </Typography>
-                                </Box>
-                                <LinearProgress 
-                                  variant="determinate" 
+              </Box>
+              <LinearProgress 
+                variant="determinate" 
                                   value={((cohort.currentStudents || 0) / cohort.maxStudents) * 100} 
                                   sx={{ 
                                     height: 6, 
@@ -359,15 +361,15 @@ const CoursePage: React.FC = () => {
                                       }}
                                     >
                                       LIMITED TIME OFFER
-                                    </Typography>
+              </Typography>
                                   )}
-                                </Box>
-                              )}
+            </Box>
+          )}
                             </Box>
                             
                             {isUpcoming ? (
-                              <Button
-                                variant="contained"
+              <Button
+                variant="contained"
                                 fullWidth
                                 onClick={() => handleEnrollInCohort(cohort)}
                                 sx={{ fontWeight: 600 }}
@@ -382,16 +384,16 @@ const CoursePage: React.FC = () => {
                                 sx={{ fontWeight: 600 }}
                               >
                                 Cohort Full
-                              </Button>
+              </Button>
                             ) : (
-                              <Button
-                                variant="outlined"
+              <Button
+                variant="outlined"
                                 fullWidth
                                 disabled
                                 sx={{ fontWeight: 600 }}
-                              >
+              >
                                 Completed
-                              </Button>
+              </Button>
                             )}
                           </CardContent>
                         </Card>
@@ -417,21 +419,21 @@ const CoursePage: React.FC = () => {
             </Typography>
           </Box>
         ) : (
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 3 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 3 }}>
             {courseLessons.map((lesson) => {
               const lessonIcon = getLessonIcon(lesson);
 
-              return (
-                <Card 
-                  key={lesson.id}
-                  sx={{ 
-                    height: '100%',
-                    transition: 'all 0.2s ease-in-out',
-                  }}
-                >
+            return (
+              <Card 
+                key={lesson.id}
+                sx={{ 
+                  height: '100%',
+                  transition: 'all 0.2s ease-in-out',
+                }}
+              >
                   <CardContent sx={{ p: 3, display: 'flex', flexDirection: 'column', height: '100%' }}>
-                    {/* Lesson Header */}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                  {/* Lesson Header */}
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                       <Box sx={{ flex: 1 }}>
                         <Typography 
                           variant="caption" 
@@ -446,9 +448,9 @@ const CoursePage: React.FC = () => {
                         >
                           Week {lesson.weekNumber}
                         </Typography>
-                        <Typography variant="h6" gutterBottom>
+                      <Typography variant="h6" gutterBottom>
                           {lesson.title}
-                        </Typography>
+                      </Typography>
                         <Typography 
                           variant="body2" 
                           color="text.secondary" 
@@ -458,9 +460,9 @@ const CoursePage: React.FC = () => {
                             lineHeight: 1.6
                           }}
                         >
-                          {lesson.description}
-                        </Typography>
-                      </Box>
+                        {lesson.description}
+                      </Typography>
+                    </Box>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 2 }}>
                         <Box sx={{ 
                           color: lessonIcon.color, 
@@ -492,12 +494,12 @@ const CoursePage: React.FC = () => {
                         <Description sx={{ fontSize: 16, color: 'primary.main' }} />
                         <Typography variant="body2" sx={{ color: 'primary.main', fontWeight: 500 }}>
                           Key Practices and Integration Tasks
-                        </Typography>
-                      </Box>
+                      </Typography>
+                    </Box>
                       <Typography variant="caption" color="text.secondary">
                         A workbook will be available for you to download at the start of the course. Use it to track your progress and complete exercises.
                       </Typography>
-                    </Box>
+                  </Box>
 
                     {/* Divider above lesson duration */}
                     <Divider sx={{ mb: 1, borderColor: 'rgba(0, 0, 0, 0.08)', borderWidth: 1 }} />
@@ -508,16 +510,51 @@ const CoursePage: React.FC = () => {
                         <PlayCircle sx={{ fontSize: 16, color: 'text.secondary' }} />
                         <Typography variant="body2" color="text.secondary">
                           {lesson.videoDuration ? formatDuration(lesson.videoDuration) : 'Video lesson'}
-                        </Typography>
+        </Typography>
                       </Box>
                     </Box>
 
 
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </Box>
+                </CardContent>
+              </Card>
+            );
+          })}
+          
+          {/* In-Person Reset Advertisement Card */}
+          <ProgramCard
+            title="The 7-Day Reverse Aging Reset"
+            subtitle="Next retreat: October 25-31, 2024"
+            description="For those ready to go all in, our 7‑day retreat in the Málaga countryside is an immersive reset."
+            features={[
+              {
+                icon: <FitnessCenter sx={{ fontSize: 20 }} />,
+                text: "<strong>Breathwork, cold, and heat exposure</strong> every day, guided by certified instructors"
+              },
+              {
+                icon: <Psychology sx={{ fontSize: 20 }} />,
+                text: "<strong>Movement and mindset training</strong> designed to rewire how your body responds to stress"
+              },
+              {
+                icon: <Restaurant sx={{ fontSize: 20 }} />,
+                text: "<strong>Chef‑prepared, metabolically aligned meals</strong> to fuel the transformation"
+              },
+              {
+                icon: <Group sx={{ fontSize: 20 }} />,
+                text: "<strong>A small, supportive group</strong> creating breakthroughs that last long after you leave"
+              }
+            ]}
+            buttonText="Apply for In-Person Reset"
+            buttonVariant="outlined"
+            icon={<Spa sx={{ fontSize: 32 }} />}
+            iconColor="secondary"
+            externalUrl="https://7weekreverseagingchallenge.com"
+            sx={{
+              gridColumn: { xs: '1', md: '1 / -1' },
+              maxWidth: { md: '600px' },
+              mx: 'auto'
+            }}
+          />
+        </Box>
         )}
 
 

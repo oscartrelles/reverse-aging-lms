@@ -49,6 +49,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCourse } from '../contexts/CourseContext';
 import { useNavigate } from 'react-router-dom';
 import { userProfileService, ExtendedProfile, UserProgress } from '../services/userProfileService';
+import { courseManagementService } from '../services/courseManagementService';
 import { detectUserTimezone, getTimezoneDisplayName, isValidTimezone } from '../utils/timezoneUtils';
 import { calculateAge, formatDateOfBirth, toFirestoreTimestamp } from '../utils/ageUtils';
 import TimezoneSelector from '../components/TimezoneSelector';
@@ -63,6 +64,7 @@ const ProfilePage: React.FC = () => {
   // State management
   const [profileData, setProfileData] = useState<ExtendedProfile | null>(null);
   const [progressData, setProgressData] = useState<UserProgress | null>(null);
+  const [courseData, setCourseData] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -81,6 +83,7 @@ const ProfilePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Check if this is a new social user who needs to complete their profile
@@ -120,6 +123,20 @@ const ProfilePage: React.FC = () => {
           userProfileService.getExtendedProfile(currentUser.id),
           userProfileService.getUserProgress(currentUser.id),
         ]);
+
+        // Load course data if user is enrolled
+        if (currentEnrollment?.courseId) {
+          try {
+            console.log('Loading course data for courseId:', currentEnrollment.courseId);
+            const course = await courseManagementService.getCourse(currentEnrollment.courseId);
+            console.log('Course data loaded:', course);
+            setCourseData(course);
+          } catch (error) {
+            console.warn('Could not load course data:', error);
+          }
+        } else {
+          console.log('No currentEnrollment or courseId found:', currentEnrollment);
+        }
 
         // Initialize profile data with defaults if not exists
         if (extendedProfile) {
@@ -164,7 +181,7 @@ const ProfilePage: React.FC = () => {
     };
 
     loadUserData();
-  }, [currentUser]);
+  }, [currentUser, currentEnrollment]);
 
   const handleSave = async () => {
     if (!currentUser || !profileData) return;
@@ -236,9 +253,14 @@ const ProfilePage: React.FC = () => {
     
     try {
       await userProfileService.deleteUserAccount(currentUser.id);
-      setMessage({ type: 'success', text: 'Account deletion requested. Please contact support for confirmation.' });
+      setMessage({ type: 'success', text: 'Account deleted successfully. You will be redirected shortly.' });
       setTimeout(() => setMessage(null), 3000);
       setShowDeleteDialog(false);
+      setDeleteConfirmation('');
+      // Redirect to home page after a short delay
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 3000);
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to delete account. Please try again.' });
     }
@@ -555,18 +577,20 @@ const ProfilePage: React.FC = () => {
                     Upload a profile picture to personalize your account. Supported formats: JPG, PNG, GIF. Max size: 5MB.
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 2 }}>
-                    {currentUser.photoURL && (
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        color="error"
-                        onClick={handlePhotoDelete}
-                        disabled={uploadingPhoto}
-                        startIcon={<DeleteIcon />}
-                      >
-                        Remove
-                      </Button>
-                    )}
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      color="error"
+                      onClick={handlePhotoDelete}
+                      disabled={uploadingPhoto || !currentUser.photoURL}
+                      startIcon={<DeleteIcon />}
+                      sx={{
+                        opacity: currentUser.photoURL ? 1 : 0.5,
+                        cursor: currentUser.photoURL ? 'pointer' : 'not-allowed'
+                      }}
+                    >
+                      Remove
+                    </Button>
                     {currentUser.authProvider && currentUser.authProvider !== 'email' && (
                       <Chip
                         label={`Signed in with ${currentUser.authProvider === 'google' ? 'Google' : 'Facebook'}`}
@@ -1144,12 +1168,22 @@ const ProfilePage: React.FC = () => {
                 Account Security
               </Typography>
 
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Box sx={{ 
+                display: 'flex', 
+                flexDirection: { xs: 'column', sm: 'row' }, 
+                gap: 2, 
+                flexWrap: 'wrap',
+                justifyContent: { sm: 'space-between' },
+                alignItems: { xs: 'stretch', sm: 'center' }
+              }}>
                 <Button
                   variant="outlined"
                   startIcon={<Security />}
                   onClick={() => setShowPasswordDialog(true)}
-                  sx={{ alignSelf: 'flex-start' }}
+                  sx={{ 
+                    flex: { xs: '1', sm: '1 1 0' },
+                    minWidth: { sm: 'auto' }
+                  }}
                 >
                   Change Password
                 </Button>
@@ -1157,7 +1191,10 @@ const ProfilePage: React.FC = () => {
                   variant="outlined"
                   startIcon={<Download />}
                   onClick={() => setShowExportDialog(true)}
-                  sx={{ alignSelf: 'flex-start' }}
+                  sx={{ 
+                    flex: { xs: '1', sm: '1 1 0' },
+                    minWidth: { sm: 'auto' }
+                  }}
                 >
                   Export My Data
                 </Button>
@@ -1166,7 +1203,17 @@ const ProfilePage: React.FC = () => {
                   color="error"
                   startIcon={<Delete />}
                   onClick={() => setShowDeleteDialog(true)}
-                  sx={{ alignSelf: 'flex-start' }}
+                  sx={{ 
+                    flex: { xs: '1', sm: '1 1 0' },
+                    minWidth: { sm: 'auto' },
+                    borderColor: 'error.main',
+                    color: 'error.main',
+                    '&:hover': {
+                      borderColor: 'error.dark',
+                      backgroundColor: 'error.main',
+                      color: 'white'
+                    }
+                  }}
                 >
                   Delete Account
                 </Button>
@@ -1193,6 +1240,16 @@ const ProfilePage: React.FC = () => {
                   <Typography variant="h5" component="h2" sx={{ fontWeight: 700, color: theme.palette.text.primary, mb: 3 }}>
                     Your Progress
                   </Typography>
+                  {courseData && (
+                    <Typography variant="h6" sx={{ color: theme.palette.primary.main, mb: 2, fontWeight: 600 }}>
+                      {courseData.title}
+                    </Typography>
+                  )}
+                  {!courseData && currentEnrollment && (
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Loading course information...
+                    </Typography>
+                  )}
 
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                                     <Card sx={{ backgroundColor: `${theme.palette.primary.main}10`, border: `1px solid ${theme.palette.primary.main}30` }}>
@@ -1396,16 +1453,61 @@ const ProfilePage: React.FC = () => {
         </Dialog>
 
         {/* Delete Account Dialog */}
-        <Dialog open={showDeleteDialog} onClose={() => setShowDeleteDialog(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Delete Account</DialogTitle>
+        <Dialog open={showDeleteDialog} onClose={() => {
+          setShowDeleteDialog(false);
+          setDeleteConfirmation('');
+        }} maxWidth="sm" fullWidth>
+          <DialogTitle sx={{ color: 'error.main', fontWeight: 700 }}>
+            ⚠️ Delete Account - IRREVERSIBLE ACTION
+          </DialogTitle>
           <DialogContent>
-            <Typography variant="body1" sx={{ mt: 2 }}>
-              Are you sure you want to delete your account? This action cannot be undone and will permanently remove all your data, progress, and account information.
+            <Alert severity="error" sx={{ mb: 2 }}>
+              <Typography variant="body1" sx={{ fontWeight: 600, mb: 1 }}>
+                This action is PERMANENT and CANNOT be undone!
+              </Typography>
+              <Typography variant="body2">
+                You will lose access to all your data, progress, purchases, and account information.
+              </Typography>
+            </Alert>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              To confirm deletion, please type <strong>"DELETE"</strong> in the field below:
+            </Typography>
+            <TextField
+              fullWidth
+              label="Type DELETE to confirm"
+              value={deleteConfirmation}
+              onChange={(e) => setDeleteConfirmation(e.target.value)}
+              placeholder="DELETE"
+              sx={{ mb: 2 }}
+            />
+            <Typography variant="body2" color="text.secondary">
+              This is your final warning. Once confirmed, your account and all associated data will be permanently deleted.
             </Typography>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setShowDeleteDialog(false)}>Cancel</Button>
-            <Button onClick={handleDeleteAccount} color="error" variant="contained">Delete Account</Button>
+            <Button onClick={() => {
+              setShowDeleteDialog(false);
+              setDeleteConfirmation('');
+            }}>Cancel</Button>
+            <Button 
+              onClick={handleDeleteAccount} 
+              color="error" 
+              variant="contained"
+              disabled={deleteConfirmation !== 'DELETE'}
+              sx={{
+                backgroundColor: 'error.main',
+                color: 'white',
+                '&:hover': {
+                  backgroundColor: 'error.dark',
+                },
+                '&:disabled': {
+                  backgroundColor: 'rgba(211, 47, 47, 0.3)',
+                  color: 'rgba(255, 255, 255, 0.5)'
+                }
+              }}
+            >
+              Permanently Delete Account
+            </Button>
           </DialogActions>
         </Dialog>
 
