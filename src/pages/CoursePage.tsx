@@ -566,6 +566,19 @@ const CoursePage: React.FC = () => {
         {/* Divider between cohorts and lessons */}
         <Divider sx={{ my: 4, borderColor: 'rgba(80, 235, 151, 0.1)', borderWidth: 1 }} />
 
+        {/* Course Overview Title */}
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h4" component="h2" gutterBottom sx={{ fontWeight: 600 }}>
+            Course Overview
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            {courseLessons.length > 0 
+              ? `Explore the ${courseLessons.length} lessons in this comprehensive course designed to guide your transformation journey.`
+              : "Course content will be available soon."
+            }
+          </Typography>
+        </Box>
+
         {/* Lessons Grid */}
         {courseLessons.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 4 }}>

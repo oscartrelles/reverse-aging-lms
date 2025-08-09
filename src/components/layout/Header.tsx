@@ -295,7 +295,7 @@ const Header: React.FC = () => {
               color: 'inherit',
               transition: 'all 0.3s ease',
               borderRadius: 2,
-              px: 1,
+              px: { xs: 0.5, sm: 1 },
               py: 0.5,
               '&:hover': {
                 backgroundColor: `${theme.palette.primary.main}10`,
@@ -306,7 +306,7 @@ const Header: React.FC = () => {
             <Box
               sx={{
                 position: 'relative',
-                mr: { xs: 1, sm: 2 },
+                mr: { xs: 0.5, sm: 1 },
                 width: { xs: 32, sm: 40 },
                 height: { xs: 32, sm: 40 },
                 borderRadius: '50%',
@@ -498,11 +498,11 @@ const Header: React.FC = () => {
           </Box>
         ) : (
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Button
+            <IconButton
               color="inherit"
               onClick={() => showAuthModal('signin', 'Welcome back!')}
               sx={{ 
-                mr: { xs: 1, sm: 2 },
+                mr: { xs: 0.5, sm: 1 },
                 transition: 'all 0.3s ease',
                 '&:hover': {
                   backgroundColor: `${theme.palette.primary.main}20`,
@@ -510,8 +510,8 @@ const Header: React.FC = () => {
                 }
               }}
             >
-              Sign In
-            </Button>
+              <Person />
+            </IconButton>
           </Box>
         )}
       </Toolbar>

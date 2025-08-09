@@ -102,19 +102,21 @@ const Testimonials: React.FC<TestimonialsProps> = ({
             boxShadow: `0 15px 40px rgba(0,0,0,0.4)`,
           }
         }}>
-          <CardContent sx={{ p: 4, textAlign: 'center', position: 'relative' }}>
+          <CardContent sx={{ p: { xs: 2, sm: 4 }, textAlign: 'center', position: 'relative' }}>
             {/* Navigation Buttons */}
             <IconButton
               onClick={() => setCurrentTestimonial((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1))}
               sx={{
                 position: 'absolute',
-                left: 8,
+                left: { xs: 4, sm: 8 },
                 top: '50%',
                 transform: 'translateY(-50%)',
                 backgroundColor: `${theme.palette.background.paper}E6`,
                 border: `1px solid ${theme.palette.primary.main}30`,
                 color: theme.palette.primary.main,
                 transition: 'all 0.3s ease',
+                width: { xs: 36, sm: 40 },
+                height: { xs: 36, sm: 40 },
                 '&:hover': {
                   backgroundColor: theme.palette.background.paper,
                   transform: 'translateY(-50%) scale(1.1)',
@@ -123,20 +125,22 @@ const Testimonials: React.FC<TestimonialsProps> = ({
                 zIndex: 2,
               }}
             >
-              <ChevronLeft />
+              <ChevronLeft sx={{ fontSize: { xs: 18, sm: 24 } }} />
             </IconButton>
             
             <IconButton
               onClick={() => setCurrentTestimonial((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1))}
               sx={{
                 position: 'absolute',
-                right: 8,
+                right: { xs: 4, sm: 8 },
                 top: '50%',
                 transform: 'translateY(-50%)',
                 backgroundColor: `${theme.palette.background.paper}E6`,
                 border: `1px solid ${theme.palette.primary.main}30`,
                 color: theme.palette.primary.main,
                 transition: 'all 0.3s ease',
+                width: { xs: 36, sm: 40 },
+                height: { xs: 36, sm: 40 },
                 '&:hover': {
                   backgroundColor: theme.palette.background.paper,
                   transform: 'translateY(-50%) scale(1.1)',
@@ -145,11 +149,11 @@ const Testimonials: React.FC<TestimonialsProps> = ({
                 zIndex: 2,
               }}
             >
-              <ChevronRight />
+              <ChevronRight sx={{ fontSize: { xs: 18, sm: 24 } }} />
             </IconButton>
 
             {/* Testimonial Content */}
-            <Box sx={{ px: 4 }}>
+            <Box sx={{ px: { xs: 2, sm: 4 } }}>
               <Typography 
                 variant="h6" 
                 sx={{ 
@@ -157,10 +161,12 @@ const Testimonials: React.FC<TestimonialsProps> = ({
                   fontStyle: 'italic',
                   lineHeight: 1.6,
                   color: theme.palette.text.primary,
-                  height: 140,
+                  minHeight: { xs: 'auto', sm: 140 },
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  fontSize: { xs: '1rem', sm: '1.25rem' },
+                  px: { xs: 3, sm: 0 },
                 }}
               >
                 "{testimonials[currentTestimonial].text}"
