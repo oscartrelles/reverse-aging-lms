@@ -57,16 +57,8 @@ const TermsPage: React.FC = () => {
           </Box>
 
           {/* Introduction */}
-          <Typography
-            variant="body1"
-            sx={{
-              mb: 4,
-              lineHeight: 1.7,
-              color: theme.palette.text.primary,
-              fontSize: '1.1rem',
-            }}
-          >
-            Welcome to the Reverse Aging Academy ("Academy," "we," "our," or "us"), operated by Breathing Flame, based in Málaga, Spain. By creating an account or using our services at academy.7weekreverseagingchallenge.com, you agree to these Terms of Service.
+          <Typography variant="body1" sx={{ mb: 3, color: 'text.secondary', lineHeight: 1.7 }}>
+            By creating an account or using our services, you agree to these Terms of Service.
           </Typography>
 
           {/* Sections */}

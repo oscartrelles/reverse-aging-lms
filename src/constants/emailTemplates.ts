@@ -2,11 +2,15 @@
 export const EMAIL_CONFIG = {
   BASE_URL: 'https://academy.7weekreverseagingchallenge.com',
   SUPPORT_EMAIL: 'support@reverseagingacademy.com',
+  TOP_10_PRACTICES_PDF_URL: 'https://drive.google.com/file/d/12621TzV2QkQ2yTUO6NSZ2xwv8BMESWVP/view?usp=drive_link',
 } as const;
 
 // Email template IDs for MailerSend
 // These will be created in the MailerSend dashboard
 export const EMAIL_TEMPLATES = {
+  // Use relative URLs instead of hardcoded domains
+  BASE_URL: window.location.origin,
+
   // Free Users (Account Only)
   WELCOME_EMAIL: 'k68zxl2en23lj905', // ✅ COMPLETE
   WELCOME_SOCIAL: 'welcome-social', // ⏳ PENDING
@@ -69,6 +73,7 @@ export const TEMPLATE_VARIABLES = {
     'courseUrl',
     'loginUrl',
     'supportEmail',
+    'top10PracticesPdfUrl',
   ],
 
   // Payment variables

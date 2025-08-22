@@ -20,14 +20,6 @@
           "function": "dynamicMetaTags"
         },
         {
-          "source": "/programs",
-          "function": "dynamicMetaTags"
-        },
-        {
-          "source": "/about",
-          "function": "dynamicMetaTags"
-        },
-        {
           "source": "**",
           "destination": "/index.html"
         }
@@ -78,14 +70,6 @@
         },
         {
           "source": "/course/**",
-          "function": "dynamicMetaTags"
-        },
-        {
-          "source": "/programs",
-          "function": "dynamicMetaTags"
-        },
-        {
-          "source": "/about",
           "function": "dynamicMetaTags"
         },
         {

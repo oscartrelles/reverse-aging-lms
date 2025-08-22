@@ -221,23 +221,20 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
             console.log('Course ID missing');
             throw new functions.https.HttpsError('invalid-argument', 'Course ID is required');
         }
-        // Create Checkout Session with Stripe
-        console.log('Calling Stripe API to create Checkout Session...');
+        // Create checkout session
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],
-            line_items: [
-                {
-                    price_data: {
-                        currency: currency,
-                        product_data: {
-                            name: courseTitle || 'The Reverse Aging Challenge',
-                            description: 'Complete course enrollment and access to all materials',
-                        },
-                        unit_amount: amount, // Amount in cents
+            line_items: [{
+                price_data: {
+                    currency: currency,
+                    product_data: {
+                        name: courseTitle || 'The Reverse Aging Challenge',
+                        description: 'Complete course enrollment and access to all materials',
                     },
-                    quantity: 1,
+                    unit_amount: amount, // Amount in cents
                 },
-            ],
+                quantity: 1,
+            }],
             mode: 'payment',
             success_url: `${process.env.REACT_APP_FRONTEND_URL || 'https://academy.7weekreverseagingchallenge.com'}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${process.env.REACT_APP_FRONTEND_URL || 'https://academy.7weekreverseagingchallenge.com'}/payment-cancelled`,
@@ -249,6 +246,7 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
                 firebaseUid: userId
             },
         });
+
         console.log('Checkout Session created successfully:', session.id);
         // Don't log sensitive URLs in production
         if (process.env.NODE_ENV !== 'production') {

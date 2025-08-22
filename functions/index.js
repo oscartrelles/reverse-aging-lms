@@ -249,40 +249,37 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
       throw new functions.https.HttpsError('invalid-argument', 'Course ID is required');
     }
 
-    // Create Checkout Session with Stripe
-    console.log('Calling Stripe API to create Checkout Session...');
+    // Create checkout session
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: currency,
-            product_data: {
-              name: courseTitle || 'The Reverse Aging Challenge',
-              description: 'Complete course enrollment and access to all materials',
+        payment_method_types: ['card'],
+        line_items: [{
+            price_data: {
+                currency: currency,
+                product_data: {
+                    name: courseTitle || 'The Reverse Aging Challenge',
+                    description: 'Complete course enrollment and access to all materials',
+                },
+                unit_amount: amount, // Amount in cents
             },
-            unit_amount: amount, // Amount in cents
-          },
-          quantity: 1,
+            quantity: 1,
+        }],
+        mode: 'payment',
+        success_url: `${process.env.REACT_APP_FRONTEND_URL || 'https://academy.7weekreverseagingchallenge.com'}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.REACT_APP_FRONTEND_URL || 'https://academy.7weekreverseagingchallenge.com'}/payment-cancelled`,
+        customer_email: userEmail,
+        metadata: {
+            userId: userId,
+            courseId: courseId,
+            cohortId: cohortId,
+            firebaseUid: userId
         },
-      ],
-      mode: 'payment',
-      success_url: `${process.env.REACT_APP_FRONTEND_URL || 'https://academy.7weekreverseagingchallenge.com'}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.REACT_APP_FRONTEND_URL || 'https://academy.7weekreverseagingchallenge.com'}/payment-cancelled`,
-      customer_email: userEmail,
-      metadata: {
-        userId: userId,
-        courseId: courseId,
-        cohortId: cohortId,
-        firebaseUid: userId
-      },
     });
 
     console.log('Checkout Session created successfully:', session.id);
     // Don't log sensitive URLs in production
     if (process.env.NODE_ENV !== 'production') {
-      console.log('Checkout URL:', session.url);
-      console.log('Success URL:', `${process.env.REACT_APP_FRONTEND_URL || 'https://academy.7weekreverseagingchallenge.com'}/payment-success?session_id={CHECKOUT_SESSION_ID}`);
+        console.log('Checkout URL:', session.url);
+        console.log('Success URL:', `${process.env.REACT_APP_FRONTEND_URL || 'https://academy.7weekreverseagingchallenge.com'}/payment-success?session_id={CHECKOUT_SESSION_ID}`);
     }
 
     // Store checkout session reference in Firestore

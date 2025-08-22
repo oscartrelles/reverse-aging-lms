@@ -51,7 +51,8 @@ function isCrawler(userAgent) {
 }
 // Generate HTML with dynamic meta tags
 function generateMetaHTML(config) {
-    const baseUrl = 'https://academy.7weekreverseagingchallenge.com';
+    // Base URL - use environment variable or fallback to relative URLs
+    const baseUrl = process.env.REACT_APP_FRONTEND_URL || 'https://academy.7weekreverseagingchallenge.com';
     const fallbackImage = `${baseUrl}/Academy.png`;
     return `<!DOCTYPE html>
 <html lang="en">
@@ -154,13 +155,14 @@ exports.dynamicMetaTags = functions.https.onRequest(async (req, res) => {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Redirecting...</title>
     <script>
-      // Immediate redirect to avoid Firebase hosting rewrites
-      window.location.replace('https://the-reverse-aging-challenge.web.app${originalUrl}');
+              // Immediate redirect to avoid Firebase hosting rewrites
+        // Use the current host to avoid redirect loops
+        window.location.replace('${fullUrl}');
     </script>
-    <meta http-equiv="refresh" content="0;url=https://the-reverse-aging-challenge.web.app${originalUrl}" />
+            <meta http-equiv="refresh" content="0;url=${fullUrl}" />
   </head>
   <body>
-    <p>Redirecting to <a href="https://the-reverse-aging-challenge.web.app${originalUrl}">The Reverse Aging Academy</a>...</p>
+            <p>Redirecting to <a href="${originalUrl}">The Reverse Aging Academy</a>...</p>
   </body>
 </html>`;
         res.set('Content-Type', 'text/html');
@@ -168,6 +170,9 @@ exports.dynamicMetaTags = functions.https.onRequest(async (req, res) => {
         return;
     }
     try {
+        // Base URL - use environment variable or fallback to relative URLs
+        const baseUrl = process.env.REACT_APP_FRONTEND_URL || 'https://academy.7weekreverseagingchallenge.com';
+        
         // Parse the URL to determine content type
         const urlParts = originalUrl.split('/').filter(Boolean);
         // Handle evidence articles: /evidence/[articleId]
@@ -178,7 +183,7 @@ exports.dynamicMetaTags = functions.https.onRequest(async (req, res) => {
                 const metaConfig = {
                     title: `${article.title} - Scientific Evidence | The Reverse Aging Academy`,
                     description: article.summary || 'Latest scientific research on reverse aging and longevity from The Reverse Aging Academy.',
-                    url: `https://academy.7weekreverseagingchallenge.com/evidence/${article.id}`,
+                    url: `${baseUrl}/evidence/${article.id}`,
                     type: 'article',
                     publishedTime: article.publishedDate.toDate().toISOString(),
                     author: article.author || 'The Reverse Aging Academy'
@@ -197,7 +202,7 @@ exports.dynamicMetaTags = functions.https.onRequest(async (req, res) => {
                 const metaConfig = {
                     title: `${course.title} - Course | The Reverse Aging Academy`,
                     description: course.description || 'Transform your health with evidence-based longevity strategies from The Reverse Aging Academy.',
-                    url: `https://academy.7weekreverseagingchallenge.com/course/${course.id}`,
+                    url: `${baseUrl}/course/${course.id}`,
                     type: 'website'
                 };
                 const html = generateMetaHTML(metaConfig);
@@ -213,7 +218,7 @@ exports.dynamicMetaTags = functions.https.onRequest(async (req, res) => {
                 metaConfig = {
                     title: 'Programs - The Reverse Aging Academy',
                     description: 'Discover our evidence-based programs designed to help you reverse aging and optimize your healthspan.',
-                    url: `https://academy.7weekreverseagingchallenge.com/programs`,
+                    url: `${baseUrl}/programs`,
                     type: 'website'
                 };
                 break;
@@ -221,7 +226,7 @@ exports.dynamicMetaTags = functions.https.onRequest(async (req, res) => {
                 metaConfig = {
                     title: 'About Us - The Reverse Aging Academy',
                     description: 'Learn about The Reverse Aging Academy, our mission to bring evidence-based longevity science to everyone.',
-                    url: `https://academy.7weekreverseagingchallenge.com/about`,
+                    url: `${baseUrl}/about`,
                     type: 'website'
                 };
                 break;
@@ -229,7 +234,7 @@ exports.dynamicMetaTags = functions.https.onRequest(async (req, res) => {
                 metaConfig = {
                     title: 'Scientific Evidence Library - The Reverse Aging Academy',
                     description: 'Explore our comprehensive library of scientific research on reverse aging, longevity, and healthspan optimization.',
-                    url: `https://academy.7weekreverseagingchallenge.com/evidence`,
+                    url: `${baseUrl}/evidence`,
                     type: 'website'
                 };
                 break;
@@ -238,7 +243,7 @@ exports.dynamicMetaTags = functions.https.onRequest(async (req, res) => {
                 metaConfig = {
                     title: 'The Reverse Aging Academy - Evidence-Based Longevity Education',
                     description: 'Your premier destination for evidence-based longevity education. Join our academy to learn proven strategies for reverse aging, health optimization, and living a longer, healthier life.',
-                    url: `https://academy.7weekreverseagingchallenge.com/`,
+                    url: `${baseUrl}/`,
                     type: 'website'
                 };
         }

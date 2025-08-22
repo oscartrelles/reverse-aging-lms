@@ -18,6 +18,7 @@ class EmailIntegrationService {
       loginUrl: EMAIL_CONFIG.BASE_URL,
       supportEmail: EMAIL_CONFIG.SUPPORT_EMAIL,
       year: new Date().getFullYear().toString(),
+      top10PracticesPdfUrl: EMAIL_CONFIG.TOP_10_PRACTICES_PDF_URL,
     };
 
     await mailerSendService.sendTransactional(templateId, user.email, variables);

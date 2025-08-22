@@ -4,10 +4,12 @@ export const ENVIRONMENT = {
   hostname: window.location.hostname,
   isDevelopment: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1',
   isProduction: window.location.hostname === 'academy.7weekreverseagingchallenge.com' || 
-                 window.location.hostname === 'reverse-aging-academy.web.app',
+                 window.location.hostname === 'reverse-aging-academy.web.app' ||
+                 window.location.hostname === 'reverseaging.academy',
   isStaging: !(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && 
              !(window.location.hostname === 'academy.7weekreverseagingchallenge.com' || 
-               window.location.hostname === 'reverse-aging-academy.web.app'),
+               window.location.hostname === 'reverse-aging-academy.web.app' ||
+               window.location.hostname === 'reverseaging.academy'),
   
   // Firebase project IDs (both sites in same project)
   FIREBASE_PROJECTS: {
@@ -16,11 +18,11 @@ export const ENVIRONMENT = {
     production: 'the-reverse-aging-challenge'
   },
   
-  // Hosting URLs
+  // Hosting URLs - use current origin instead of hardcoded domains
   HOSTING_URLS: {
     development: 'http://localhost:3000',
     staging: 'https://the-reverse-aging-challenge.web.app',
-    production: 'https://academy.7weekreverseagingchallenge.com'
+    production: window.location.origin // Dynamic - use current host
   },
   
   // Current project ID
@@ -30,10 +32,10 @@ export const ENVIRONMENT = {
     return this.FIREBASE_PROJECTS.staging;
   },
   
-  // Current hosting URL
+  // Current hosting URL - use current origin for production
   get currentHostingUrl(): string {
     if (this.isDevelopment) return this.HOSTING_URLS.development;
-    if (this.isProduction) return this.HOSTING_URLS.production;
+    if (this.isProduction) return window.location.origin; // Dynamic - use current host
     return this.HOSTING_URLS.staging;
   }
 } as const;

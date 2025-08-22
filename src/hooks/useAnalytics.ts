@@ -18,12 +18,13 @@ export const useAnalytics = () => {
 
   // Check if we're in production environment
   const isProduction = window.location.hostname === 'academy.7weekreverseagingchallenge.com' || 
-                      window.location.hostname === 'reverse-aging-academy.web.app';
+                      window.location.hostname === 'reverse-aging-academy.web.app' ||
+                      window.location.hostname === 'reverseaging.academy';
 
   // Track page views on route changes (only in production)
   useEffect(() => {
     if (process.env.REACT_APP_GA_MEASUREMENT_ID && isProduction) {
-      trackPageView(document.title, window.location.href);
+      trackPageView(location.pathname);
     }
   }, [location, isProduction]);
 

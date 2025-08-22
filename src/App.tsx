@@ -184,7 +184,8 @@ function App() {
   // Initialize GA4 and SPA analytics on app load (only in production)
   useEffect(() => {
     const isProduction = window.location.hostname === 'academy.7weekreverseagingchallenge.com' || 
-                        window.location.hostname === 'reverse-aging-academy.web.app';
+                        window.location.hostname === 'reverse-aging-academy.web.app' ||
+                        window.location.hostname === 'reverseaging.academy';
     
     if (process.env.REACT_APP_GA_MEASUREMENT_ID && isProduction) {
       console.log('📊 Initializing analytics for production environment');

@@ -43,6 +43,7 @@ export interface EmailVariables {
   loginUrl?: string;
   supportEmail?: string;
   year?: string;
+  top10PracticesPdfUrl?: string;
   
   // Dynamic content
   weeklyHighlights?: string;

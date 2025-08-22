@@ -63,6 +63,7 @@ const EmailTestPanel: React.FC = () => {
         loginUrl: EMAIL_CONFIG.BASE_URL,
         supportEmail: EMAIL_CONFIG.SUPPORT_EMAIL,
         year: new Date().getFullYear().toString(),
+        top10PracticesPdfUrl: EMAIL_CONFIG.TOP_10_PRACTICES_PDF_URL,
       };
 
       const success = await mailerSendService.sendTransactional(
@@ -291,6 +292,10 @@ const EmailTestPanel: React.FC = () => {
           Email System Test
         </Typography>
         
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Welcome emails now include a link to the "Top 10 Reverse Aging Practices" PDF as an incentive for new users who haven't enrolled yet.
+        </Typography>
+        
         <Box sx={{ mb: 3 }}>
           <Button
             variant="outlined"
@@ -319,7 +324,7 @@ const EmailTestPanel: React.FC = () => {
           fullWidth
           sx={{ mb: 2 }}
         >
-          Send Welcome Email Test
+          Send Welcome Email Test (Includes Top 10 Practices PDF)
         </Button>
 
         <Button

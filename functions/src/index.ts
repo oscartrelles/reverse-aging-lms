@@ -19,9 +19,9 @@ admin.initializeApp();
 export { dynamicMetaTags } from './socialMetaTags';
 
 // MailerSend API configuration
-const MAILERSEND_API_KEY = functions.config().mailersend?.api_key || process.env.MAILERSEND_API_KEY;
-const MAILERSEND_FROM_EMAIL = functions.config().mailersend?.from_email || process.env.MAILERSEND_FROM_EMAIL || 'noreply@reverseagingacademy.com';
-const MAILERSEND_FROM_NAME = functions.config().mailersend?.from_name || process.env.MAILERSEND_FROM_NAME || 'Reverse Aging Academy';
+const MAILERSEND_API_KEY = functions.config().mailersend?.api_key || process.env.MAILERSEND_API_KEY || process.env.REACT_APP_MAILERSEND_API_KEY;
+const MAILERSEND_FROM_EMAIL = functions.config().mailersend?.from_email || process.env.MAILERSEND_FROM_EMAIL || process.env.REACT_APP_MAILERSEND_FROM_EMAIL || 'noreply@reverseagingacademy.com';
+const MAILERSEND_FROM_NAME = functions.config().mailersend?.from_name || process.env.MAILERSEND_FROM_NAME || process.env.REACT_APP_MAILERSEND_FROM_NAME || 'Reverse Aging Academy';
 
 // Send email via MailerSend API
 export const sendEmail = functions.https.onCall(async (data, context) => {
@@ -32,7 +32,21 @@ export const sendEmail = functions.https.onCall(async (data, context) => {
 
   const { templateId, to, variables } = data;
 
+  // Debug logging
+  console.log('sendEmail called with:', { templateId, to, variables });
+  console.log('MailerSend config:', {
+    apiKey: MAILERSEND_API_KEY ? '***SET***' : 'NOT SET',
+    fromEmail: MAILERSEND_FROM_EMAIL,
+    fromName: MAILERSEND_FROM_NAME
+  });
+
   try {
+    // Check if MailerSend API key is configured
+    if (!MAILERSEND_API_KEY) {
+      console.error('MailerSend API key not configured');
+      throw new functions.https.HttpsError('failed-precondition', 'MailerSend API key not configured. Please set MAILERSEND_API_KEY in your environment.');
+    }
+
     const payload = {
       from: {
         email: MAILERSEND_FROM_EMAIL,
@@ -65,7 +79,11 @@ export const sendEmail = functions.https.onCall(async (data, context) => {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error('MailerSend API error:', errorData);
+      console.error('MailerSend API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData
+      });
       
       // Handle trial account limitations
       if (errorData.message && errorData.message.includes('Trial accounts can only send emails to the administrator')) {
@@ -73,7 +91,7 @@ export const sendEmail = functions.https.onCall(async (data, context) => {
         return { success: true, trialMode: true };
       }
       
-      throw new functions.https.HttpsError('internal', 'Failed to send email');
+      throw new functions.https.HttpsError('internal', `MailerSend API error: ${response.status} ${response.statusText}`);
     }
 
     console.log('Email sent successfully via Cloud Function');
@@ -88,7 +106,7 @@ export const sendEmail = functions.https.onCall(async (data, context) => {
 function getSubjectForTemplate(templateId: string, variables: any): string {
   switch (templateId) {
     case 'k68zxl2en23lj905': // Welcome Email
-      return `Welcome to Reverse Aging Academy, ${variables.firstName || 'there'}! 🚀`;
+      return `Welcome to Reverse Aging Academy, ${variables.firstName || 'there'}! 🚀 + Free PDF Inside`;
     case 'welcome-social':
       return `Welcome to Reverse Aging Academy, ${variables.firstName || 'there'}! 🚀`;
     case 'welcome-series-1':
@@ -215,8 +233,7 @@ export const createCheckoutSession = functions.https.onCall(async (data, context
       throw new functions.https.HttpsError('invalid-argument', 'Course ID is required');
     }
 
-    // Create Checkout Session with Stripe
-    console.log('Calling Stripe API to create Checkout Session...');
+    // Create checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [

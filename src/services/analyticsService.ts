@@ -27,6 +27,15 @@ export interface UserProperties {
 
 // Initialize GA4
 export const initializeGA4 = (measurementId: string) => {
+  const isProduction = window.location.hostname === 'academy.7weekreverseagingchallenge.com' ||
+                      window.location.hostname === 'reverse-aging-academy.web.app' ||
+                      window.location.hostname === 'reverseaging.academy';
+  
+  if (!isProduction) {
+    console.log('🚫 Analytics disabled for non-production environment');
+    return;
+  }
+
   // Load GA4 script
   const script = document.createElement('script');
   script.async = true;
@@ -47,22 +56,29 @@ export const initializeGA4 = (measurementId: string) => {
 };
 
 // Track page views
-export const trackPageView = (page_title: string, page_location?: string) => {
-  const isProduction = window.location.hostname === 'academy.7weekreverseagingchallenge.com' || 
-                      window.location.hostname === 'reverse-aging-academy.web.app';
+export const trackPageView = (page: string, title?: string) => {
+  const isProduction = window.location.hostname === 'academy.7weekreverseagingchallenge.com' ||
+                      window.location.hostname === 'reverse-aging-academy.web.app' ||
+                      window.location.hostname === 'reverseaging.academy';
   
-  if (typeof window.gtag !== 'undefined' && isProduction) {
+  if (!isProduction) return;
+
+  const page_title = title || document.title;
+  const page_location = window.location.href;
+
+  if (typeof window.gtag !== 'undefined') {
     window.gtag('config', process.env.REACT_APP_GA_MEASUREMENT_ID, {
       page_title,
-      page_location: page_location || window.location.href,
+      page_location: page_location,
     });
   }
 };
 
 // Track custom events
 export const trackEvent = (eventName: string, parameters?: Record<string, any>) => {
-  const isProduction = window.location.hostname === 'academy.7weekreverseagingchallenge.com' || 
-                      window.location.hostname === 'reverse-aging-academy.web.app';
+  const isProduction = window.location.hostname === 'academy.7weekreverseagingchallenge.com' ||
+                      window.location.hostname === 'reverse-aging-academy.web.app' ||
+                      window.location.hostname === 'reverseaging.academy';
   
   if (typeof window.gtag !== 'undefined' && isProduction) {
     window.gtag('event', eventName, parameters);

@@ -88,7 +88,7 @@ const CohortEditor: React.FC<CohortEditorProps> = ({
         amount: cohortData.pricing.earlyBirdDiscount.amount,
         type: cohortData.pricing.earlyBirdDiscount.type,
         validUntil: cohortData.pricing.earlyBirdDiscount.validUntil.toDate().toISOString().split('T')[0]
-      } : undefined
+      } : null
     } as FormCohortPricing,
     coupons: cohortData?.coupons?.map(coupon => ({
       ...coupon,
@@ -193,17 +193,26 @@ const CohortEditor: React.FC<CohortEditorProps> = ({
   };
 
   const toggleEarlyBird = () => {
-    setFormData(prev => ({
-      ...prev,
-      pricing: {
-        ...prev.pricing,
-        earlyBirdDiscount: prev.pricing.earlyBirdDiscount ? undefined : {
+    setFormData(prev => {
+      const newPricing = { ...prev.pricing };
+      
+      if (prev.pricing.earlyBirdDiscount) {
+        // Remove the earlyBirdDiscount field entirely when toggling off
+        delete newPricing.earlyBirdDiscount;
+      } else {
+        // Add early bird discount when toggling on
+        newPricing.earlyBirdDiscount = {
           amount: 10,
           type: 'percentage' as const,
           validUntil: ''
-        }
+        };
       }
-    }));
+      
+      return {
+        ...prev,
+        pricing: newPricing
+      };
+    });
   };
 
   const addCoupon = () => {
@@ -281,13 +290,18 @@ const CohortEditor: React.FC<CohortEditorProps> = ({
       };
 
       // Process pricing with early bird discount
-      const processedPricing = {
+      const processedPricing: any = {
         ...formData.pricing,
         earlyBirdDiscount: formData.pricing.earlyBirdDiscount && formData.pricing.earlyBirdDiscount.validUntil ? {
           ...formData.pricing.earlyBirdDiscount,
           validUntil: createLocalDate(formData.pricing.earlyBirdDiscount.validUntil)
-        } : undefined
+        } : null
       };
+      
+      // Remove earlyBirdDiscount field if it's null to avoid Firestore errors
+      if (processedPricing.earlyBirdDiscount === null || !processedPricing.earlyBirdDiscount.validUntil) {
+        delete processedPricing.earlyBirdDiscount;
+      }
 
       // Process coupons with date conversion
       const processedCoupons = formData.coupons

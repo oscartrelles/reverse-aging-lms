@@ -1459,7 +1459,7 @@ const Dashboard: React.FC = () => {
 
               <ProgramCard
                 title="The 7-Day Reverse Aging Reset"
-                subtitle="Next retreat: October 25-31, 2024"
+                subtitle="Next retreat: October 25-31, 2025"
                 description="For those ready to go all in, our 7‑day retreat in the Málaga countryside is an immersive reset."
                 features={[
                   {

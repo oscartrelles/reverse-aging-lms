@@ -1,4 +1,6 @@
-# https://www.robotstxt.org/robotstxt.html
+# robots.txt for The Reverse Aging Academy
+# This file tells search engine crawlers which pages they can and cannot access
+
 User-agent: *
 Allow: /
 
@@ -7,19 +9,18 @@ Disallow: /admin/
 Disallow: /dashboard/
 Disallow: /profile/
 Disallow: /payment/
-Disallow: /oauth-callback.html
+Disallow: /course/*/lesson/*
 
-# Allow important pages
-Allow: /evidence/
-Allow: /course/
-Allow: /programs/
-Allow: /about/
-Allow: /privacy/
-Allow: /terms/
+# Allow public pages
+Allow: /programs
+Allow: /evidence
+Allow: /about
+Allow: /privacy
+Allow: /terms
+Allow: /course/*
 
-# Sitemap location
-Sitemap: https://academy.7weekreverseagingchallenge.com/sitemap.xml
-Sitemap: https://reverse-aging-academy.web.app/sitemap.xml
+# Sitemap - use relative URL
+Sitemap: /sitemap.xml
 
-# Crawl delay (optional - be respectful to servers)
+# Crawl-delay for respectful crawling
 Crawl-delay: 1

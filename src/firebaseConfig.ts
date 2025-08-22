@@ -1,40 +1,24 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, FacebookAuthProvider, signInWithRedirect, getRedirectResult } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
+import { getAuth, connectAuthEmulator, GoogleAuthProvider, FacebookAuthProvider, signInWithRedirect, getRedirectResult } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getStorage, connectStorageEmulator } from 'firebase/storage';
 
-// Detect environment
 const hostname = window.location.hostname;
-const isDevelopment = hostname === 'localhost' || hostname === '127.0.0.1';
-const isProduction = hostname === 'academy.7weekreverseagingchallenge.com' || 
-                    hostname === 'reverse-aging-academy.web.app';
-const isStaging = !isDevelopment && !isProduction;
+const isProduction = hostname === 'academy.7weekreverseagingchallenge.com' ||
+                     hostname === 'reverse-aging-academy.web.app' ||
+                     hostname === 'reverseaging.academy';
 
-// Your Firebase configuration
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-  authDomain: isDevelopment 
-    ? 'the-reverse-aging-challenge.web.app'  // Use staging auth domain for development
-    : isProduction 
-      ? 'academy.7weekreverseagingchallenge.com'  // Production auth domain
-      : 'the-reverse-aging-challenge.web.app',    // Staging auth domain
-  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  authDomain: isProduction 
+    ? 'the-reverse-aging-challenge.firebaseapp.com'  // Production auth domain
+    : 'the-reverse-aging-challenge.firebaseapp.com', // Staging auth domain
+  projectId: 'the-reverse-aging-challenge',
+  storageBucket: 'the-reverse-aging-challenge.appspot.com',
   messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.REACT_APP_FIREBASE_APP_ID
+  appId: process.env.REACT_APP_FIREBASE_APP_ID,
+  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
 };
-
-// Log environment info for debugging (development only)
-if (process.env.NODE_ENV === 'development') {
-  console.log('🌍 Firebase Environment:', {
-    hostname,
-    isDevelopment,
-    isStaging,
-    isProduction,
-    projectId: firebaseConfig.projectId,
-    authDomain: firebaseConfig.authDomain
-  });
-}
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -88,5 +72,17 @@ export const handleRedirectResult = async () => {
     return null;
   }
 };
+
+// Connect to emulators in development
+if (process.env.NODE_ENV === 'development') {
+  try {
+    connectAuthEmulator(auth, 'http://localhost:9099');
+    connectFirestoreEmulator(db, 'localhost', 8080);
+    connectStorageEmulator(storage, 'localhost', 9199);
+    console.log('🔧 Connected to Firebase emulators');
+  } catch (error) {
+    console.log('⚠️ Firebase emulators already connected or not available');
+  }
+}
 
 export default app; 
